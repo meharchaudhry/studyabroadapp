@@ -1,0 +1,477 @@
+name,country,ranking,qs_subject_ranking,subject,tuition,living_cost,image_url,website,requirements_cgpa,ielts,toefl,gre_required,scholarships,course_duration
+Stratford University,United States,173,68,Computer Science,4500000,1700000,https://logo.clearbit.com/stratford.edu,http://www.stratford.edu/,8.8,7.5,95,True,,18
+Western Dakota Technical Institute,United States,188,40,Law,5000000,1600000,https://logo.clearbit.com/wdt.edu,https://www.wdt.edu,7.8,7.5,90,False,,36
+Carteret Community College,United States,437,12,Data Science,4800000,1300000,https://logo.clearbit.com/carteret.edu,http://www.carteret.edu,8.3,7.5,80,False,,24
+Sandhills Community College,United States,280,121,Psychology,4000000,1800000,https://logo.clearbit.com/sandhills.edu,http://www.sandhills.edu,7.6,7.5,105,False,Dean's Excellence Award,48
+Davenport University,United States,517,40,Psychology,3900000,1800000,https://logo.clearbit.com/davenport.edu,http://www.davenport.edu/,9.2,7.0,80,False,,12
+Southwest Texas Junior College,United States,441,71,Law,3800000,1800000,https://logo.clearbit.com/swtjc.net,http://www.swtjc.net,6.9,6.0,80,True,Global Study Grant,18
+East Tennessee State University,United States,404,156,Art & Design,4100000,1300000,https://logo.clearbit.com/etsu.edu,http://www.etsu.edu/,8.8,6.5,110,True,,24
+Mitchell Community College,United States,925,17,Business & Management,4200000,1200000,https://logo.clearbit.com/mitchellcc.edu,http://www.mitchellcc.edu,7.0,7.0,110,True,Global Study Grant,12
+Colorado College,United States,435,127,Psychology,4400000,2000000,https://logo.clearbit.com/coloradocollege.edu,http://www.coloradocollege.edu/,8.2,6.5,110,True,Dean's Excellence Award,24
+New York Medical College,United States,175,107,Economics,5400000,1400000,https://logo.clearbit.com/nymc.edu,https://www.nymc.edu/,7.2,7.0,90,False,,36
+Henry Ford College,United States,834,20,Engineering,4200000,1500000,https://logo.clearbit.com/hfcc.edu,http://www.hfcc.edu,6.6,7.5,90,True,Global Study Grant,48
+University of Louisiana at Lafeyette,United States,564,58,Computer Science,5200000,1900000,https://logo.clearbit.com/louisiana.edu,http://www.louisiana.edu/,8.1,7.5,105,True,,36
+Southeastern Illinois College,United States,543,100,Medicine,5100000,1600000,https://logo.clearbit.com/sic.edu,http://www.sic.edu,8.0,7.0,100,True,Dean's Excellence Award,12
+"University of California, Merced",United States,33,69,Engineering,3800000,1700000,https://logo.clearbit.com/ucmerced.edu,http://www.ucmerced.edu/,7.5,7.5,95,False,,48
+Clarke College,United States,751,182,Engineering,5300000,1700000,https://logo.clearbit.com/clarke.edu,http://www.clarke.edu/,7.0,7.5,100,False,Vice-Chancellor Merit,12
+Highland Community College,United States,252,161,Law,3700000,1200000,https://logo.clearbit.com/highland.edu,http://www.highland.edu,7.8,6.0,100,False,,18
+Lakeland Community College,United States,857,184,Law,4100000,1400000,https://logo.clearbit.com/lakelandcc.edu,http://www.lakelandcc.edu,9.3,6.5,110,True,,12
+Davidson College,United States,2,72,Medicine,5000000,2000000,https://logo.clearbit.com/davidson.edu,http://www.davidson.edu/,9.4,7.5,100,True,Dean's Excellence Award,24
+Central Texas College,United States,731,67,Data Science,5300000,1700000,https://logo.clearbit.com/ctcd.edu,http://www.ctcd.edu,6.7,7.0,100,True,Vice-Chancellor Merit,24
+Johns Hopkins University Applied Physics Laboratory,United States,123,48,Computer Science,5300000,1500000,https://logo.clearbit.com/jhuapl.edu,http://www.jhuapl.edu/,7.2,7.0,95,False,,18
+Augustana College (IL),United States,53,113,Law,3900000,1900000,https://logo.clearbit.com/augustana.edu,http://www.augustana.edu/,8.3,7.0,90,False,Global Study Grant,18
+Kennesaw State University,United States,55,133,Engineering,4000000,2000000,https://logo.clearbit.com/kennesaw.edu,http://www.kennesaw.edu/,8.2,6.5,100,False,,48
+Gadsden State Community College,United States,259,129,Psychology,4100000,1700000,https://logo.clearbit.com/gadsdenstate.edu,http://www.gadsdenstate.edu,8.1,7.0,80,False,Dean's Excellence Award,12
+Wor-Wic Community College,United States,812,59,Law,5400000,1800000,https://logo.clearbit.com/worwic.edu,http://www.worwic.edu,8.5,7.5,100,True,Dean's Excellence Award,48
+Lenoir-Rhyne University,United States,461,22,Art & Design,5300000,1500000,https://logo.clearbit.com/lr.edu,https://www.lr.edu/,8.7,6.5,80,False,Dean's Excellence Award,24
+Lewis-Clark State College,United States,335,22,Medicine,5200000,1800000,https://logo.clearbit.com/lcsc.edu,http://www.lcsc.edu/,9.5,6.5,90,True,Dean's Excellence Award,36
+Redlands Community College,United States,988,158,Data Science,3900000,1200000,https://logo.clearbit.com/redlandscc.edu,http://www.redlandscc.edu,8.9,7.0,105,False,Vice-Chancellor Merit,36
+42 US,United States,929,78,Computer Science,4200000,1200000,https://logo.clearbit.com/student.42.us.org,http://www.42.us.org/,9.1,7.0,100,False,,24
+Gonzaga University,United States,672,199,Computer Science,5000000,1200000,https://logo.clearbit.com/gonzaga.edu,http://www.gonzaga.edu/,7.1,6.0,95,False,,12
+State University of New York at Oneonta,United States,803,51,Computer Science,5100000,1900000,https://logo.clearbit.com/suny.oneonta.edu,https://suny.oneonta.edu,7.4,6.0,100,False,Vice-Chancellor Merit,12
+Woodland Community College,United States,783,11,Art & Design,3700000,1300000,https://logo.clearbit.com/wcc.yccd.edu,http://wcc.yccd.edu,8.3,7.5,105,True,Global Study Grant,12
+Lake Area Technical Institute,United States,633,81,Psychology,5400000,1600000,https://logo.clearbit.com/lakeareatech.edu,http://www.lakeareatech.edu,7.5,6.5,85,True,,24
+Huston-Tillotson University,United States,663,117,Art & Design,4200000,1800000,https://logo.clearbit.com/htu.edu,https://htu.edu/,7.6,6.5,110,False,Dean's Excellence Award,12
+Ulster County Community College,United States,949,74,Medicine,5300000,1400000,https://logo.clearbit.com/www.sunyulster.edu,http://WWW.SUNYULSTER.EDU,8.5,7.0,100,True,Vice-Chancellor Merit,36
+Thomas Jefferson University,United States,611,141,Engineering,4800000,1300000,https://logo.clearbit.com/jefferson.edu,http://www.jefferson.edu/,7.1,7.5,100,True,Global Study Grant,36
+California Maritime Academy,United States,613,84,Engineering,5200000,1200000,https://logo.clearbit.com/csum.edu,http://www.csum.edu/,7.3,6.5,95,False,Vice-Chancellor Merit,18
+Daniel Webster College,United States,766,184,Medicine,4900000,1700000,https://logo.clearbit.com/dwc.edu,http://www.dwc.edu/,6.7,6.5,95,True,,12
+Pennsylvania Institute of Technology,United States,618,5,Economics,4000000,2000000,https://logo.clearbit.com/pit.edu,http://www.pit.edu,9.0,6.5,85,False,Dean's Excellence Award,12
+Schiller International University,United States,317,187,Psychology,5100000,1800000,https://logo.clearbit.com/schiller.edu,https://schiller.edu/,8.5,7.0,95,False,Dean's Excellence Award,48
+Washington Bible College/Capital Bible Seminary,United States,203,130,Computer Science,4300000,2000000,https://logo.clearbit.com/bible.edu,http://www.bible.edu/,7.7,6.0,85,True,Dean's Excellence Award,36
+Chattahoochee Technical College,United States,974,185,Engineering,3800000,1200000,https://logo.clearbit.com/chattahoocheetech.edu,http://www.chattahoocheetech.edu,7.5,7.5,100,False,Vice-Chancellor Merit,18
+Cornell College,United States,883,111,Data Science,3700000,1300000,https://logo.clearbit.com/cornell-iowa.edu,http://www.cornell-iowa.edu/,7.2,6.5,80,True,Dean's Excellence Award,24
+University of South Carolina - Aiken,United States,519,105,Business & Management,3900000,1800000,https://logo.clearbit.com/usca.edu,http://www.usca.edu/,6.5,6.0,100,False,Global Study Grant,24
+New Mexico State University,United States,450,173,Psychology,3800000,2000000,https://logo.clearbit.com/nmsu.edu,http://www.nmsu.edu/,6.6,7.5,100,False,,48
+Dominican College,United States,309,193,Law,5100000,1300000,https://logo.clearbit.com/dominican.edu,http://www.dominican.edu/,6.6,7.5,85,False,,48
+Oklahoma State University,United States,436,90,Engineering,5400000,1500000,https://logo.clearbit.com/okstate.edu,http://www.okstate.edu/,8.3,6.5,85,False,Vice-Chancellor Merit,48
+Upper Iowa University,United States,645,129,Art & Design,5000000,1500000,https://logo.clearbit.com/uiu.edu,http://www.uiu.edu/,8.4,6.0,90,True,,36
+Allentown College of Saint Francis de Sales,United States,549,178,Art & Design,5200000,1400000,https://logo.clearbit.com/allencol.edu,http://www.allencol.edu/,7.7,6.0,105,False,Global Study Grant,36
+University of Maine at Machias,United States,81,10,Medicine,4300000,1300000,https://logo.clearbit.com/umm.maine.edu,http://www.umm.maine.edu/,6.5,6.0,85,True,Vice-Chancellor Merit,36
+Hofstra University,United States,208,118,Art & Design,3800000,1900000,https://logo.clearbit.com/hofstra.edu,http://www.hofstra.edu/,9.5,7.5,110,False,Dean's Excellence Award,12
+Northeastern Oklahoma A&M College,United States,719,60,Business & Management,4500000,1900000,https://logo.clearbit.com/neo.edu,http://www.neo.edu,9.3,7.5,100,True,,18
+Western Illinois University,United States,60,64,Business & Management,4000000,2000000,https://logo.clearbit.com/wiu.edu,http://www.wiu.edu/,7.6,6.0,105,False,Vice-Chancellor Merit,18
+Mt. San Jacinto Community College District,United States,684,127,Medicine,4100000,2000000,https://logo.clearbit.com/msjc.edu,http://www.msjc.edu,8.4,6.0,85,False,,36
+Yuba College,United States,691,136,Art & Design,3800000,2000000,https://logo.clearbit.com/yc.yccd.edu,http://yc.yccd.edu,9.1,6.5,110,True,,48
+University of South Alabama,United States,258,24,Psychology,5000000,1900000,https://logo.clearbit.com/southalabama.edu,http://www.southalabama.edu/,7.1,6.5,110,True,,24
+State University of New York at Buffalo,United States,226,116,Psychology,5400000,1700000,https://logo.clearbit.com/buffalo.edu,http://www.buffalo.edu/,7.2,7.5,110,True,,12
+University of Minnesota - Duluth,United States,959,34,Art & Design,4500000,1800000,https://logo.clearbit.com/d.umn.edu,http://www.d.umn.edu/,6.9,6.0,80,False,Dean's Excellence Award,36
+Dawson Community College,United States,263,51,Business & Management,4900000,1200000,https://logo.clearbit.com/dawson.edu,http://www.dawson.edu,8.1,7.5,95,False,Vice-Chancellor Merit,36
+Wilmington University,United States,912,100,Economics,4200000,1500000,https://logo.clearbit.com/wilmu.edu,https://www.wilmu.edu/,6.7,7.0,95,False,Global Study Grant,24
+James Madison University,United States,397,10,Computer Science,3700000,1800000,https://logo.clearbit.com/jmu.edu,http://www.jmu.edu/,8.6,6.5,85,True,Global Study Grant,12
+Lehigh Carbon Community College,United States,621,127,Data Science,5400000,1200000,https://logo.clearbit.com/lccc.edu,http://www.lccc.edu,9.4,6.0,110,True,,18
+Aurora University,United States,714,16,Computer Science,4700000,1800000,https://logo.clearbit.com/aurora.edu,http://www.aurora.edu/,7.2,7.5,105,False,Global Study Grant,24
+Cisco College,United States,314,56,Engineering,5100000,1500000,https://logo.clearbit.com/cisco.edu,http://www.cisco.edu,7.1,7.0,95,False,,48
+Worcester Polytechnic Institute,United States,246,51,Psychology,4700000,1900000,https://logo.clearbit.com/wpi.edu,http://www.wpi.edu/,6.9,7.5,105,True,Vice-Chancellor Merit,12
+University of Massachusetts Boston,United States,439,98,Computer Science,4200000,1400000,https://logo.clearbit.com/umb.edu,https://www.umb.edu/,7.2,6.0,100,False,Dean's Excellence Award,48
+Northern Michigan University,United States,46,180,Engineering,4600000,1500000,https://logo.clearbit.com/nmu.edu,http://www.nmu.edu/,6.7,6.5,90,True,Global Study Grant,12
+Cape Cod Community College,United States,212,90,Law,4400000,1700000,https://logo.clearbit.com/capecod.edu,http://www.capecod.edu,9.3,6.0,110,False,Global Study Grant,12
+San Diego State University,United States,820,39,Law,4400000,1200000,https://logo.clearbit.com/sdsu.edu,http://www.sdsu.edu/,7.8,7.5,110,False,Global Study Grant,12
+Luzerne County Community College,United States,92,43,Art & Design,5200000,1900000,https://logo.clearbit.com/luzerne.edu,http://www.luzerne.edu,9.3,6.0,80,False,,18
+Tacoma Community College,United States,148,25,Data Science,4100000,1600000,https://logo.clearbit.com/tacomacc.edu,http://www.tacomacc.edu,8.5,7.5,85,False,Vice-Chancellor Merit,24
+Barnard College,United States,395,151,Engineering,4600000,1700000,https://logo.clearbit.com/barnard.edu,http://www.barnard.edu/,8.8,6.0,80,False,Vice-Chancellor Merit,12
+Regent University,United States,801,131,Psychology,4900000,1700000,https://logo.clearbit.com/regent.edu,http://www.regent.edu/,7.5,6.0,95,True,,48
+Texas State Technical College-Waco,United States,977,33,Psychology,5400000,1800000,https://logo.clearbit.com/waco.tstc.edu,http://www.waco.tstc.edu,8.7,7.0,105,True,Vice-Chancellor Merit,24
+Great Bay Community College,United States,75,143,Law,3700000,1800000,https://logo.clearbit.com/greatbay.edu,http://www.greatbay.edu,6.9,7.5,95,False,Dean's Excellence Award,48
+"California State University, Hayward",United States,393,117,Engineering,3800000,1600000,https://logo.clearbit.com/csuhayward.edu,http://www.csuhayward.edu/,7.2,6.5,90,True,Dean's Excellence Award,48
+Rhode Island College,United States,537,81,Data Science,3800000,1300000,https://logo.clearbit.com/ric.edu,http://www.ric.edu/,7.1,6.0,95,False,Vice-Chancellor Merit,36
+Southern Maine Community College,United States,779,104,Medicine,5200000,1700000,https://logo.clearbit.com/smccme.edu,http://www.smccME.edu,7.9,6.0,85,False,,48
+Tulsa Community College,United States,978,176,Economics,5100000,1900000,https://logo.clearbit.com/tulsacc.edu,http://www.tulsacc.edu,7.9,7.0,100,False,,12
+Virginia Commonwealth University,United States,604,147,Law,3700000,1800000,https://logo.clearbit.com/vcu.edu,http://vcu.vcu.edu/,7.7,7.5,100,False,Dean's Excellence Award,12
+Northwestern University,United States,47,138,Psychology,4500000,1400000,https://logo.clearbit.com/northwestern.edu,http://www.northwestern.edu/,6.8,6.0,95,False,,12
+Marist College,United States,217,181,Medicine,4900000,1700000,https://logo.clearbit.com/marist.edu,http://www.marist.edu/,8.2,6.0,90,False,Global Study Grant,18
+Central Methodist College,United States,682,18,Psychology,4600000,1800000,https://logo.clearbit.com/cmc.edu,http://www.cmc.edu/,8.5,7.5,100,True,,36
+New River Community College,United States,574,130,Engineering,5000000,1700000,https://logo.clearbit.com/nr.edu,http://www.nr.edu,9.0,7.5,95,False,,36
+Trident Technical College,United States,815,153,Economics,4300000,1300000,https://logo.clearbit.com/tridenttech.edu,http://www.tridenttech.edu,8.5,7.5,110,True,,24
+Air Force Institute of Technology,United States,786,10,Economics,3800000,2000000,https://logo.clearbit.com/afit.edu,http://www.afit.edu/,7.1,7.5,100,False,Vice-Chancellor Merit,48
+Kettering University,United States,553,51,Engineering,5200000,1900000,https://logo.clearbit.com/kettering.edu,http://www.kettering.edu/,6.6,7.0,90,False,Global Study Grant,48
+Eastern Washington University,United States,373,76,Psychology,4000000,1800000,https://logo.clearbit.com/ewu.edu,http://www.ewu.edu/,8.4,7.0,110,True,Dean's Excellence Award,24
+Colorado State University - Global Campus,United States,562,37,Medicine,4400000,1500000,https://logo.clearbit.com/csuglobal.edu,http://www.csuglobal.edu/,7.2,6.5,110,False,Global Study Grant,24
+Carleton College,United States,26,63,Engineering,4600000,1800000,https://logo.clearbit.com/carleton.edu,http://www.carleton.edu/,9.3,7.5,105,False,,18
+Frederick Community College,United States,947,173,Data Science,4500000,1500000,https://logo.clearbit.com/frederick.edu,http://www.frederick.edu/,8.2,6.0,110,False,Global Study Grant,36
+University of Indianapolis,United States,862,142,Computer Science,4300000,1600000,https://logo.clearbit.com/uindy.edu,http://www.uindy.edu/,8.3,7.5,95,False,Global Study Grant,48
+John A Logan College,United States,488,177,Art & Design,5200000,1800000,https://logo.clearbit.com/jalc.edu,http://www.jalc.edu,7.4,7.5,95,False,Vice-Chancellor Merit,12
+University of Idaho,United States,968,180,Law,4700000,1200000,https://logo.clearbit.com/uidaho.edu,http://www.uidaho.edu/,9.2,6.5,100,False,Dean's Excellence Award,24
+Antioch New England,United States,713,99,Psychology,4700000,1600000,https://logo.clearbit.com/antiochne.edu,http://www.antiochne.edu/,7.7,6.0,110,False,Global Study Grant,36
+Mineral Area College,United States,153,98,Data Science,3900000,1700000,https://logo.clearbit.com/mineralarea.edu,http://www.mineralarea.edu,7.2,7.5,80,False,Vice-Chancellor Merit,12
+State University of New York at Albany,United States,425,125,Law,5200000,1700000,https://logo.clearbit.com/albany.edu,http://www.albany.edu/,8.5,7.0,100,False,Dean's Excellence Award,36
+Asheville-Buncombe Technical Community College,United States,305,191,Computer Science,4400000,1200000,https://logo.clearbit.com/abtech.edu,http://www.abtech.edu,7.7,7.5,95,True,,12
+University of Louisiana at Monroe,United States,318,129,Psychology,4100000,1900000,https://logo.clearbit.com/ulm.edu,http://www.ulm.edu/,8.2,7.0,105,False,,36
+Polytechnic University of New York,United States,339,16,Art & Design,3800000,1200000,https://logo.clearbit.com/poly.edu,http://www.poly.edu/,9.1,6.0,95,True,Vice-Chancellor Merit,18
+Olin College of Engineering,United States,630,193,Law,4400000,1200000,https://logo.clearbit.com/students.olin.edu,http://www.students.olin.edu,9.3,7.0,100,False,Dean's Excellence Award,12
+Adelphi University,United States,585,111,Medicine,5200000,2000000,https://logo.clearbit.com/adelphi.edu,http://www.adelphi.edu/,6.9,6.5,95,False,Global Study Grant,12
+Connecticut College,United States,966,21,Computer Science,4600000,1800000,https://logo.clearbit.com/conncoll.edu,http://www.conncoll.edu/,7.7,6.0,80,False,Global Study Grant,24
+Washburn University,United States,616,118,Engineering,5400000,1500000,https://logo.clearbit.com/wuacc.edu,http://www.wuacc.edu/,6.5,7.5,100,False,Dean's Excellence Award,36
+College of Southern Idaho,United States,194,76,Medicine,3800000,1700000,https://logo.clearbit.com/csi.edu,http://www.csi.edu,8.8,7.0,85,False,,12
+West Virginia Northern Community College,United States,385,157,Engineering,5300000,1900000,https://logo.clearbit.com/wvncc.edu,http://www.wvncc.edu/,7.8,6.0,80,False,,12
+Georgia Institute of Technology,United States,3,141,Engineering,5400000,1500000,https://logo.clearbit.com/gatech.edu,http://www.gatech.edu/,8.1,6.0,100,False,Global Study Grant,36
+Onondaga Community College,United States,936,120,Computer Science,4600000,1400000,https://logo.clearbit.com/sunyocc.edu,http://www.sunyocc.edu,7.7,6.0,90,False,Global Study Grant,12
+Manor College,United States,11,29,Computer Science,4900000,1300000,https://logo.clearbit.com/manor.edu,http://www.manor.edu,9.1,6.5,90,True,Dean's Excellence Award,36
+Wytheville Community College,United States,634,58,Data Science,4800000,1700000,https://logo.clearbit.com/wcc.vccs.edu,http://www.wcc.vccs.edu,6.5,6.5,90,True,Global Study Grant,24
+Massachusetts Institute of Technology,United States,799,193,Art & Design,4500000,1500000,https://logo.clearbit.com/mit.edu,http://web.mit.edu/,9.5,6.5,85,False,Global Study Grant,24
+Thomas College,United States,524,52,Medicine,3700000,1300000,https://logo.clearbit.com/thomas.edu,http://www.thomas.edu/,7.7,7.5,110,False,,18
+Savannah Technical College,United States,98,198,Business & Management,4000000,1700000,https://logo.clearbit.com/savannahtech.edu,http://www.savannahtech.edu,8.2,6.0,105,True,,18
+Stillman College,United States,773,40,Law,3800000,1900000,https://logo.clearbit.com/stillman.edu,https://stillman.edu/,6.9,7.5,95,True,,48
+Yavapai College,United States,184,134,Engineering,4400000,1500000,https://logo.clearbit.com/yc.edu,http://www.YC.EDU,8.2,6.5,85,False,Dean's Excellence Award,12
+Gavilan College,United States,14,194,Economics,4700000,1800000,https://logo.clearbit.com/gavilan.edu,http://www.gavilan.edu,6.9,7.0,85,False,,48
+Virginia Western Community College,United States,13,198,Economics,4400000,1600000,https://logo.clearbit.com/virginiawestern.edu,http://virginiawestern.edu/,7.6,7.0,80,False,,36
+Columbia College (MO),United States,105,143,Psychology,4600000,1600000,https://logo.clearbit.com/ccis.edu,http://www.ccis.edu/,6.6,6.5,95,True,Dean's Excellence Award,48
+Greenleaf University,United States,582,51,Medicine,5400000,2000000,https://logo.clearbit.com/greenleaf.edu,http://www.greenleaf.edu/,7.3,7.0,90,False,Dean's Excellence Award,24
+CUNY Lehman College,United States,992,182,Computer Science,4400000,1200000,https://logo.clearbit.com/lehman.cuny.edu,https://www.lehman.cuny.edu/,7.1,6.0,105,False,,48
+Colorado Community College System,United States,541,128,Data Science,3700000,1200000,https://logo.clearbit.com/cccs.edu,http://www.cccs.edu/,6.8,7.5,95,True,Dean's Excellence Award,12
+Vance-Granville Community College,United States,423,62,Law,4800000,1800000,https://logo.clearbit.com/vgcc.edu,http://www.vgcc.edu/,8.2,7.0,100,True,Dean's Excellence Award,18
+Minneapolis Community and Technical College,United States,117,159,Law,4300000,1200000,https://logo.clearbit.com/minneapolis.edu,http://www.minneapolis.edu,7.2,7.0,90,True,,18
+Colby Community College,United States,398,145,Computer Science,4300000,1800000,https://logo.clearbit.com/colbycc.edu,http://www.colbycc.edu,9.4,7.5,110,False,Dean's Excellence Award,12
+Keiser University,United States,39,140,Art & Design,5300000,1600000,https://logo.clearbit.com/keiseruniversity.edu,http://www.keiseruniversity.edu/,6.6,7.5,90,True,Dean's Excellence Award,18
+Brescia University,United States,521,82,Art & Design,4400000,2000000,https://logo.clearbit.com/brescia.edu,https://www.brescia.edu/,8.4,6.5,85,False,Vice-Chancellor Merit,18
+Ripon College,United States,323,173,Computer Science,5400000,1300000,https://logo.clearbit.com/ripon.edu,http://www.ripon.edu/,7.8,7.0,100,True,Vice-Chancellor Merit,36
+Assumption College,United States,178,42,Engineering,3700000,1300000,https://logo.clearbit.com/assumption.edu,http://www.assumption.edu/,7.4,7.0,85,False,Global Study Grant,12
+Coconino Community College,United States,44,10,Economics,3800000,1900000,https://logo.clearbit.com/coconino.edu,https://www.coconino.edu/,8.8,6.0,110,True,Global Study Grant,18
+Wayland Baptist University,United States,159,130,Law,4900000,1500000,https://logo.clearbit.com/wbu.edu,http://www.wbu.edu,9.5,7.5,90,True,,24
+South Plains College,United States,376,128,Law,3800000,1800000,https://logo.clearbit.com/southplainscollege.edu,http://www.southplainscollege.edu/,7.1,6.0,80,False,Dean's Excellence Award,18
+Central Maine Community College,United States,161,164,Computer Science,4800000,1500000,https://logo.clearbit.com/cmcc.edu,http://www.cmcc.edu,7.0,7.5,105,True,Dean's Excellence Award,12
+Broward College,United States,49,111,Computer Science,4200000,1500000,https://logo.clearbit.com/broward.edu,http://www.broward.edu/,8.1,7.5,85,False,,12
+Bennett College,United States,195,86,Engineering,4500000,1500000,https://logo.clearbit.com/bennet.edu,https://www.bennett.edu/,8.2,7.5,100,False,,12
+Nunez Community College,United States,422,165,Engineering,4800000,1600000,https://logo.clearbit.com/nunez.edu,http://www.nunez.edu,8.8,6.0,110,True,,36
+Hood College,United States,233,182,Economics,4400000,2000000,https://logo.clearbit.com/hood.edu,http://www.hood.edu/,8.1,6.5,95,False,Global Study Grant,24
+Paul D Camp Community College,United States,107,94,Computer Science,3700000,1300000,https://logo.clearbit.com/pdc.edu,http://www.pdc.edu/,6.8,7.0,80,False,Vice-Chancellor Merit,18
+Miami University of Ohio,United States,851,102,Medicine,4500000,1800000,https://logo.clearbit.com/miamioh.edu,http://www.miamioh.edu/,8.4,7.5,110,True,Vice-Chancellor Merit,12
+Indian River State College,United States,784,143,Law,4700000,1400000,https://logo.clearbit.com/irsc.edu,http://www.irsc.edu/,7.5,7.5,95,True,,18
+Harris-Stowe State University,United States,293,168,Business & Management,3900000,1700000,https://logo.clearbit.com/hssu.edu,https://www.hssu.edu/,8.1,7.5,85,False,,48
+University of Northern Colorado,United States,764,48,Computer Science,4700000,1500000,https://logo.clearbit.com/unco.edu,http://www.unco.edu/,6.5,6.0,110,True,Global Study Grant,36
+Boston University,United States,878,64,Engineering,4200000,1900000,https://logo.clearbit.com/bu.edu,http://www.bu.edu/,6.5,7.0,105,False,Dean's Excellence Award,18
+Blackfeet Community College,United States,171,152,Computer Science,5400000,1200000,https://logo.clearbit.com/bfcc.edu,http://bfcc.edu,7.2,6.5,105,True,,48
+Assumption College for Sisters,United States,572,52,Psychology,4000000,1600000,https://logo.clearbit.com/acs350.org,http://www.acs350.org,9.0,7.5,95,True,Global Study Grant,48
+Mayland Community College,United States,590,136,Economics,4600000,1600000,https://logo.clearbit.com/mayland.edu,http://www.mayland.edu,9.1,6.5,85,True,Global Study Grant,24
+Southern College,United States,972,143,Law,4000000,1900000,https://logo.clearbit.com/southern.edu,http://www.southern.edu/,8.3,6.5,95,True,,12
+Tri-County Community College,United States,288,49,Psychology,4700000,1500000,https://logo.clearbit.com/tricountycc.edu,http://www.tricountycc.edu,7.4,7.0,100,False,,18
+Dakota College at Bottineau,United States,411,66,Economics,5000000,1800000,https://logo.clearbit.com/dakotacollege.edu,http://www.dakotacollege.edu,9.1,7.5,80,False,Vice-Chancellor Merit,36
+"University of Nebraska, Kearney",United States,232,128,Art & Design,4200000,1600000,https://logo.clearbit.com/unk.edu,http://www.unk.edu/,7.8,7.5,80,True,Vice-Chancellor Merit,18
+Ohio State University - Columbus,United States,20,97,Psychology,4200000,1800000,https://logo.clearbit.com/osu.edu,https://www.osu.edu/,7.0,7.5,95,False,Vice-Chancellor Merit,12
+Geneva College,United States,919,70,Medicine,4400000,1800000,https://logo.clearbit.com/geneva.edu,http://www.geneva.edu/,7.9,6.5,105,False,Dean's Excellence Award,18
+University of Bath,United Kingdom,910,176,Business & Management,4100000,1300000,https://logo.clearbit.com/bath.ac.uk,http://www.bath.ac.uk/,6.8,7.5,90,False,,18
+Buckinghamshire New University,United Kingdom,774,43,Engineering,3800000,1400000,https://logo.clearbit.com/bucks.ac.uk,http://www.bucks.ac.uk/,8.2,6.5,85,True,Global Study Grant,36
+Newport International University,United Kingdom,234,190,Data Science,4100000,1300000,https://logo.clearbit.com/niu.org.uk,http://www.niu.org.uk/,6.6,7.5,80,False,Dean's Excellence Award,18
+University of Southampton,United Kingdom,494,134,Law,4100000,1500000,https://logo.clearbit.com/soton.ac.uk,http://www.southampton.ac.uk/,8.0,6.0,110,False,Global Study Grant,36
+Aberystwyth University,United Kingdom,761,36,Data Science,3900000,1300000,https://logo.clearbit.com/aber.ac.uk,https://aber.ac.uk/,9.1,7.0,100,False,,12
+Bath Spa University,United Kingdom,476,98,Data Science,3000000,1800000,https://logo.clearbit.com/bathspa.ac.uk,https://www.bathspa.ac.uk/,7.1,7.0,95,True,Dean's Excellence Award,24
+University of Manchester,United Kingdom,518,117,Data Science,3600000,1700000,https://logo.clearbit.com/manchester.ac.uk,http://www.manchester.ac.uk/,7.4,7.5,80,False,,48
+Trinity College of Music,United Kingdom,508,167,Art & Design,2800000,1800000,https://logo.clearbit.com/tcm.ac.uk,http://www.tcm.ac.uk/,6.7,7.0,110,False,,36
+Stratford College London,United Kingdom,389,9,Business & Management,3000000,1400000,https://logo.clearbit.com/sclondon.ac,http://www.sclondon.ac/,9.1,7.0,85,False,,24
+University of Strathclyde,United Kingdom,62,95,Medicine,3400000,1400000,https://logo.clearbit.com/strath.ac.uk,http://www.strath.ac.uk/,7.6,7.5,95,False,,36
+"Queen Mary, University of London",United Kingdom,628,34,Psychology,3900000,1300000,https://logo.clearbit.com/qmw.ac.uk,http://www.qmul.ac.uk/,6.5,7.5,105,False,,24
+Camberwell College of Arts,United Kingdom,623,123,Data Science,3900000,1400000,https://logo.clearbit.com/camb.linst.ac.uk,http://www.camb.linst.ac.uk/,7.2,7.5,95,True,Dean's Excellence Award,12
+"University of Wales Institute, Cardiff",United Kingdom,361,113,Psychology,3000000,1400000,https://logo.clearbit.com/uwic.ac.uk,http://www.uwic.ac.uk/,9.1,7.5,80,True,Global Study Grant,12
+University of Leicester,United Kingdom,733,3,Psychology,3300000,1300000,https://logo.clearbit.com/le.ac.uk,http://www.le.ac.uk/,7.8,7.0,105,False,Global Study Grant,48
+Warnborough University,United Kingdom,930,47,Engineering,2600000,1500000,https://logo.clearbit.com/warnborough.edu,http://www.warnborough.edu/,7.3,6.5,90,True,,18
+University of Central Lancashire,United Kingdom,352,72,Psychology,2800000,1600000,https://logo.clearbit.com/uclan.ac.uk,http://www.uclan.ac.uk/,7.5,6.0,80,False,Global Study Grant,12
+University of the Arts London,United Kingdom,329,74,Medicine,2600000,1600000,https://logo.clearbit.com/arts.ac.uk,https://www.arts.ac.uk,8.8,6.5,90,False,Dean's Excellence Award,24
+Imperial College School of Medicine,United Kingdom,268,72,Data Science,3000000,1300000,https://logo.clearbit.com/med.ic.ac.uk,http://www.med.ic.ac.uk/,7.7,7.5,105,True,,12
+"Institute of Education, University of London",United Kingdom,235,121,Art & Design,2900000,1400000,https://logo.clearbit.com/ioe.ac.uk,http://www.ioe.ac.uk/,9.3,6.5,90,False,,12
+London College of Science & Technology,United Kingdom,261,152,Data Science,3700000,1600000,https://logo.clearbit.com/lcst.ac,http://www.lcst.ac/,6.7,6.5,110,False,,36
+London Guildhall University,United Kingdom,249,42,Psychology,2700000,1600000,https://logo.clearbit.com/lgu.ac.uk,http://www.lgu.ac.uk/,7.3,7.0,95,True,,12
+University of Bedfordshire,United Kingdom,132,37,Medicine,2700000,1300000,https://logo.clearbit.com/beds.ac.uk,http://www.beds.ac.uk/,8.8,7.0,110,False,,36
+University of Sunderland,United Kingdom,326,122,Law,3500000,1700000,https://logo.clearbit.com/sunderland.ac.uk,http://www.sunderland.ac.uk/,8.1,7.0,110,True,,24
+West Herts College,United Kingdom,534,32,Engineering,2600000,1700000,https://logo.clearbit.com/student.westherts.ac.uk,https://westherts.ac.uk,6.7,6.5,80,False,Vice-Chancellor Merit,36
+"Royal Academy of Music, University of London",United Kingdom,609,134,Law,3800000,1600000,https://logo.clearbit.com/ram.ac.uk,http://www.ram.ac.uk/,6.6,6.0,85,True,,36
+"King's College London, University of London",United Kingdom,892,49,Art & Design,3000000,1600000,https://logo.clearbit.com/kcl.ac.uk,http://www.kcl.ac.uk/,7.1,6.0,80,True,,12
+William Gilbert College,United Kingdom,213,75,Computer Science,3000000,1800000,https://logo.clearbit.com/williamgilbert.co.uk,http://www.williamgilbert.co.uk/,9.1,6.5,110,True,Global Study Grant,18
+"School of Oriental and African Studies, University of London",United Kingdom,152,43,Computer Science,4100000,1500000,https://logo.clearbit.com/soas.ac.uk,http://www.soas.ac.uk/,7.1,7.0,100,False,Vice-Chancellor Merit,18
+The Queen's University Belfast,United Kingdom,826,102,Economics,3200000,1200000,https://logo.clearbit.com/qub.ac.uk,http://www.qub.ac.uk/,7.8,6.0,85,True,Vice-Chancellor Merit,48
+Royal College of Art,United Kingdom,193,29,Engineering,2600000,1300000,https://logo.clearbit.com/rca.ac.uk,http://www.rca.ac.uk/,7.7,7.5,105,False,,24
+London School of Jewish Studies,United Kingdom,606,10,Medicine,3800000,1800000,https://logo.clearbit.com/brijnet.org,http://www.brijnet.org/lsjs/,6.8,7.5,105,False,Dean's Excellence Award,24
+"City St George's, University of London (School of Health and Medical Sciences)",United Kingdom,482,161,Art & Design,3000000,1200000,https://logo.clearbit.com/sgul.ac.uk,https://www.sgul.ac.uk/,9.1,6.5,110,False,Vice-Chancellor Merit,36
+Royal Holloway and Bedford New College,United Kingdom,78,158,Economics,3500000,1700000,https://logo.clearbit.com/royalholloway.ac.uk,http://www.royalholloway.ac.uk/,7.3,6.5,95,False,Global Study Grant,36
+University of Liverpool,United Kingdom,386,177,Medicine,2600000,1600000,https://logo.clearbit.com/liv.ac.uk,http://www.liv.ac.uk/,7.5,7.5,90,False,Global Study Grant,24
+University of London,United Kingdom,680,147,Computer Science,3300000,1400000,https://logo.clearbit.com/london.ac.uk,https://www.london.ac.uk/,6.8,6.5,80,True,Vice-Chancellor Merit,18
+Roehampton University of Surrey,United Kingdom,962,95,Economics,4200000,1800000,https://logo.clearbit.com/roehampton.ac.uk,http://www.roehampton.ac.uk/,8.5,7.5,95,False,,12
+Trinity College Bristol,United Kingdom,229,109,Computer Science,4100000,1700000,https://logo.clearbit.com/trinitycollegebristol.ac.uk,https://www.trinitycollegebristol.ac.uk/,7.9,6.0,80,True,,12
+Edinburgh Napier University,United Kingdom,474,76,Law,3100000,1500000,https://logo.clearbit.com/napier.ac.uk,https://www.napier.ac.uk/,6.6,6.0,85,True,Global Study Grant,48
+ESCP Business School,United Kingdom,632,104,Business & Management,4200000,1700000,https://logo.clearbit.com/escp.eu,https://escp.eu/london,9.0,6.5,80,False,Global Study Grant,48
+University of Wales College of Medicine,United Kingdom,874,57,Art & Design,3400000,1200000,https://logo.clearbit.com/uwcm.ac.uk,http://www.uwcm.ac.uk/,8.0,7.0,110,False,,48
+University of Warwick,United Kingdom,150,29,Psychology,2800000,1500000,https://logo.clearbit.com/warwick.ac.uk,http://www.warwick.ac.uk/,6.7,7.5,90,False,Vice-Chancellor Merit,12
+London School of Business & Finance,United Kingdom,319,4,Computer Science,3000000,1300000,https://logo.clearbit.com/lsbf.org.uk,http://www.lsbf.org.uk/,8.8,6.0,85,True,Vice-Chancellor Merit,48
+The American University in London,United Kingdom,837,158,Engineering,3200000,1400000,https://logo.clearbit.com/aul.edu,http://www.aul.edu/,6.8,6.5,105,True,Global Study Grant,12
+University of Derby,United Kingdom,165,66,Law,2600000,1200000,https://logo.clearbit.com/derby.ac.uk,http://www.derby.ac.uk/,7.8,7.5,95,False,Global Study Grant,48
+University of Gloucestershire,United Kingdom,552,175,Economics,3000000,1400000,https://logo.clearbit.com/glos.ac.uk,http://www.glos.ac.uk/,9.1,7.0,80,False,,48
+University of Bristol,United Kingdom,384,27,Economics,4000000,1200000,https://logo.clearbit.com/bristol.ac.uk,https://www.bristol.ac.uk/,9.2,6.5,110,True,,12
+"Birkbeck College, University of London",United Kingdom,58,158,Psychology,2900000,1700000,https://logo.clearbit.com/bbk.ac.uk,http://www.bbk.ac.uk/,6.9,6.0,85,True,Vice-Chancellor Merit,48
+Staffordshire University,United Kingdom,122,194,Computer Science,4000000,1500000,https://logo.clearbit.com/staffs.ac.uk,http://www.staffs.ac.uk/,7.9,7.5,95,False,,48
+London South Bank University,United Kingdom,253,53,Law,4100000,1600000,https://logo.clearbit.com/mlsbu.ac.uk,https://www.lsbu.ac.uk/,7.1,7.0,100,False,Global Study Grant,12
+Runshaw College,United Kingdom,771,7,Economics,2800000,1500000,https://logo.clearbit.com/runshaw.ac.uk,https://www.runshaw.ac.uk/,9.5,6.5,110,False,,24
+Brunel University Uxbridge,United Kingdom,673,128,Law,2900000,1400000,https://logo.clearbit.com/brunel.ac.uk,http://www.brunel.ac.uk/,8.2,6.5,110,False,Vice-Chancellor Merit,36
+"University of Halifax, Birmingham Campus",United Kingdom,225,56,Engineering,3000000,1600000,https://logo.clearbit.com/halifaxuni.ac,http://www.halifaxuni.ac/,9.3,6.5,100,False,,36
+Wimbledon School of Art,United Kingdom,822,10,Computer Science,2900000,1600000,https://logo.clearbit.com/wimbledon.ac.uk,http://www.wimbledon.ac.uk/,6.6,7.0,95,False,Dean's Excellence Award,48
+International Colleges of Islamic Science,United Kingdom,511,97,Computer Science,2800000,1800000,https://logo.clearbit.com/islamiccolleges.com,http://www.islamiccolleges.com/,8.1,7.0,90,True,Dean's Excellence Award,36
+Cardiff and Vale College,United Kingdom,240,77,Economics,2900000,1800000,https://logo.clearbit.com/cavc.ac.uk,https://cavc.ac.uk/,7.9,6.0,85,False,,36
+"London School of Hygiene & Tropical Medicine, University of London",United Kingdom,597,69,Law,3400000,1500000,https://logo.clearbit.com/lshtm.ac.uk,http://www.lshtm.ac.uk/,7.5,6.0,110,False,Global Study Grant,24
+Canterbury Christ Church University,United Kingdom,407,113,Economics,3700000,1700000,https://logo.clearbit.com/canterbury.ac.uk,http://www.canterbury.ac.uk/,7.2,6.5,85,False,Vice-Chancellor Merit,12
+The Robert Gordon University,United Kingdom,725,12,Law,2700000,1200000,https://logo.clearbit.com/rgu.ac.uk,http://www.rgu.ac.uk/,8.6,6.0,95,False,Global Study Grant,18
+University of Wales,United Kingdom,712,61,Law,3500000,1600000,https://logo.clearbit.com/wales.ac.uk,http://www.wales.ac.uk/,7.8,6.5,85,False,Dean's Excellence Award,18
+University of Westminster,United Kingdom,835,47,Business & Management,3800000,1500000,https://logo.clearbit.com/westminster.ac.uk,http://www.westminster.ac.uk/,6.5,6.0,110,True,Dean's Excellence Award,24
+Swansea Metropolitan University,United Kingdom,387,33,Law,3200000,1500000,https://logo.clearbit.com/smu.ac.uk,http://www.smu.ac.uk/,8.5,6.5,85,True,,24
+"London School of Economics and Political Science, University of London",United Kingdom,589,30,Engineering,3900000,1500000,https://logo.clearbit.com/lse.ac.uk,http://www.lse.ac.uk/,7.7,6.0,85,False,,24
+Liverpool John Moores University,United Kingdom,396,63,Business & Management,3700000,1800000,https://logo.clearbit.com/ljmu.ac.uk,https://www.ljmu.ac.uk/,8.5,6.5,90,False,,48
+University of Portsmouth,United Kingdom,818,73,Computer Science,3700000,1700000,https://logo.clearbit.com/port.ac.uk,http://www.port.ac.uk/,7.8,6.0,90,False,Global Study Grant,36
+The Manchester Metropolitan University,United Kingdom,32,174,Psychology,3100000,1200000,https://logo.clearbit.com/mmu.ac.uk,http://www.mmu.ac.uk/,6.9,6.0,110,True,Global Study Grant,12
+University of Sussex,United Kingdom,950,44,Computer Science,4100000,1200000,https://logo.clearbit.com/sussex.ac.uk,http://www.sussex.ac.uk/,6.6,7.5,105,True,,12
+Newcastle University,United Kingdom,942,164,Engineering,3800000,1400000,https://logo.clearbit.com/ncl.ac.uk,https://www.ncl.ac.uk/,7.1,6.0,110,True,,48
+Sheffield Hallam University,United Kingdom,867,24,Medicine,3700000,1600000,https://logo.clearbit.com/shu.ac.uk,http://www.shu.ac.uk/,7.3,6.5,110,False,,48
+Up Learn Business School,United Kingdom,219,123,Business & Management,3000000,1300000,https://logo.clearbit.com/uplearnbusinessschool.com,https://uplearnbusinessschool.com/,9.1,6.5,100,True,,12
+Imperial College London,United Kingdom,327,91,Psychology,3000000,1200000,https://logo.clearbit.com/imperial.ac.uk,http://www.imperial.ac.uk/,6.6,7.5,110,False,Global Study Grant,12
+University of Dundee,United Kingdom,667,136,Data Science,3700000,1800000,https://logo.clearbit.com/dundee.ac.uk,http://www.dundee.ac.uk/,8.3,7.0,95,False,Global Study Grant,48
+University of Glasgow,United Kingdom,985,188,Art & Design,2900000,1500000,https://logo.clearbit.com/gla.ac.uk,http://www.gla.ac.uk/,9.3,6.5,85,True,,18
+University of Cumbria,United Kingdom,362,81,Computer Science,3400000,1300000,https://logo.clearbit.com/cumbria.ac.uk,https://www.cumbria.ac.uk/,6.5,6.5,90,False,,24
+University of Kent at Canterbury,United Kingdom,711,57,Computer Science,3500000,1200000,https://logo.clearbit.com/ukc.ac.uk,http://www.ukc.ac.uk/,8.2,6.5,95,True,,48
+American InterContinental University - London,United Kingdom,251,148,Business & Management,4200000,1600000,https://logo.clearbit.com/aiuniv.edu,http://www.aiuniv.edu/,8.2,6.5,90,False,Global Study Grant,48
+University of East Anglia,United Kingdom,863,121,Computer Science,2700000,1400000,https://logo.clearbit.com/uea.ac.uk,http://www.uea.ac.uk/,7.5,6.5,90,False,Vice-Chancellor Merit,12
+Huron University USA in London,United Kingdom,535,166,Law,2600000,1200000,https://logo.clearbit.com/huron.ac.uk,http://www.huron.ac.uk/,6.8,6.0,110,True,Global Study Grant,18
+University of Bath,United Kingdom,594,12,Law,3600000,1700000,https://logo.clearbit.com/bath.edu,https://bath.ac.uk,6.9,7.0,95,False,,12
+Falmouth University,United Kingdom,331,175,Data Science,3000000,1800000,https://logo.clearbit.com/falmouth.ac.uk,http://www.falmouth.ac.uk/,6.7,6.0,105,True,,18
+"Institue of Historical Research, University of London",United Kingdom,291,62,Business & Management,3300000,1800000,https://logo.clearbit.com/ihr.sas.ac.uk,http://ihr.sas.ac.uk/,7.2,6.5,110,False,,36
+King's University College,Canada,504,4,Business & Management,2200000,1100000,https://logo.clearbit.com/kingsu.ab.ca,http://www.kingsu.ab.ca/,9.2,7.0,105,True,Vice-Chancellor Merit,36
+University College of the Cariboo,Canada,156,179,Medicine,2900000,1200000,https://logo.clearbit.com/cariboo.bc.ca,http://www.cariboo.bc.ca/,7.5,6.5,100,False,,48
+"Télé-université, Université du Québec",Canada,473,55,Data Science,3200000,1200000,https://logo.clearbit.com/teluq.uquebec.ca,http://www.teluq.uquebec.ca/,8.9,6.5,80,False,Dean's Excellence Award,24
+St. Paul University,Canada,814,34,Art & Design,2100000,1200000,https://logo.clearbit.com/ustpaul.ca,http://www.ustpaul.ca/,8.0,6.0,105,True,Global Study Grant,36
+Pacific International College,Canada,652,119,Art & Design,3100000,1100000,https://logo.clearbit.com/picollege.ca,http://www.picollege.ca/,8.1,6.0,95,False,,36
+University of Ottawa,Canada,922,168,Business & Management,3100000,1200000,https://logo.clearbit.com/uottawa.ca,http://www.uottawa.ca/,8.9,7.5,100,False,,48
+Royal Roads University,Canada,490,148,Computer Science,2500000,1200000,https://logo.clearbit.com/royalroads.ca,http://www.royalroads.ca/,8.2,7.0,90,False,Global Study Grant,12
+MacEwan University,Canada,687,117,Business & Management,2100000,900000,https://logo.clearbit.com/macewan.ca,http://www.macewan.ca/,9.3,7.0,110,False,,36
+Lambton College,Canada,938,86,Economics,3400000,900000,https://logo.clearbit.com/lambtoncollege.ca,https://www.lambtoncollege.ca,8.3,7.0,90,False,Global Study Grant,48
+University of Regina,Canada,405,169,Data Science,3300000,900000,https://logo.clearbit.com/uregina.ca,http://www.uregina.ca/,8.6,6.5,85,True,Dean's Excellence Award,24
+Ontario College of Art and Design,Canada,371,188,Law,3300000,1100000,https://logo.clearbit.com/ocad.ca,http://www.ocad.ca/,7.0,6.5,85,True,Global Study Grant,12
+St. Clair College,Canada,858,94,Computer Science,2600000,1100000,https://logo.clearbit.com/stclairc.on.ca,http://www.stclairc.on.ca/,8.1,6.5,105,False,Vice-Chancellor Merit,18
+University of New Brunswick,Canada,864,95,Data Science,2200000,1000000,https://logo.clearbit.com/unb.ca,http://www.unb.ca/,6.9,7.5,95,False,Dean's Excellence Award,12
+Canadian College of Business & Computers,Canada,483,160,Data Science,2300000,1200000,https://logo.clearbit.com/ccbc.ca,http://www.ccbc.ca/,7.5,6.5,105,False,,24
+Université du Québec à Chicoutimi,Canada,994,90,Data Science,2700000,1200000,https://logo.clearbit.com/uqac.ca,http://www.uqac.ca/,8.6,7.5,95,False,Global Study Grant,12
+Université Laval,Canada,241,41,Business & Management,2800000,1100000,https://logo.clearbit.com/ulaval.ca,http://www.ulaval.ca/,9.2,6.0,80,False,,24
+Vanier College,Canada,119,181,Engineering,2500000,900000,https://logo.clearbit.com/vaniercollege.qc.ca,https://www.vaniercollege.qc.ca/,6.8,6.5,105,False,Dean's Excellence Award,24
+Toronto Metropolitan University,Canada,608,134,Computer Science,2700000,1100000,https://logo.clearbit.com/torontomu.ca,https://www.torontomu.ca/,6.7,6.0,90,False,Dean's Excellence Award,36
+Université de Sherbrooke,Canada,647,1,Engineering,2700000,1200000,https://logo.clearbit.com/usherb.ca,http://www.usherb.ca/,7.0,6.5,80,True,Vice-Chancellor Merit,48
+Algonquin College,Canada,88,80,Medicine,3200000,1000000,https://logo.clearbit.com/algonquincollege.com,http://www.algonquincollege.com/,7.6,6.5,80,False,,12
+University of Western Ontario,Canada,648,80,Business & Management,2200000,900000,https://logo.clearbit.com/uwo.ca,http://www.uwo.ca/,6.7,6.5,110,True,Vice-Chancellor Merit,12
+St. Mary's University,Canada,850,166,Psychology,3100000,900000,https://logo.clearbit.com/stmarys.ca,http://www.stmarys.ca/,7.8,6.5,80,True,Global Study Grant,36
+University of Lethbridge,Canada,706,156,Law,3200000,1200000,https://logo.clearbit.com/uleth.ca,http://www.uleth.ca/,8.6,7.0,90,False,,36
+DeVry Institute of Technology,Canada,797,182,Law,2400000,1200000,https://logo.clearbit.com/cal.devry.ca,http://www.cal.devry.ca/,9.1,6.0,95,True,Vice-Chancellor Merit,24
+"University of Toronto, Scarborough",Canada,692,91,Data Science,2800000,1100000,https://logo.clearbit.com/scar.utoronto.ca,http://www.scar.utoronto.ca/,7.8,6.5,80,False,Dean's Excellence Award,48
+Athabasca University,Canada,887,32,Data Science,3400000,1100000,https://logo.clearbit.com/athabascau.ca,http://www.athabascau.ca/,7.4,7.0,95,True,Vice-Chancellor Merit,18
+Fanshawe College,Canada,678,25,Data Science,3400000,1000000,https://logo.clearbit.com/fanshawec.ca,https://www.fanshawec.ca/,9.2,7.0,100,True,,18
+Yukon College,Canada,560,172,Computer Science,2100000,1100000,https://logo.clearbit.com/yukoncollege.yk.ca,http://www.yukoncollege.yk.ca/,7.6,7.5,110,True,Dean's Excellence Award,36
+Concordia University,Canada,96,20,Engineering,2700000,1200000,https://logo.clearbit.com/concordia.ca,http://www.concordia.ca/,8.4,7.5,80,False,Vice-Chancellor Merit,18
+George Brown College,Canada,908,91,Economics,2300000,900000,https://logo.clearbit.com/gbrownc.on.ca,http://www.gbrownc.on.ca/,6.8,7.0,105,False,Vice-Chancellor Merit,12
+Mount Allison University,Canada,989,80,Art & Design,3000000,1200000,https://logo.clearbit.com/mta.ca,http://www.mta.ca/,9.4,7.5,80,False,Global Study Grant,18
+Brandon University,Canada,923,23,Data Science,3200000,1200000,https://logo.clearbit.com/brandonu.ca,http://www.brandonu.ca/,7.1,7.5,110,False,Vice-Chancellor Merit,48
+University College of Cape Breton,Canada,586,64,Psychology,2400000,900000,https://logo.clearbit.com/uccb.ns.ca,http://www.uccb.ns.ca/,7.4,7.0,90,False,Global Study Grant,18
+Université du Québec à Montréal,Canada,419,63,Economics,2200000,1100000,https://logo.clearbit.com/uqam.ca,http://www.uqam.ca/,8.2,6.5,110,True,Global Study Grant,18
+University of Victoria,Canada,128,27,Computer Science,3300000,1200000,https://logo.clearbit.com/uvic.ca,http://www.uvic.ca/,7.3,6.5,85,False,Dean's Excellence Award,12
+Luther College,Canada,765,111,Economics,2900000,1100000,https://logo.clearbit.com/saskweb.com,http://www.saskweb.com/luthercollege/,7.9,7.5,90,True,,12
+Carleton University,Canada,432,172,Engineering,3300000,900000,https://logo.clearbit.com/carleton.ca,http://www.carleton.ca/,7.4,6.5,100,False,Dean's Excellence Award,48
+University of Northern British Columbia,Canada,224,51,Economics,2600000,900000,https://logo.clearbit.com/unbc.ca,http://www.unbc.ca/,8.7,6.5,85,False,Dean's Excellence Award,18
+École des Hautes Études Commerciales,Canada,197,125,Business & Management,2500000,1200000,https://logo.clearbit.com/hec.ca,http://www.hec.ca/,6.8,7.5,90,False,,48
+Niagara College Canada,Canada,180,9,Computer Science,2600000,1200000,https://logo.clearbit.com/niagaracollege.ca,https://www.niagaracollege.ca/,8.5,7.5,80,True,Vice-Chancellor Merit,12
+University of Windsor,Canada,420,29,Engineering,2700000,1100000,https://logo.clearbit.com/uwindsor.ca,http://www.uwindsor.ca/,9.3,7.0,95,False,,24
+Brock University,Canada,445,152,Law,2400000,1200000,https://logo.clearbit.com/brocku.ca,http://www.brocku.ca/,8.5,7.0,80,False,Vice-Chancellor Merit,12
+"University of Moncton, Edmundston",Canada,993,6,Engineering,2200000,1100000,https://logo.clearbit.com/cuslm.ca,http://www.cuslm.ca/,7.7,7.0,85,False,,12
+Bishop's University,Canada,841,8,Art & Design,2300000,1100000,https://logo.clearbit.com/ubishops.ca,http://www.ubishops.ca/,6.7,6.0,90,False,Vice-Chancellor Merit,48
+College of New Caledonia,Canada,510,155,Medicine,2100000,1100000,https://logo.clearbit.com/cnc.bc.ca,http://www.cnc.bc.ca/,7.9,7.5,90,True,Dean's Excellence Award,12
+Wilfrid Laurier University,Canada,200,18,Economics,3200000,1000000,https://logo.clearbit.com/wlu.ca,http://www.wlu.ca/,7.3,7.5,90,True,,24
+Conestoga College,Canada,489,168,Psychology,2200000,1000000,https://logo.clearbit.com/conestogac.on.ca,http://www.conestogac.on.ca/,6.6,7.5,80,False,,24
+St. Anne University,Canada,921,103,Psychology,2300000,1100000,https://logo.clearbit.com/ustanne.ednet.ns.ca,http://www.ustanne.ednet.ns.ca/,8.5,7.5,90,True,Vice-Chancellor Merit,18
+Collège Universel Gatineau,Canada,740,166,Engineering,2700000,1000000,https://logo.clearbit.com/collegeuniversel.ca,https://collegeuniversel.ca/,7.7,6.5,110,False,,24
+St. Francis Xavier University,Canada,860,2,Business & Management,2900000,1000000,https://logo.clearbit.com/stfx.ca,http://www.stfx.ca/,6.9,6.5,105,False,Dean's Excellence Award,18
+Flinders University of South Australia,Australia,486,190,Business & Management,2600000,1500000,https://logo.clearbit.com/flinders.edu.au,http://www.flinders.edu.au/,7.0,6.0,85,True,,24
+Torrens University Australia,Australia,592,125,Medicine,3300000,1100000,https://logo.clearbit.com/torrens.edu.au,https://www.torrens.edu.au,8.5,6.0,95,False,Global Study Grant,12
+Box Hill Institute,Australia,744,69,Psychology,2700000,1600000,https://logo.clearbit.com/bhtafe.edu.au,http://www.bhtafe.edu.au,7.2,7.0,80,False,,18
+University of South Australia,Australia,729,8,Economics,3300000,1500000,https://logo.clearbit.com/unisa.edu.au,http://www.unisa.edu.au/,6.8,7.0,80,False,Vice-Chancellor Merit,48
+St. George's University (Australia),Australia,756,172,Economics,2200000,1200000,https://logo.clearbit.com/stgc.uwa.edu.au,https://stgc.uwa.edu.au/,9.3,6.5,105,True,Global Study Grant,48
+James Cook University of North Queensland,Australia,179,123,Medicine,3000000,1400000,https://logo.clearbit.com/jcu.edu.au,http://www.jcu.edu.au/,8.0,7.0,100,True,Global Study Grant,24
+Bond University,Australia,282,40,Psychology,2300000,1100000,https://logo.clearbit.com/bond.edu.au,http://www.bond.edu.au/,6.8,7.5,105,True,Global Study Grant,36
+Holmes Institute,Australia,355,109,Engineering,2300000,1400000,https://logo.clearbit.com/holmes.edu.au,http://www.holmes.edu.au/,6.6,7.5,85,True,Vice-Chancellor Merit,48
+Marcus Oldham College,Australia,136,40,Psychology,2800000,1200000,https://logo.clearbit.com/marcusoldham.vic.edu.au,http://www.marcusoldham.vic.edu.au/,6.7,6.5,100,True,Global Study Grant,36
+Western Sydney University,Australia,277,104,Data Science,2800000,1500000,https://logo.clearbit.com/westernsydney.edu.au,https://www.westernsydney.edu.au/,7.8,6.5,95,True,Vice-Chancellor Merit,36
+Central Queensland University,Australia,897,60,Law,3100000,1600000,https://logo.clearbit.com/cqu.edu.au,http://www.cqu.edu.au/,9.3,7.5,100,False,,18
+Avondale University,Australia,346,16,Data Science,2300000,1300000,https://logo.clearbit.com/avondale.edu.au,http://www.avondale.edu.au/,8.8,6.5,85,False,Global Study Grant,18
+Royal Melbourne Institute of Technology,Australia,336,26,Business & Management,2800000,1100000,https://logo.clearbit.com/rmit.edu.au,http://www.rmit.edu.au/,7.2,6.5,90,False,,24
+Curtin University,Australia,410,83,Medicine,2900000,1600000,https://logo.clearbit.com/curtin.edu.au,http://www.curtin.edu.au/,8.0,6.5,85,False,Dean's Excellence Award,36
+University of Melbourne,Australia,378,59,Engineering,2700000,1300000,https://logo.clearbit.com/unimelb.edu,http://www.unimelb.edu.au/,9.5,6.0,110,False,Vice-Chancellor Merit,48
+Australian Lutheran College,Australia,823,101,Art & Design,2300000,1500000,https://logo.clearbit.com/alc.edu.au,http://www.alc.edu.au/,8.1,6.5,80,True,Dean's Excellence Award,18
+University of Canberra,Australia,937,158,Business & Management,3200000,1100000,https://logo.clearbit.com/canberra.edu.au,http://www.canberra.edu.au/,8.9,7.0,90,True,Global Study Grant,36
+Murdoch University,Australia,522,196,Data Science,3300000,1400000,https://logo.clearbit.com/murdoch.edu.au,http://www.murdoch.edu.au/,7.6,6.0,100,True,Global Study Grant,12
+University of Southern Queensland,Australia,348,36,Medicine,3200000,1600000,https://logo.clearbit.com/usq.edu.au,http://www.usq.edu.au/,9.4,6.0,80,False,Global Study Grant,18
+Deakin University,Australia,845,125,Art & Design,3200000,1600000,https://logo.clearbit.com/deakin.edu.au,http://www.deakin.edu.au/,8.9,6.0,95,True,Vice-Chancellor Merit,48
+Edith Cowan University,Australia,144,65,Art & Design,3300000,1300000,https://logo.clearbit.com/ecu.edu.au,http://www.ecu.edu.au/,8.3,6.5,95,False,Global Study Grant,48
+University of Adelaide,Australia,619,57,Data Science,2700000,1400000,https://logo.clearbit.com/adelaide.edu.au,http://www.adelaide.edu.au/,8.2,7.5,110,False,Vice-Chancellor Merit,48
+University of Newcastle,Australia,754,178,Law,2700000,1600000,https://logo.clearbit.com/newcastle.edu.au,http://www.newcastle.edu.au/,8.1,7.0,90,False,Global Study Grant,36
+Australian Defence Force Academy,Australia,125,78,Psychology,2700000,1600000,https://logo.clearbit.com/adfa.oz.au,http://www.adfa.oz.au/,7.6,7.0,105,True,Dean's Excellence Award,12
+Linuwel School,Australia,971,140,Computer Science,2300000,1500000,https://logo.clearbit.com/linuwel.nsw.edu.au,http://www.linuwel.nsw.edu.au/,8.7,7.5,100,False,,48
+University of Tasmania,Australia,635,128,Medicine,3100000,1100000,https://logo.clearbit.com/utas.edu.au,http://www.utas.edu.au/,7.6,6.0,85,False,,48
+Charles Darwin University,Australia,157,6,Art & Design,2700000,1300000,https://logo.clearbit.com/cdu.edu.au,http://www.cdu.edu.au/,8.4,6.5,90,False,Vice-Chancellor Merit,36
+Griffith University,Australia,981,194,Psychology,3100000,1400000,https://logo.clearbit.com/griffith.edu.au,https://www.griffith.edu.au/,6.9,7.5,100,True,,48
+Victoria University,Australia,452,145,Engineering,3200000,1500000,https://logo.clearbit.com/vu.edu.au,http://www.vu.edu.au/,9.2,6.0,95,False,Vice-Chancellor Merit,48
+Australian Maritime College,Australia,748,80,Art & Design,2500000,1500000,https://logo.clearbit.com/amc.edu.au,http://www.amc.edu.au/,6.5,6.5,85,True,Dean's Excellence Award,12
+Macquarie University,Australia,64,46,Art & Design,3200000,1200000,https://logo.clearbit.com/mq.edu.au,http://www.mq.edu.au/,8.8,7.0,100,False,Dean's Excellence Award,24
+Engineering Institute of Technology,Australia,238,127,Art & Design,2300000,1200000,https://logo.clearbit.com/student.eit.edu.au,https://www.eit.edu.au/,7.4,7.5,105,False,Global Study Grant,36
+University of New South Wales,Australia,365,83,Data Science,3300000,1400000,https://logo.clearbit.com/unsw.edu.au,http://www.unsw.edu.au/,6.9,6.0,95,False,Dean's Excellence Award,18
+Australian Catholic University,Australia,190,14,Data Science,2700000,1500000,https://logo.clearbit.com/acu.edu.au,http://www.acu.edu.au/,8.3,7.5,90,True,,24
+SP Jain School of Global Management,Australia,888,25,Business & Management,2300000,1300000,https://logo.clearbit.com/spjain.org,https://www.spjain.org/,9.4,7.0,85,True,,24
+University of Wollongong,Australia,202,182,Medicine,3100000,1600000,https://logo.clearbit.com/uow.edu.au,http://www.uow.edu.au/,7.6,7.5,85,True,,36
+"Institute Of Technology, Australia",Australia,5,143,Economics,2300000,1200000,https://logo.clearbit.com/iota.edu.au,http://www.iota.edu.au/,7.6,7.5,105,True,Vice-Chancellor Merit,18
+Swinburne University of Technology,Australia,138,125,Art & Design,3200000,1200000,https://logo.clearbit.com/swin.edu.au,http://www.swin.edu.au/,8.3,7.0,110,False,Global Study Grant,12
+University of Technology Sydney,Australia,872,164,Economics,2800000,1300000,https://logo.clearbit.com/uts.edu.au,http://www.uts.edu.au/,9.1,6.0,85,False,Vice-Chancellor Merit,48
+Blue Mountains Hotel School,Australia,804,152,Economics,2400000,1300000,https://logo.clearbit.com/hotelschool.com.au,http://www.hotelschool.com.au/,9.1,7.5,80,True,Dean's Excellence Award,18
+Jacobs University Bremen,Germany,819,35,Economics,700000,800000,https://logo.clearbit.com/jacobs-university.de,http://www.jacobs-university.de/,9.4,7.5,110,False,Vice-Chancellor Merit,18
+Universität Konstanz,Germany,379,124,Psychology,400000,1100000,https://logo.clearbit.com/uni-konstanz.de,http://www.uni-konstanz.de/,7.9,6.0,85,True,,24
+Fachhochschule Lippe,Germany,209,193,Law,400000,1400000,https://logo.clearbit.com/fh-lippe.de,http://www.fh-lippe.de/,6.9,6.0,85,False,Global Study Grant,36
+Deutsche Universität für Verwaltungswissenschaften Speyer,Germany,669,69,Computer Science,900000,1400000,https://logo.clearbit.com/uni-speyer.de,https://www.uni-speyer.de/,6.9,6.0,100,False,,12
+Universität Siegen,Germany,695,80,Psychology,900000,900000,https://logo.clearbit.com/uni-siegen.de,http://www.uni-siegen.de/,8.5,7.0,95,False,Dean's Excellence Award,12
+"Fachhochschule Schwäbisch Hall, Hochschule für Gestaltung",Germany,94,168,Art & Design,800000,1300000,https://logo.clearbit.com/fh-schwaebischhall.de,http://www.fh-schwaebischhall.de/,8.9,6.0,90,False,Dean's Excellence Award,48
+"Fachhochschule Rosenheim, Hochschule für Technik und Wirtschaft",Germany,749,48,Data Science,300000,1400000,https://logo.clearbit.com/fh-rosenheim.de,http://www.fh-rosenheim.de/,7.2,6.0,80,True,Global Study Grant,18
+E.A.P. Europäische Wirtschaftshochschule Berlin,Germany,414,134,Computer Science,1000000,1400000,https://logo.clearbit.com/eap.net,http://www.eap.net/,6.8,6.5,100,False,Global Study Grant,48
+Fachhochschule Lausitz,Germany,103,89,Computer Science,600000,1100000,https://logo.clearbit.com/fh-lausitz.de,http://www.fh-lausitz.de/,9.4,6.5,110,True,,48
+"Evangelische Fachhochschule Freiburg, Hochschule für Soziale Arbeit, Diakonie und Religionspädagogik",Germany,372,192,Computer Science,400000,1100000,https://logo.clearbit.com/efh-freiburg.de,http://www.efh-freiburg.de/,9.5,6.5,80,True,Global Study Grant,48
+"Kunsthochschule Berlin-Weissensee, Hochschule für Gestaltung",Germany,681,38,Computer Science,400000,1200000,https://logo.clearbit.com/kh-berlin.de,http://www.kh-berlin.de/,8.6,6.5,100,True,Vice-Chancellor Merit,18
+Fachhochschule für das öffentliche Bibliothekswesen Bonn,Germany,485,59,Psychology,400000,1100000,https://logo.clearbit.com/fhoebb.de,http://www.fhoebb.de/,7.9,6.5,95,False,,48
+"Fachhochschule Stuttgart, Hochschule der Medien",Germany,466,53,Art & Design,1000000,1000000,https://logo.clearbit.com/hdm-stuttgart.de,http://www.hdm-stuttgart.de/,7.3,7.0,100,True,Dean's Excellence Award,18
+Private Fachhochschule Göttingen,Germany,281,198,Law,900000,1400000,https://logo.clearbit.com/pfh-goettingen.de,http://www.pfh-goettingen.de/,8.4,6.5,100,True,,12
+"Fachhochschule Offenburg, Hochschule für Technik und Wirtschaft",Germany,884,152,Psychology,300000,1100000,https://logo.clearbit.com/fh-offenburg.de,http://www.fh-offenburg.de/,7.3,7.5,90,False,Dean's Excellence Award,48
+Europa-Universität Viadrina Frankfurt (Oder),Germany,278,19,Data Science,900000,1100000,https://logo.clearbit.com/euv-frankfurt-o.de,http://www.euv-frankfurt-o.de/,8.5,7.5,80,False,,24
+Ludwig-Maximilians-Universität München,Germany,577,44,Data Science,600000,1100000,https://logo.clearbit.com/lmu.de,http://www.lmu.de/,9.2,7.5,110,True,Vice-Chancellor Merit,48
+Katholische Fachhochschule Mainz,Germany,345,71,Data Science,400000,1100000,https://logo.clearbit.com/kfh-mainz.de,http://www.kfh-mainz.de/,9.3,6.5,95,True,Global Study Grant,24
+Technical University of Applied Sciences Augsburg,Germany,916,78,Law,1000000,800000,https://logo.clearbit.com/fh-augsburg.de,https://www.tha.de/,8.1,7.0,110,False,Global Study Grant,48
+Westfälische Wilhelms-Universität Münster,Germany,697,139,Medicine,1000000,800000,https://logo.clearbit.com/uni-muenster.de,http://www.uni-muenster.de/,8.3,7.0,110,False,,18
+Hochschule Zittau/Görlitz (FH),Germany,646,94,Engineering,400000,1100000,https://logo.clearbit.com/hs-zigr.de,http://www.hs-zigr.de/,8.0,6.0,95,True,Vice-Chancellor Merit,12
+Technische Universität Hamburg,Germany,472,78,Computer Science,500000,1000000,https://logo.clearbit.com/tuhh.de,http://www.tuhh.de/,7.7,7.5,110,False,,18
+Phillips-Universität Marburg,Germany,284,35,Computer Science,700000,1100000,https://logo.clearbit.com/uni-marburg.de,http://www.uni-marburg.de/,9.4,6.0,85,False,Dean's Excellence Award,24
+Universität Augsburg,Germany,689,58,Psychology,700000,900000,https://logo.clearbit.com/uni-augsburg.de,http://www.uni-augsburg.de/,8.1,6.5,85,False,Global Study Grant,18
+Universität Hannover,Germany,810,149,Psychology,1000000,1400000,https://logo.clearbit.com/uni-hannover.de,http://www.uni-hannover.de/,6.9,6.5,80,False,Global Study Grant,12
+International University in Germany,Germany,201,141,Psychology,400000,1000000,https://logo.clearbit.com/i-u.de,http://www.i-u.de/,7.8,6.5,90,True,,48
+Hochschule für Musik und Darstellende Kunst Stuttgart,Germany,97,35,Psychology,200000,1400000,https://logo.clearbit.com/hmdk-stuttgart.de,https://www.hmdk-stuttgart.de/,7.6,6.0,85,True,Vice-Chancellor Merit,24
+"International School of New Media, University of Lübeck",Germany,390,39,Computer Science,900000,1000000,https://logo.clearbit.com/isnm.de,http://www.isnm.de/,9.5,7.5,80,False,Dean's Excellence Award,12
+Technische Fachhochschule Berlin,Germany,584,75,Data Science,900000,1200000,https://logo.clearbit.com/tfh-berlin.de,http://www.tfh-berlin.de/,7.6,7.0,105,False,,12
+Fachhochschule für die Wirtschaft,Germany,954,183,Economics,500000,1100000,https://logo.clearbit.com/fhdw.bib.de,http://www.fhdw.bib.de/,7.2,7.5,105,True,,24
+Fachhochschule für Oekonomie und Management (FOM),Germany,984,115,Psychology,500000,1000000,https://logo.clearbit.com/fom.de,http://www.fom.de/,9.0,7.0,95,False,Dean's Excellence Award,48
+Hochschule Hannover,Germany,30,186,Psychology,500000,1300000,https://logo.clearbit.com/hs-hannover.de,https://www.hs-hannover.de/,7.5,6.0,95,False,,24
+Hochschule für Technik und Wirtschaft Berlin,Germany,798,66,Psychology,200000,1400000,https://logo.clearbit.com/fhtw-berlin.de,https://www.htw-berlin.de/,7.3,6.0,85,False,Global Study Grant,24
+Universität Duisburg-Essen,Germany,871,193,Economics,900000,1400000,https://logo.clearbit.com/uni-duisburg-essen.de,http://www.uni-duisburg-essen.de/,9.3,6.5,110,False,,36
+"Evangelische Fachhochschule für Sozialpädagogik der ""Diakonenanstalt des Rauhen Hauses"" Hamburg",Germany,995,68,Law,1000000,1200000,https://logo.clearbit.com/rauheshaus.de,http://www.rauheshaus.de/fachhochschule/,6.6,7.0,110,True,Vice-Chancellor Merit,12
+Evangelische Fachhochschule Rheinland-Westfalen-Lippe,Germany,493,36,Engineering,700000,1100000,https://logo.clearbit.com/efh-bochum.de,http://www.efh-bochum.de/,8.2,6.0,110,False,,48
+Fachhochschule Oldenburg/Ostfriesland/Wilhelmshaven,Germany,274,200,Economics,400000,1300000,https://logo.clearbit.com/fh-oow.de,http://www.fh-oow.de/,9.2,7.0,100,True,,36
+Katholische Hochschule für Soziale Arbeit Saarbrücken,Germany,260,111,Engineering,300000,1000000,https://logo.clearbit.com/khsa.de,http://www.khsa.de/,8.6,6.0,85,False,Global Study Grant,36
+Humboldt Universität Berlin,Germany,600,190,Economics,400000,1300000,https://logo.clearbit.com/hu-berlin.de,http://www.hu-berlin.de/,7.3,6.0,110,True,,24
+"Fachhochschule Pforzheim, Hochschule für Gestaltung, Technik und Wirtschaft",Germany,479,168,Engineering,300000,1100000,https://logo.clearbit.com/fh-pforzheim.de,http://www.fh-pforzheim.de/,7.5,7.5,85,True,Dean's Excellence Award,36
+Université du Droit et de la Sante (Lille II),France,72,150,Psychology,500000,1400000,https://logo.clearbit.com/univ-lille2.fr,http://www.univ-lille2.fr/,7.2,7.0,90,False,,36
+Ecole Nationale Vétérinaire de Toulouse,France,343,68,Computer Science,200000,1100000,https://logo.clearbit.com/envt.fr,http://www.envt.fr/,9.0,6.0,85,False,Vice-Chancellor Merit,24
+Centre d'Etudes Supérieures des Techniques Industrielles,France,961,144,Psychology,600000,1400000,https://logo.clearbit.com/ismcm-cesti.fr,http://www.ismcm-cesti.fr/,8.0,7.0,105,False,Global Study Grant,36
+Ecole Nationale Supérieure de Chimie de Mulhouse,France,529,67,Engineering,400000,1100000,https://logo.clearbit.com/enscmu.univ-mulhouse.fr,http://www.enscmu.univ-mulhouse.fr/,9.4,6.5,80,False,Dean's Excellence Award,18
+Université Bordeaux I,France,172,21,Computer Science,700000,1100000,https://logo.clearbit.com/cribx1.u-bordeaux.fr,http://www.cribx1.u-bordeaux.fr/,7.1,6.5,80,True,Dean's Excellence Award,48
+Ecole Nationale de la Météorologie,France,457,189,Medicine,900000,1400000,https://logo.clearbit.com/enm.meteo.fr,http://www.enm.meteo.fr/,7.1,7.0,100,True,Vice-Chancellor Merit,18
+Institut Supérieur d'Agriculture Lille,France,442,160,Engineering,500000,1400000,https://logo.clearbit.com/isa.fupl.asso.fr,http://www.isa.fupl.asso.fr/,8.1,6.5,95,False,,48
+Ecole Nationale Supérieure d'Agronomie de Rennes,France,555,175,Data Science,700000,900000,https://logo.clearbit.com/agro.roazhon.inra.fr,http://agro.roazhon.inra.fr/,6.8,7.5,110,False,,24
+Yncrea,France,965,120,Law,300000,1200000,https://logo.clearbit.com/yncrea.fr,https://yncrea.fr/,7.7,6.0,95,False,,36
+ENIC Telecom Lille 1,France,520,162,Business & Management,1000000,800000,https://logo.clearbit.com/enic.fr,http://www.enic.fr/,9.5,6.5,105,False,,36
+Ecole Nationale de la Statistique et de l'Analyse de l'information,France,267,15,Engineering,700000,1200000,https://logo.clearbit.com/ensai.fr,http://www.ensai.fr/,7.1,6.0,105,False,,24
+Ecole Nationale Supérieure de Chimie de Rennes,France,891,4,Engineering,700000,1100000,https://logo.clearbit.com/ensc-rennes.fr,http://www.ensc-rennes.fr/,7.3,6.5,105,False,,36
+Université d'Auvergne (Clermont-Ferrand I),France,160,132,Data Science,200000,1100000,https://logo.clearbit.com/u-clermont1.fr,http://www.u-clermont1.fr/,7.2,7.5,80,True,,18
+Ecole Supérieure de Commerce de Sophia Antipolis,France,723,160,Art & Design,1000000,900000,https://logo.clearbit.com/ceram.edu,http://www.ceram.edu/,6.8,6.5,90,False,Vice-Chancellor Merit,24
+Université des Sciences et Technologies de Lille (Lille I),France,839,7,Business & Management,300000,1200000,https://logo.clearbit.com/univ-lille1.fr,http://www.univ-lille1.fr/,8.4,6.5,80,False,Dean's Excellence Award,24
+National Institute of Applied Sciences of Toulouse,France,296,85,Medicine,500000,1200000,https://logo.clearbit.com/insa-toulouse.fr,https://insa-toulouse.fr,8.0,6.5,85,False,Global Study Grant,24
+Groupe Sup de Co Montpellier,France,56,47,Business & Management,300000,900000,https://logo.clearbit.com/supco-montpellier.fr,http://www.supco-montpellier.fr/,9.2,7.0,90,False,Global Study Grant,36
+Ecole Française d'Electronique et d'Informatique,France,624,98,Data Science,300000,1000000,https://logo.clearbit.com/efrei.fr,http://www.efrei.fr/,7.1,6.0,90,False,Vice-Chancellor Merit,48
+Ecole Pour l'Informatique et les Techniques Avancees,France,408,13,Law,500000,1000000,https://logo.clearbit.com/epita.fr,http://www.epita.fr/,7.5,6.0,95,False,,36
+Ecole Centrale d'Electronique - ECE,France,354,7,Medicine,200000,1100000,https://logo.clearbit.com/ece.fr,http://www.ece.fr/,8.3,6.0,95,True,Vice-Chancellor Merit,12
+Université de Technologie de Troyes,France,90,1,Computer Science,1000000,1200000,https://logo.clearbit.com/utt.fr,http://www.utt.fr/,6.5,6.5,80,False,Global Study Grant,36
+Ecole Centrale de Marseille,France,750,154,Data Science,800000,800000,https://logo.clearbit.com/centrale-marseille.fr,https://www.centrale-marseille.fr/,7.4,6.0,90,False,,12
+Ecole Supérieure de Commerce de Reims,France,523,93,Law,400000,900000,https://logo.clearbit.com/esc-reims.edu,http://www.esc-reims.edu/,7.6,7.5,110,False,Vice-Chancellor Merit,36
+Ecole des Hautes Etudes Industrielles de Lille,France,945,37,Economics,500000,1200000,https://logo.clearbit.com/hei.fr,http://www.hei.fr/,8.0,6.5,85,False,,36
+Université des Sciences Humaines (Strasbourg II),France,10,200,Engineering,1000000,1300000,https://logo.clearbit.com/ushs.u-strasbg.fr,http://ushs.u-strasbg.fr/,6.8,6.5,80,True,,18
+Université de Reims Champagne-Ardenne,France,709,144,Computer Science,600000,1300000,https://logo.clearbit.com/univ-reims.fr,http://www.univ-reims.fr/,9.0,7.5,80,False,Dean's Excellence Award,36
+Ecole Universitaire d'Ingénieurs de Lille,France,254,178,Computer Science,800000,1400000,https://logo.clearbit.com/eudil.fr,http://www.eudil.fr/,7.7,6.5,100,True,,18
+Académie d'Aix-Marseille,France,583,44,Economics,300000,1200000,https://logo.clearbit.com/ac-aix-marseille.fr,https://www.ac-aix-marseille.fr/,7.1,7.0,80,False,Global Study Grant,18
+Ecole Nationale du Génie de l'Eau et de l'Environnement de Strasbourg,France,455,23,Economics,500000,900000,https://logo.clearbit.com/www-engees.u-strasbg.fr,http://www-engees.u-strasbg.fr/,7.0,6.0,85,True,Vice-Chancellor Merit,12
+Université Nancy II,France,111,56,Business & Management,300000,800000,https://logo.clearbit.com/univ-nancy2.fr,http://www.univ-nancy2.fr/,7.9,7.0,95,True,Vice-Chancellor Merit,48
+University of Amsterdam,Netherlands,460,161,Computer Science,2800000,800000,https://logo.clearbit.com/uva.nl,http://www.uva.nl/,7.0,7.0,95,True,Global Study Grant,48
+European Open University,Netherlands,943,49,Computer Science,1800000,1200000,https://logo.clearbit.com/europeanopenuniversity.com,http://www.europeanopenuniversity.com/,7.5,7.5,105,True,Vice-Chancellor Merit,48
+Hanze University Groningen,Netherlands,399,180,Computer Science,2600000,1100000,https://logo.clearbit.com/hanze.nl,http://www.hanze.nl/,6.9,7.0,85,False,Global Study Grant,18
+Islamic University of Rotterdam,Netherlands,768,181,Law,2700000,1200000,https://logo.clearbit.com/islamicuniversity.nl,http://www.islamicuniversity.nl/,8.8,6.0,80,False,,12
+Maastricht University,Netherlands,515,194,Computer Science,2600000,1400000,https://logo.clearbit.com/unimaas.nl,http://www.unimaas.nl/,7.2,6.0,110,True,Dean's Excellence Award,12
+Christelijke Hogeschool Windesheim,Netherlands,264,143,Business & Management,1800000,800000,https://logo.clearbit.com/windesheim.nl,http://www.windesheim.nl/,8.8,6.5,95,True,Vice-Chancellor Merit,48
+Hogeschool voor de Kunsten Utrecht (HKU),Netherlands,448,186,Data Science,3000000,1000000,https://logo.clearbit.com/hku.nl,http://www.hku.nl/,7.7,6.5,80,True,Dean's Excellence Award,48
+University of Groningen,Netherlands,392,95,Economics,2600000,1500000,https://logo.clearbit.com/rug.nl,http://www.rug.nl/,8.2,7.5,85,False,,12
+Aeres Hogeschool Almere,Netherlands,644,129,Data Science,2400000,1100000,https://logo.clearbit.com/aereshogeschool.nl,https://www.aereshogeschool.nl/,7.4,6.0,85,False,Dean's Excellence Award,18
+Open University of the Netherlands,Netherlands,808,105,Economics,2500000,1100000,https://logo.clearbit.com/ou.nl,http://www.ou.nl/,8.2,7.5,80,False,Dean's Excellence Award,48
+Wageningen University,Netherlands,882,11,Computer Science,2200000,800000,https://logo.clearbit.com/wageningenuniversity.nl,http://www.wageningenuniversity.nl/,8.8,6.0,90,True,Dean's Excellence Award,36
+UNESCO-IHE Institute for Water Education,Netherlands,93,57,Psychology,1800000,1500000,https://logo.clearbit.com/unesco-ihe.org,http://www.unesco-ihe.org/,9.1,6.0,105,False,Dean's Excellence Award,36
+Delft University of Technology,Netherlands,1,121,Computer Science,1600000,1200000,https://logo.clearbit.com/tudelft.nl,http://www.tudelft.nl/,8.9,6.0,95,False,Dean's Excellence Award,36
+NHTV Breda University of Professional Education,Netherlands,666,182,Medicine,3000000,1200000,https://logo.clearbit.com/nhtv.nl,http://www.nhtv.nl,9.3,7.0,90,False,Dean's Excellence Award,24
+University of Sint Eustatius School of Medicine,Netherlands,730,86,Law,1900000,900000,https://logo.clearbit.com/eustatiusmed.edu,http://www.eustatiusmed.edu/,9.2,7.5,85,True,,48
+Saxion Universities,Netherlands,550,153,Law,2900000,1200000,https://logo.clearbit.com/saxion.edu,http://saxion.edu/,8.9,6.0,85,False,,18
+Utrecht University,Netherlands,469,31,Law,1800000,1500000,https://logo.clearbit.com/uu.nl,http://www.uu.nl/,6.9,6.0,105,True,Vice-Chancellor Merit,48
+HAN University of Applied Sciences,Netherlands,579,90,Medicine,2600000,1000000,https://logo.clearbit.com/hanuniversity.com,https://www.hanuniversity.com/,7.5,7.5,105,False,,18
+Fontys University of Applied Sciences,Netherlands,653,109,Engineering,2400000,1100000,https://logo.clearbit.com/fontys.edu,http://www.fontys.edu/,8.4,7.5,105,False,,24
+Vrije Universiteit Amsterdam,Netherlands,155,189,Psychology,2800000,800000,https://logo.clearbit.com/vu.nl,http://www.vu.nl/,7.3,7.0,105,True,,18
+Australian International School,Singapore,22,156,Computer Science,2900000,1000000,https://logo.clearbit.com/ais.edu.sg,https://ais.com.sg,7.1,6.5,110,False,Vice-Chancellor Merit,48
+Singapore Polytechnic,Singapore,986,127,Engineering,2900000,1300000,https://logo.clearbit.com/sp.edu.sg,https://www.sp.edu.sg/,7.9,7.0,100,False,Global Study Grant,18
+Institute of Technical Education,Singapore,207,86,Psychology,1800000,1300000,https://logo.clearbit.com/ite.edu.sg,https://www.ite.edu.sg/,8.9,7.0,90,False,Vice-Chancellor Merit,36
+Temasek Polytechnic,Singapore,896,49,Business & Management,2500000,1200000,https://logo.clearbit.com/tp.edu.sg,https://www.tp.edu.sg/,7.1,7.5,100,True,,36
+National University of Singapore,Singapore,286,193,Computer Science,2300000,1400000,https://logo.clearbit.com/nus.edu,https://www.nus.edu/,8.5,7.5,95,False,,36
+Singapore Institute of Management (SIM),Singapore,683,197,Law,2700000,1100000,https://logo.clearbit.com/sim.edu.sg,https://www.sim.edu.sg/,8.4,6.5,100,False,Vice-Chancellor Merit,48
+The Hong Kong Academy for Performing Arts,Hong Kong,917,175,Engineering,2600000,1300000,https://logo.clearbit.com/hkapa.edu,https://www.hkapa.edu/,7.6,7.5,80,False,Dean's Excellence Award,24
+Hong Kong Metropolitan University,Hong Kong,570,60,Engineering,2000000,1100000,https://logo.clearbit.com/hkmu.edu.hk,https://www.hkmu.edu.hk/,8.9,7.0,110,False,Vice-Chancellor Merit,24
+Canadian International School of Hong Kong,Hong Kong,9,126,Data Science,2500000,1000000,https://logo.clearbit.com/cdnis.edu.hk,https://cdnis.edu.hk,8.1,6.5,85,False,Dean's Excellence Award,24
+Hong Kong Chu Hai College,Hong Kong,167,42,Data Science,2400000,1400000,https://logo.clearbit.com/chuhai.edu.hk,https://www.chuhai.edu.hk/,8.9,7.0,95,False,Dean's Excellence Award,18
+The Hong Kong University of Science and Technology,Hong Kong,615,142,Art & Design,1900000,1400000,https://logo.clearbit.com/ust.hk,https://hkust.edu.hk/,7.9,6.0,105,True,,12
+The Hang Seng University of Hong Kong,Hong Kong,220,14,Psychology,2900000,1100000,https://logo.clearbit.com/hsu.edu.hk,http://www.hsu.edu.hk/,8.6,7.5,105,False,,12
+The Education University of Hong Kong,Hong Kong,391,190,Psychology,2700000,1300000,https://logo.clearbit.com/s.eduhk.hk,https://www.eduhk.hk,7.8,6.0,110,True,,48
+The Hong Kong Polytechnic University,Hong Kong,374,135,Business & Management,2300000,1500000,https://logo.clearbit.com/polyu.edu.hk,https://www.polyu.edu.hk/,6.8,6.5,85,False,Dean's Excellence Award,48
+The University of Hong Kong,Hong Kong,402,195,Art & Design,2400000,1200000,https://logo.clearbit.com/hku.hk,https://www.hku.hk/,9.0,6.5,100,True,,18
+Lingnan University,Hong Kong,987,43,Economics,2200000,1200000,https://logo.clearbit.com/ln.edu.hk,https://www.ln.edu.hk/,8.6,6.5,95,False,Vice-Chancellor Merit,36
+FHS St.Gallen,Switzerland,707,102,Medicine,2900000,1200000,https://logo.clearbit.com/fhsg.ch,http://www.fhsg.ch/,8.2,6.5,110,True,Global Study Grant,12
+University of Applied Sciences Aargau,Switzerland,74,188,Law,1800000,1400000,https://logo.clearbit.com/fh-aargau.ch,http://www.fh-aargau.ch/,8.6,6.0,110,False,,12
+HTW Chur - University of Applied Sciences HTW Chur,Switzerland,973,121,Art & Design,2600000,800000,https://logo.clearbit.com/fh-htwchur.ch,http://www.fh-htwchur.ch/,9.4,7.0,95,False,,18
+Fachhochschule Pur,Switzerland,57,114,Economics,2200000,1400000,https://logo.clearbit.com/phw.info,http://www.phw.info/,7.5,7.5,80,True,Vice-Chancellor Merit,12
+International School of Business Management,Switzerland,718,48,Computer Science,2200000,1100000,https://logo.clearbit.com/isbm-school.com,http://www.isbm-school.com/,8.9,6.5,90,False,,36
+Swiss Business School Zurich (SBS),Switzerland,139,194,Business & Management,1600000,1400000,https://logo.clearbit.com/sbs.edu,http://www.sbs.edu/,9.3,6.5,80,True,Vice-Chancellor Merit,12
+European University,Switzerland,269,125,Art & Design,1600000,1000000,https://logo.clearbit.com/euruni.edu,http://www.euruni.edu/,7.9,7.5,110,True,Global Study Grant,36
+Insel Gruppe,Switzerland,732,90,Psychology,2700000,800000,https://logo.clearbit.com/insel.ch,http://www.insel.ch/,8.8,7.0,80,False,Vice-Chancellor Merit,18
+Swiss Management Center,Switzerland,108,153,Data Science,3000000,900000,https://logo.clearbit.com/swissmc.ch,http://www.swissmc.ch/,7.3,6.5,95,False,Dean's Excellence Award,18
+Universität St. Gallen (HSG),Switzerland,91,189,Psychology,1800000,1100000,https://logo.clearbit.com/unisg.ch,http://www.unisg.ch/,8.0,7.5,85,True,,48
+University of Geneva,Switzerland,262,118,Medicine,2900000,1300000,https://logo.clearbit.com/unige.ch,http://www.unige.ch/,7.8,6.0,100,True,,24
+HEP-PH FR - University of Teacher Education Fribourg,Switzerland,880,90,Law,2200000,1000000,https://logo.clearbit.com/edufr.ch,http://www.edufr.ch/,7.7,7.0,95,False,Global Study Grant,18
+ZHAW - Zürcher Hochschule für Angewandte Wissenschaften,Switzerland,963,125,Engineering,2100000,1000000,https://logo.clearbit.com/zhaw.ch,http://www.zhaw.ch/,9.3,6.5,90,True,,18
+PHSZ - University of Teacher Education Schwyz,Switzerland,73,8,Engineering,2000000,1300000,https://logo.clearbit.com/phsz.ch,http://www.phsz.ch/,9.4,7.5,90,True,,12
+PHGR - University of Teacher Education Graubünden,Switzerland,788,114,Law,2200000,1300000,https://logo.clearbit.com/ph-gr.ch,http://www.ph-gr.ch/,6.5,7.0,105,True,Vice-Chancellor Merit,12
+EVTEK University of Applied Sciences,Finland,960,173,Economics,300000,1300000,https://logo.clearbit.com/evtek.fi,http://www.evtek.fi/,8.8,7.0,110,False,,12
+University of Joensuu,Finland,975,7,Medicine,800000,900000,https://logo.clearbit.com/joensuu.fi,http://www.joensuu.fi/,7.7,7.5,110,True,Vice-Chancellor Merit,18
+Theatre Academy Finland,Finland,641,89,Computer Science,600000,1000000,https://logo.clearbit.com/teak.fi,http://www.teak.fi/,7.5,7.0,95,False,Vice-Chancellor Merit,12
+Oulu Polytechnic,Finland,496,176,Medicine,800000,1200000,https://logo.clearbit.com/oamk.fi,http://www.oamk.fi/,8.6,6.5,90,True,,24
+Metropolia University of Applied Sciences,Finland,881,75,Economics,700000,1200000,https://logo.clearbit.com/metropolia.fi,https://www.metropolia.fi/,6.7,7.5,80,False,,18
+Diaconia University of Applied Sciences,Finland,364,37,Data Science,600000,900000,https://logo.clearbit.com/diak.fi,http://www.diak.fi/,6.5,6.5,90,False,,36
+Turku School of Economics and Business Administration,Finland,879,199,Computer Science,1000000,1300000,https://logo.clearbit.com/tukkk.fi,http://www.tukkk.fi/,7.9,6.5,85,True,Dean's Excellence Award,24
+Helsinki University of Technology,Finland,18,88,Psychology,500000,1300000,https://logo.clearbit.com/hut.fi,http://www.hut.fi/,8.6,7.5,80,False,Vice-Chancellor Merit,24
+University of Oulu,Finland,638,109,Psychology,900000,1300000,https://logo.clearbit.com/oulu.fi,http://www.oulu.fi/,9.3,7.0,110,False,,18
+University of Art and Design Helsinki,Finland,944,29,Law,700000,1100000,https://logo.clearbit.com/uiah.fi,http://www.uiah.fi/,6.7,6.0,95,False,Global Study Grant,48
+Lahti Polytechnic,Finland,770,21,Engineering,400000,1000000,https://logo.clearbit.com/lamk.fi,http://www.lamk.fi/,8.3,7.5,100,False,,48
+University of Kuopio,Finland,655,109,Art & Design,900000,1200000,https://logo.clearbit.com/uku.fi,http://www.uku.fi/,9.2,7.0,95,False,Dean's Excellence Award,18
+Häme University of Applied Sciences,Finland,141,157,Data Science,900000,1000000,https://logo.clearbit.com/hamk.fi,https://www.hamk.fi/,6.8,7.0,85,True,Global Study Grant,18
+Aalto University,Finland,265,115,Economics,600000,1100000,https://logo.clearbit.com/aalto.fi,https://www.aalto.fi,8.2,6.0,105,True,Global Study Grant,24
+Helsinki School of Economics and Business Administration,Finland,357,46,Computer Science,500000,1400000,https://logo.clearbit.com/hkkk.fi,http://www.hkkk.fi/,7.6,7.0,105,False,,48
+Universitat Jaume I de Castellón,Spain,31,8,Medicine,2000000,800000,https://logo.clearbit.com/uji.es,http://www.uji.es/,9.1,6.5,100,True,,18
+Universidad de Salamanca,Spain,242,89,Psychology,2900000,1300000,https://logo.clearbit.com/usal.es,http://www.usal.es/,9.5,6.5,105,False,Global Study Grant,48
+ESADE Business & Law School,Spain,71,28,Business & Management,2900000,1500000,https://logo.clearbit.com/esade.edu,https://www.esade.edu/en/about-us/law-school,7.6,6.0,85,True,Vice-Chancellor Merit,48
+La Salle - Universitat Ramon Llull,Spain,206,101,Economics,1800000,1100000,https://logo.clearbit.com/salleurl.edu,http://www.salleurl.edu/,8.6,7.0,95,False,,18
+Universidad Pública de Navarra,Spain,941,147,Computer Science,2600000,800000,https://logo.clearbit.com/unavarra.es,http://www.unavarra.es/,6.8,7.5,100,False,,48
+Universitat de Vic,Spain,617,159,Psychology,2800000,1400000,https://logo.clearbit.com/uvic.es,http://www.uvic.es/,8.1,6.5,80,False,Global Study Grant,36
+Universidad de Granada,Spain,901,95,Psychology,2500000,1500000,https://logo.clearbit.com/ugr.es,http://www.ugr.es/,7.6,6.5,90,True,Vice-Chancellor Merit,48
+Universidad de Castilla La Mancha,Spain,471,164,Data Science,2800000,900000,https://logo.clearbit.com/uclm.es,http://www.uclm.es/,6.8,7.5,85,False,,18
+Universidad Católica de Valencia,Spain,377,199,Business & Management,1700000,1300000,https://logo.clearbit.com/ucv.es,http://www.ucv.es/,7.7,6.5,105,True,Dean's Excellence Award,24
+Universidad de La Laguna,Spain,685,124,Data Science,1500000,1500000,https://logo.clearbit.com/ull.es,http://www.ull.es/,8.1,7.0,85,False,,48
+Universidad de Deusto,Spain,112,79,Engineering,3000000,1100000,https://logo.clearbit.com/deusto.es,http://www.deusto.es/,9.4,6.0,85,False,,36
+Universidad de Navarra,Spain,366,85,Psychology,1800000,1000000,https://logo.clearbit.com/unav.es,http://www.unav.es/,7.7,6.0,80,False,,12
+Barcelona Graduate School of Economics,Spain,131,20,Economics,2800000,1000000,https://logo.clearbit.com/barcelonagse.eu,http://www.barcelonagse.eu/,7.9,6.0,110,True,Dean's Excellence Award,12
+Universidad de Valencia,Spain,890,34,Medicine,2000000,1200000,https://logo.clearbit.com/uv.es,http://www.uv.es/,9.4,7.0,90,True,Vice-Chancellor Merit,48
+Universidad Internacional de Andalucía,Spain,106,34,Medicine,2500000,1400000,https://logo.clearbit.com/uia.es,http://www.uia.es/,7.7,7.0,90,True,Dean's Excellence Award,24
+La Salle Universities - International Programmes,Spain,931,14,Law,2100000,1500000,https://logo.clearbit.com/lasalleuniversities.net,http://www.lasalleuniversities.net/,7.9,6.0,80,False,,24
+Universidad de Sevilla,Spain,948,28,Business & Management,2000000,800000,https://logo.clearbit.com/us.es,http://www.us.es/,7.5,7.0,100,False,,36
+"Universidad Internacional de Andalucía, Sede Antonio Machado de Baeza",Spain,192,194,Art & Design,2400000,1200000,https://logo.clearbit.com/uniaam.uia.es,http://www.uniaam.uia.es/,7.8,6.0,105,False,Vice-Chancellor Merit,18
+University of Barcelona,Spain,292,106,Data Science,1700000,1500000,https://logo.clearbit.com/alumnes.ub.edu,https://web.ub.edu,9.0,6.5,105,True,Global Study Grant,12
+Universidad del País Vasco,Spain,456,180,Art & Design,2100000,1000000,https://logo.clearbit.com/ehu.es,http://www.ehu.es/,7.5,7.5,95,False,Global Study Grant,12

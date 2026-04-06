@@ -1,0 +1,207 @@
+{
+  "countries": {
+    "USA": {
+      "visa_type": "F-1 Student Visa",
+      "official_link": "https://travel.state.gov/content/travel/en/us-visas/study/student-visa.html",
+      "processing_time": "3–5 weeks (USCIS) + consulate appointment typically 2–8 weeks",
+      "visa_fee_inr": 19900,
+      "checklist": [
+        { "id": "usa_1",  "category": "Admission", "item": "Form I-20 from a SEVP-certified US institution" },
+        { "id": "usa_2",  "category": "Admission", "item": "SEVIS I-901 fee receipt (USD 350 ≈ ₹29,000)" },
+        { "id": "usa_3",  "category": "Application", "item": "DS-160 Online Nonimmigrant Visa Application (completed & printed)" },
+        { "id": "usa_4",  "category": "Application", "item": "MRV visa fee payment confirmation (USD 185 ≈ ₹15,400)" },
+        { "id": "usa_5",  "category": "Identity", "item": "Valid Indian passport (valid for at least 6 months beyond intended stay)" },
+        { "id": "usa_6",  "category": "Identity", "item": "One recent passport-size photograph (2x2 inch, white background)" },
+        { "id": "usa_7",  "category": "Financial", "item": "Bank statements showing sufficient funds (last 6 months)" },
+        { "id": "usa_8",  "category": "Financial", "item": "Sponsor letter with income proof (if applicable)" },
+        { "id": "usa_9",  "category": "Financial", "item": "Scholarship/funding letter (if applicable)" },
+        { "id": "usa_10", "category": "Academic", "item": "Official academic transcripts (10th, 12th, undergraduate)" },
+        { "id": "usa_11", "category": "Academic", "item": "GRE/GMAT score report (for graduate programs)" },
+        { "id": "usa_12", "category": "Academic", "item": "TOEFL/IELTS score report" },
+        { "id": "usa_13", "category": "Interview", "item": "US consulate visa interview appointment confirmation" },
+        { "id": "usa_14", "category": "Interview", "item": "Ties to home country evidence (family, property, job offer)" }
+      ]
+    },
+    "UK": {
+      "visa_type": "UK Student Route Visa",
+      "official_link": "https://www.gov.uk/student-visa",
+      "processing_time": "3–8 weeks from the date of online application",
+      "visa_fee_inr": 52500,
+      "checklist": [
+        { "id": "uk_1",  "category": "Admission", "item": "CAS (Confirmation of Acceptance for Studies) number from UK university" },
+        { "id": "uk_2",  "category": "Application", "item": "Online UK Student visa application (on Gov.uk)" },
+        { "id": "uk_3",  "category": "Application", "item": "Visa fee payment (GBP 490 ≈ ₹52,500) + IHS surcharge (GBP 776/year)" },
+        { "id": "uk_4",  "category": "Identity", "item": "Valid Indian passport" },
+        { "id": "uk_5",  "category": "Identity", "item": "Biometric appointment at VFS Global (India)" },
+        { "id": "uk_6",  "category": "Financial", "item": "Bank statements showing: tuition + £1,334/month (London) or £1,023/month (elsewhere) for 28 days" },
+        { "id": "uk_7",  "category": "Financial", "item": "Funds held continuously for 28 days before application" },
+        { "id": "uk_8",  "category": "Academic", "item": "IELTS Academic / UKVI IELTS score (usually Band 6.0+)" },
+        { "id": "uk_9",  "category": "Academic", "item": "Official academic transcripts and certificates" },
+        { "id": "uk_10", "category": "ATAS", "item": "ATAS certificate (if studying sensitive subjects like aerospace, nuclear)" },
+        { "id": "uk_11", "category": "Tuberculosis", "item": "TB test certificate from approved clinic (mandatory for India)" }
+      ]
+    },
+    "Germany": {
+      "visa_type": "German National Student Visa (Type D)",
+      "official_link": "https://www.make-it-in-germany.com/en/visa-residence/types/studying",
+      "processing_time": "6–12 weeks; apply at least 3 months before start date",
+      "visa_fee_inr": 6800,
+      "checklist": [
+        { "id": "de_1",  "category": "Admission", "item": "University admission letter (Zulassungsbescheid)" },
+        { "id": "de_2",  "category": "Application", "item": "Completed national visa application form (signed in presence of consulate)" },
+        { "id": "de_3",  "category": "Application", "item": "Visa fee (EUR 75 ≈ ₹6,800)" },
+        { "id": "de_4",  "category": "Identity", "item": "Valid Indian passport + two copies of all pages" },
+        { "id": "de_5",  "category": "Identity", "item": "Two recent biometric photos" },
+        { "id": "de_6",  "category": "Financial", "item": "Blocked account (Sperrkonto) showing EUR 11,208 (2024 amount) e.g., Fintiba, Deutsche Bank, Coracle" },
+        { "id": "de_7",  "category": "Financial", "item": "Health insurance valid in Germany (Techniker Krankenkasse, AOK, etc.)" },
+        { "id": "de_8",  "category": "Academic", "item": "Certified translated copies of marksheets (10th, 12th, degree)" },
+        { "id": "de_9",  "category": "Academic", "item": "German language proficiency proof (TestDaF / DSH) or English proof (IELTS/TOEFL)" },
+        { "id": "de_10", "category": "Academic", "item": "Statement of Purpose / Motivation Letter" },
+        { "id": "de_11", "category": "Academic", "item": "CV/Resume in Europass format" },
+        { "id": "de_12", "category": "Academic", "item": "APS certificate (Akademische Prüfstelle) — mandatory for Indian students" }
+      ]
+    },
+    "France": {
+      "visa_type": "Long-Stay Student Visa (VLS-TS étudiant)",
+      "official_link": "https://france-visas.gouv.fr/en/web/france-visas/student",
+      "processing_time": "3–4 weeks; apply 3 months before departure",
+      "visa_fee_inr": 6300,
+      "checklist": [
+        { "id": "fr_1",  "category": "Admission", "item": "Campus France pre-registration and interview certificate" },
+        { "id": "fr_2",  "category": "Application", "item": "Visa application via France-Visas portal" },
+        { "id": "fr_3",  "category": "Application", "item": "Visa fee (EUR 99 ≈ ₹9,000) — often reduced with Campus France" },
+        { "id": "fr_4",  "category": "Identity", "item": "Valid passport (min 3 months beyond stay)" },
+        { "id": "fr_5",  "category": "Identity", "item": "Two recent passport photographs" },
+        { "id": "fr_6",  "category": "Financial", "item": "Bank statements showing EUR 615/month (minimum maintenance funds)" },
+        { "id": "fr_7",  "category": "Financial", "item": "Housing proof (university residence confirmation or rental contract)" },
+        { "id": "fr_8",  "category": "Academic", "item": "Enrollment letter from French institution" },
+        { "id": "fr_9",  "category": "Academic", "item": "French/English proficiency test scores" },
+        { "id": "fr_10", "category": "Academic", "item": "Academic transcripts and diplomas (translated to French if required)" }
+      ]
+    },
+    "Netherlands": {
+      "visa_type": "Dutch Student Residence Permit (MVV + VVR)",
+      "official_link": "https://ind.nl/en/study",
+      "processing_time": "University applies on your behalf; usually 4–8 weeks",
+      "visa_fee_inr": 18700,
+      "checklist": [
+        { "id": "nl_1",  "category": "Admission", "item": "Unconditional offer letter from a Dutch institution (recognized by IND)" },
+        { "id": "nl_2",  "category": "Application", "item": "University submits MVV application to IND on your behalf" },
+        { "id": "nl_3",  "category": "Application", "item": "Entry visa (MVV) fee (EUR 210 ≈ ₹18,700)" },
+        { "id": "nl_4",  "category": "Identity", "item": "Valid passport (min 6 months beyond stay)" },
+        { "id": "nl_5",  "category": "Identity", "item": "Biometric passport-size photos (35x45mm)" },
+        { "id": "nl_6",  "category": "Financial", "item": "Proof of sufficient funds (EUR 860/month in a Dutch bank or scholarship letter)" },
+        { "id": "nl_7",  "category": "Academic", "item": "Academic transcripts and degree certificates" },
+        { "id": "nl_8",  "category": "Academic", "item": "English proficiency (IELTS 6.5+ or TOEFL 90+)" },
+        { "id": "nl_9",  "category": "Health", "item": "Tuberculosis test (EVT) from approved clinic" }
+      ]
+    },
+    "Australia": {
+      "visa_type": "Student Visa (Subclass 500)",
+      "official_link": "https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500",
+      "processing_time": "4–6 weeks on average",
+      "visa_fee_inr": 56000,
+      "checklist": [
+        { "id": "au_1",  "category": "Admission", "item": "CoE (Confirmation of Enrolment) from Australian institution" },
+        { "id": "au_2",  "category": "Application", "item": "Online visa application via ImmiAccount" },
+        { "id": "au_3",  "category": "Application", "item": "Visa application charge (AUD 650 ≈ ₹36,000)" },
+        { "id": "au_4",  "category": "Identity", "item": "Valid Indian passport" },
+        { "id": "au_5",  "category": "Financial", "item": "Proof of funds: AUD 21,041/year tuition + AUD 21,041 living + travel" },
+        { "id": "au_6",  "category": "Financial", "item": "OSHC (Overseas Student Health Cover) insurance" },
+        { "id": "au_7",  "category": "Academic", "item": "Academic transcripts (10th, 12th, bachelor)" },
+        { "id": "au_8",  "category": "Academic", "item": "English proficiency: IELTS 6.0+ overall" },
+        { "id": "au_9",  "category": "Health", "item": "Overseas student health cover (OSHC)" },
+        { "id": "au_10", "category": "Health", "item": "Health examination (if requested) via panel physician" },
+        { "id": "au_11", "category": "Character", "item": "Police clearance certificate from India (if 12+ months in country)" }
+      ]
+    },
+    "Singapore": {
+      "visa_type": "Student's Pass (STP)",
+      "official_link": "https://www.ica.gov.sg/passes-permits/student-pass",
+      "processing_time": "4–8 weeks after SOLAR application",
+      "visa_fee_inr": 4200,
+      "checklist": [
+        { "id": "sg_1",  "category": "Admission", "item": "Offer letter from Singapore educational institution (must be registered with ICA)" },
+        { "id": "sg_2",  "category": "Application", "item": "Online SOLAR (Student's Pass Online Application & Registration) form" },
+        { "id": "sg_3",  "category": "Application", "item": "Student's Pass fee (SGD 30 ≈ ₹1,900) + eIMM8A card SGD 60 ≈ ₹3,900" },
+        { "id": "sg_4",  "category": "Identity", "item": "Valid passport (min 6 months beyond STP expiry)" },
+        { "id": "sg_5",  "category": "Identity", "item": "Recent passport photograph (35x45mm, white background)" },
+        { "id": "sg_6",  "category": "Financial", "item": "Evidence of sufficient funds for tuition and living expenses" },
+        { "id": "sg_7",  "category": "Academic", "item": "Academic transcripts and certificates (certified copies)" },
+        { "id": "sg_8",  "category": "Academic", "item": "English test scores if medium of instruction was not English" },
+        { "id": "sg_9",  "category": "Health", "item": "Medical examination report (if required by institution)" }
+      ]
+    },
+    "HongKong": {
+      "visa_type": "Student Visa / Entry Permit",
+      "official_link": "https://www.immd.gov.hk/eng/services/visas/coming_to_study_in_hk.html",
+      "processing_time": "4–6 weeks",
+      "visa_fee_inr": 0,
+      "checklist": [
+        { "id": "hk_1",  "category": "Admission", "item": "Unconditional offer letter from a Hong Kong institution" },
+        { "id": "hk_2",  "category": "Application", "item": "Form ID 995A (Application for Entry for Study) submitted by university sponsor" },
+        { "id": "hk_3",  "category": "Application", "item": "No visa fee (waived for most nationalities including India)" },
+        { "id": "hk_4",  "category": "Identity", "item": "Valid passport" },
+        { "id": "hk_5",  "category": "Identity", "item": "Recent passport photograph" },
+        { "id": "hk_6",  "category": "Financial", "item": "Proof of sufficient funds for study and living expenses" },
+        { "id": "hk_7",  "category": "Academic", "item": "Academic transcripts and certificates" },
+        { "id": "hk_8",  "category": "Academic", "item": "English proficiency if applicable" },
+        { "id": "hk_9",  "category": "Other", "item": "Police clearance (if required by institution)" }
+      ]
+    },
+    "Spain": {
+      "visa_type": "Spanish Student Visa (Type D)",
+      "official_link": "https://www.exteriores.gob.es/Consulados/nuevadelhi/en/ServiciosConsulares/Pages/Consular/Visados-Estudiante.aspx",
+      "processing_time": "4–8 weeks; apply 2–3 months in advance",
+      "visa_fee_inr": 6200,
+      "checklist": [
+        { "id": "es_1",  "category": "Admission", "item": "Letter of acceptance from accredited Spanish university/institution" },
+        { "id": "es_2",  "category": "Application", "item": "National visa application form (EX-00)" },
+        { "id": "es_3",  "category": "Application", "item": "Visa fee (EUR 80 ≈ ₹7,300)" },
+        { "id": "es_4",  "category": "Identity", "item": "Valid passport (2+ passport photos)" },
+        { "id": "es_5",  "category": "Financial", "item": "Proof of financial means (EUR 600/month or study grant letter)" },
+        { "id": "es_6",  "category": "Financial", "item": "Travel and health insurance (covering entire stay in Spain)" },
+        { "id": "es_7",  "category": "Academic", "item": "Certified academic certificates (translated to Spanish)" },
+        { "id": "es_8",  "category": "Academic", "item": "Spanish language proficiency (DELE) or program taught in English with proof" },
+        { "id": "es_9",  "category": "Health", "item": "Medical certificate (in Spanish) confirming no contagious diseases" },
+        { "id": "es_10", "category": "Criminal", "item": "Apostilled Indian Police Clearance Certificate" }
+      ]
+    },
+    "Switzerland": {
+      "visa_type": "Swiss National Visa (Category D) for Study",
+      "official_link": "https://www.sem.admin.ch/sem/en/home/themen/einreise/faq1.html",
+      "processing_time": "8–12 weeks; apply very early",
+      "visa_fee_inr": 6700,
+      "checklist": [
+        { "id": "ch_1",  "category": "Admission", "item": "University acceptance letter from Swiss institution" },
+        { "id": "ch_2",  "category": "Application", "item": "National visa application form (via Swiss Embassy New Delhi)" },
+        { "id": "ch_3",  "category": "Application", "item": "Visa fee (CHF 82 ≈ ₹7,500)" },
+        { "id": "ch_4",  "category": "Identity", "item": "Valid passport + 2 copies of ID page" },
+        { "id": "ch_5",  "category": "Identity", "item": "Two recent biometric photos" },
+        { "id": "ch_6",  "category": "Financial", "item": "Proof of funds: CHF 21,000 blocked account or scholarship letter" },
+        { "id": "ch_7",  "category": "Financial", "item": "Health insurance valid in Switzerland" },
+        { "id": "ch_8",  "category": "Academic", "item": "Academic certificates and transcripts" },
+        { "id": "ch_9",  "category": "Academic", "item": "Language certificate (German B2/C1 for German programs; English IELTS 6.5 for English programs)" },
+        { "id": "ch_10", "category": "Criminal", "item": "Indian Police Clearance Certificate" }
+      ]
+    },
+    "Finland": {
+      "visa_type": "Finnish Residence Permit for Studies",
+      "official_link": "https://migri.fi/en/studying-in-finland",
+      "processing_time": "6–8 weeks; apply via Enter Finland portal",
+      "visa_fee_inr": 35500,
+      "checklist": [
+        { "id": "fi_1",  "category": "Admission", "item": "Acceptance letter from Finnish university (must be registered)" },
+        { "id": "fi_2",  "category": "Application", "item": "Online application via Enter Finland (enterfinland.fi)" },
+        { "id": "fi_3",  "category": "Application", "item": "Permit fee (EUR 400 ≈ ₹36,300)" },
+        { "id": "fi_4",  "category": "Identity", "item": "Valid passport (scan + original)" },
+        { "id": "fi_5",  "category": "Identity", "item": "Passport-size photo" },
+        { "id": "fi_6",  "category": "Financial", "item": "Show EUR 560/month (EUR 6,720/year) in bank account or scholarship" },
+        { "id": "fi_7",  "category": "Financial", "item": "Proof of payment of tuition fees (if applicable)" },
+        { "id": "fi_8",  "category": "Academic", "item": "Academic transcripts (notarized copies)" },
+        { "id": "fi_9",  "category": "Academic", "item": "English/Finnish proficiency certificate" },
+        { "id": "fi_10", "category": "Health", "item": "Valid travel insurance until residence permit is processed" }
+      ]
+    }
+  }
+}

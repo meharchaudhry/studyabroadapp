@@ -1,0 +1,108 @@
+{
+  "portals": [
+    {
+      "country": "UK",
+      "country_code": "GB",
+      "portals": [
+        { "id": "uk_j1", "name": "LinkedIn Jobs", "url": "https://www.linkedin.com/jobs/search/?location=United%20Kingdom", "description": "Biggest professional network — internships, graduate programs, part-time roles.", "type": ["internship", "graduate", "part-time"], "student_friendly": true, "logo_color": "#0077B5" },
+        { "id": "uk_j2", "name": "Gradcracker", "url": "https://www.gradcracker.com", "description": "STEM-focused graduate jobs and placements exclusively for UK students.", "type": ["graduate", "internship"], "student_friendly": true, "logo_color": "#FF6600" },
+        { "id": "uk_j3", "name": "Prospects", "url": "https://www.prospects.ac.uk/jobs-and-work-experience", "description": "UK's official graduate careers site with work experience and job listings.", "type": ["graduate", "internship"], "student_friendly": true, "logo_color": "#003087" },
+        { "id": "uk_j4", "name": "Indeed UK", "url": "https://uk.indeed.com/jobs?q=student+part+time", "description": "Huge job board — filter by 'Part Time' and 'Student' for flexible roles.", "type": ["part-time"], "student_friendly": true, "logo_color": "#2164F3" },
+        { "id": "uk_j5", "name": "Milkround", "url": "https://www.milkround.com", "description": "UK's largest graduate and student job platform with internship schemes.", "type": ["graduate", "internship"], "student_friendly": true, "logo_color": "#E91E63" }
+      ]
+    },
+    {
+      "country": "Germany",
+      "country_code": "DE",
+      "portals": [
+        { "id": "de_j1", "name": "Jobteaser", "url": "https://www.jobteaser.com/en/jobs?country=germany", "description": "Europe's leading student & graduate job platform connected to universities.", "type": ["internship", "graduate"], "student_friendly": true, "logo_color": "#6A0DAD" },
+        { "id": "de_j2", "name": "Stepstone", "url": "https://www.stepstone.de/jobs/Werkstudent", "description": "Major German job board — search 'Werkstudent' (working student) roles.", "type": ["part-time", "internship"], "student_friendly": true, "logo_color": "#CC0000" },
+        { "id": "de_j3", "name": "Xing Jobs", "url": "https://www.xing.com/jobs/search?keywords=werkstudent", "description": "German professional network with Werkstudenten and Praktikum (internship) postings.", "type": ["part-time", "internship"], "student_friendly": true, "logo_color": "#026466" },
+        { "id": "de_j4", "name": "Make-it-in-Germany", "url": "https://www.make-it-in-germany.com/en/working-in-germany/job-listings", "description": "Official German government portal for international students seeking work.", "type": ["graduate", "part-time"], "student_friendly": true, "logo_color": "#000000" }
+      ]
+    },
+    {
+      "country": "France",
+      "country_code": "FR",
+      "portals": [
+        { "id": "fr_j1", "name": "Jobteaser France", "url": "https://www.jobteaser.com/en/jobs?country=france", "description": "Top student job platform in France — stages (internships) and alternances.", "type": ["internship", "graduate"], "student_friendly": true, "logo_color": "#6A0DAD" },
+        { "id": "fr_j2", "name": "Indeed France", "url": "https://fr.indeed.com/emplois?q=étudiant+temps+partiel", "description": "Large French job board with student part-time and internship filters.", "type": ["part-time", "internship"], "student_friendly": true, "logo_color": "#2164F3" },
+        { "id": "fr_j3", "name": "APEC", "url": "https://www.apec.fr/candidat/recherche-emploi.html", "description": "French executive and graduate job portal — great for high-level internships.", "type": ["graduate", "internship"], "student_friendly": false, "logo_color": "#003087" },
+        { "id": "fr_j4", "name": "Cadremploi", "url": "https://www.cadremploi.fr", "description": "Professional French job market — internships and graduate schemes.", "type": ["graduate", "internship"], "student_friendly": false, "logo_color": "#E63946" }
+      ]
+    },
+    {
+      "country": "Netherlands",
+      "country_code": "NL",
+      "portals": [
+        { "id": "nl_j1", "name": "LinkedIn NL", "url": "https://www.linkedin.com/jobs/search/?location=Netherlands", "description": "Dominant in the Dutch market — English-language jobs available widely.", "type": ["internship", "graduate", "part-time"], "student_friendly": true, "logo_color": "#0077B5" },
+        { "id": "nl_j2", "name": "Indeed Netherlands", "url": "https://www.indeed.nl/jobs?q=student&l=", "description": "Dutch job board with broad listings including bijban (side jobs) for students.", "type": ["part-time"], "student_friendly": true, "logo_color": "#2164F3" },
+        { "id": "nl_j3", "name": "Nationale Vacaturebank", "url": "https://www.nationalevacaturebank.nl/vacature/zoeken?query=stage", "description": "Netherlands' national job board — search 'stage' for internships.", "type": ["internship", "graduate"], "student_friendly": true, "logo_color": "#FF6600" }
+      ]
+    },
+    {
+      "country": "Australia",
+      "country_code": "AU",
+      "portals": [
+        { "id": "au_j1", "name": "Seek", "url": "https://www.seek.com.au/jobs?classification=casual-vacation&workarrangement=4", "description": "Australia's #1 job site — filter by Casual/Vacation for student work.", "type": ["part-time", "graduate"], "student_friendly": true, "logo_color": "#1A1A2E" },
+        { "id": "au_j2", "name": "GradAustralia", "url": "https://gradaustralia.com.au", "description": "Australia's leading graduate careers platform — Big Four, tech, engineering.", "type": ["graduate", "internship"], "student_friendly": true, "logo_color": "#00B4D8" },
+        { "id": "au_j3", "name": "Jora AU", "url": "https://au.jora.com/jobs?q=part+time+student", "description": "Part-time and casual job listings across all Australian states.", "type": ["part-time"], "student_friendly": true, "logo_color": "#6A0DAD" }
+      ]
+    },
+    {
+      "country": "Singapore",
+      "country_code": "SG",
+      "portals": [
+        { "id": "sg_j1", "name": "MyCareersFuture", "url": "https://www.mycareersfuture.gov.sg/search?search=internship&sortBy=new_posting_date", "description": "Singapore Government's official job portal — verified listings, internships included.", "type": ["internship", "part-time", "graduate"], "student_friendly": true, "logo_color": "#CC0001" },
+        { "id": "sg_j2", "name": "Glassdoor SG", "url": "https://www.glassdoor.sg/Job/singapore-internship-jobs-SRCH_IL.0,9_IC3235921_KO10,20.htm", "description": "Reviews + job listings with salary insights for interns in Singapore.", "type": ["internship", "graduate"], "student_friendly": true, "logo_color": "#0CAA41" },
+        { "id": "sg_j3", "name": "Internsg", "url": "https://www.internsg.com", "description": "Singapore-exclusive internship board — local SME and MNC opportunities.", "type": ["internship"], "student_friendly": true, "logo_color": "#FF4500" }
+      ]
+    },
+    {
+      "country": "HongKong",
+      "country_code": "HK",
+      "portals": [
+        { "id": "hk_j1", "name": "JobsDB HK", "url": "https://hk.jobsdb.com/jobs-in-education-training/part-time", "description": "HK's leading job board — broad listings from finance to retail for students.", "type": ["part-time", "graduate"], "student_friendly": true, "logo_color": "#CC0000" },
+        { "id": "hk_j2", "name": "LinkedIn HK", "url": "https://www.linkedin.com/jobs/search/?location=Hong%20Kong", "description": "Good for finance, tech, consulting internships in Hong Kong.", "type": ["internship", "graduate"], "student_friendly": true, "logo_color": "#0077B5" },
+        { "id": "hk_j3", "name": "Glassdoor HK", "url": "https://www.glassdoor.com.hk/Job/hong-kong-internship-jobs-SRCH_IL.0,9_IM583_KO10,20.htm", "description": "Salary-transparent internship and grad job listings in HK.", "type": ["internship"], "student_friendly": true, "logo_color": "#0CAA41" }
+      ]
+    },
+    {
+      "country": "USA",
+      "country_code": "US",
+      "portals": [
+        { "id": "us_j1", "name": "Handshake", "url": "https://joinhandshake.com", "description": "America's #1 early talent network — used by 1400+ US universities for internship recruitment.", "type": ["internship", "graduate"], "student_friendly": true, "logo_color": "#E40009" },
+        { "id": "us_j2", "name": "LinkedIn US", "url": "https://www.linkedin.com/jobs/search/?location=United%20States&f_WT=2", "description": "Remote and on-site internships across all US cities and tech hubs.", "type": ["internship", "graduate", "part-time"], "student_friendly": true, "logo_color": "#0077B5" },
+        { "id": "us_j3", "name": "Glassdoor US", "url": "https://www.glassdoor.com/Job/internships-jobs-SRCH_KO0,11.htm", "description": "Internship search with salary estimates — great for tech and finance.", "type": ["internship"], "student_friendly": true, "logo_color": "#0CAA41" },
+        { "id": "us_j4", "name": "WayUp", "url": "https://www.wayup.com", "description": "College-exclusive internship and part-time job platform in the US.", "type": ["internship", "part-time"], "student_friendly": true, "logo_color": "#7B2D8B" }
+      ]
+    },
+    {
+      "country": "Finland",
+      "country_code": "FI",
+      "portals": [
+        { "id": "fi_j1", "name": "TE-services", "url": "https://paikat.te-palvelut.fi/tpt/", "description": "Finnish government employment service — job listings including student roles.", "type": ["part-time", "graduate"], "student_friendly": true, "logo_color": "#003580" },
+        { "id": "fi_j2", "name": "LinkedIn Finland", "url": "https://www.linkedin.com/jobs/search/?location=Finland", "description": "English-language jobs in Helsinki tech scene — good for international students.", "type": ["internship", "graduate"], "student_friendly": true, "logo_color": "#0077B5" },
+        { "id": "fi_j3", "name": "Duunitori", "url": "https://duunitori.fi/tyopaikat?haku=harjoittelija", "description": "Finnish job portal — search 'harjoittelija' for internship/trainee roles.", "type": ["internship"], "student_friendly": true, "logo_color": "#1A202C" }
+      ]
+    },
+    {
+      "country": "Spain",
+      "country_code": "ES",
+      "portals": [
+        { "id": "es_j1", "name": "Infojobs", "url": "https://www.infojobs.net/ofertas-trabajo/practicas", "description": "Spain's leading job platform — biggest database of prácticas (internships).", "type": ["internship", "part-time"], "student_friendly": true, "logo_color": "#E63946" },
+        { "id": "es_j2", "name": "Jobteaser Spain", "url": "https://www.jobteaser.com/en/jobs?country=spain", "description": "University-linked job board with internships across Spanish cities.", "type": ["internship", "graduate"], "student_friendly": true, "logo_color": "#6A0DAD" },
+        { "id": "es_j3", "name": "LinkedIn Spain", "url": "https://www.linkedin.com/jobs/search/?location=Spain", "description": "English and Spanish job listings — good for international student opportunities.", "type": ["internship", "graduate"], "student_friendly": true, "logo_color": "#0077B5" }
+      ]
+    },
+    {
+      "country": "Switzerland",
+      "country_code": "CH",
+      "portals": [
+        { "id": "ch_j1", "name": "Jobs.ch", "url": "https://www.jobs.ch/en/vacancies/?term=internship", "description": "Switzerland's major job portal — search for Praktikum/internship across all Swiss cities.", "type": ["internship", "graduate"], "student_friendly": true, "logo_color": "#D62828" },
+        { "id": "ch_j2", "name": "LinkedIn Switzerland", "url": "https://www.linkedin.com/jobs/search/?location=Switzerland", "description": "Finance, pharma, and tech internships in Zurich, Geneva, and Basel.", "type": ["internship", "graduate"], "student_friendly": true, "logo_color": "#0077B5" },
+        { "id": "ch_j3", "name": "Jobscout24", "url": "https://www.jobscout24.ch/en/jobs/internship", "description": "Swiss job aggregator with student and part-time role filters.", "type": ["part-time", "internship"], "student_friendly": true, "logo_color": "#FF6600" }
+      ]
+    }
+  ]
+}
