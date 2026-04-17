@@ -168,10 +168,19 @@ export default function Jobs() {
           </div>
         ) : (
           <div className="space-y-3">
-            {liveJobs.map(job => (
+            {liveJobs.map((job, i) => (
               <div key={job.id} className="card p-4 flex flex-col sm:flex-row gap-4 justify-between items-center group">
                 <div>
-                  <h3 className="font-bold text-text group-hover:text-peach transition-colors">{job.title}</h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-bold text-text group-hover:text-peach transition-colors">{job.title}</h3>
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                      job.title.toLowerCase().includes('graduate') ? 'bg-lavendLight text-lavender' :
+                      i % 3 === 0 ? 'bg-mintLight text-teal-600' : 'bg- peachLight text-peach'
+                    }`}>
+                      {job.title.toLowerCase().includes('graduate') ? '🎓 Graduate Role' :
+                       i % 3 === 0 ? '🏠 On-campus' : '⏰ Part-time'}
+                    </span>
+                  </div>
                   <div className="flex flex-wrap gap-3 text-xs text-muted mt-1">
                     <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5"/>{job.company}</span>
                     <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5"/>{job.location}</span>

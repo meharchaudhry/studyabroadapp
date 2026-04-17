@@ -1,9 +1,28 @@
 import { useState } from 'react';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-import { Doughnut } from 'react-chartjs-2';
-import { Calculator, ArrowRight } from 'lucide-react';
+import { 
+  Chart as ChartJS, 
+  ArcElement, 
+  Tooltip, 
+  Legend, 
+  CategoryScale, 
+  LinearScale, 
+  PointElement, 
+  LineElement, 
+  Title 
+} from 'chart.js';
+import { Doughnut, Line } from 'react-chartjs-2';
+import { Calculator, ArrowRight, TrendingUp } from 'lucide-react';
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(
+  ArcElement, 
+  Tooltip, 
+  Legend, 
+  CategoryScale, 
+  LinearScale, 
+  PointElement, 
+  LineElement, 
+  Title
+);
 
 export default function Finance() {
   const [inputs, setInputs] = useState({
@@ -29,6 +48,13 @@ export default function Finance() {
     const breakEvenYears = trueCost / yearlyPayoff;
     const roi = ((netSalary * 5) - trueCost) / trueCost * 100; // 5 year ROI
 
+    // 8-Year Timeline Simulation
+    const labels = ['Year 0', 'Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5', 'Year 6', 'Year 7', 'Year 8'];
+    const cumulativePayoff = labels.map((_, i) => {
+      if (i === 0) return -trueCost;
+      return -trueCost + (yearlyPayoff * i);
+    });
+
     setResults({
       totalCost,
       trueCost,
@@ -39,20 +65,26 @@ export default function Finance() {
         datasets: [
           {
             data: [inputs.tuition, inputs.living, loanInterest],
-            backgroundColor: [
-              'rgba(29, 78, 216, 0.8)', // Primary
-              'rgba(147, 51, 234, 0.8)', // Secondary
-              'rgba(239, 68, 68, 0.8)' // Red
-            ],
-            borderColor: [
-              'rgba(29, 78, 216, 1)',
-              'rgba(147, 51, 234, 1)',
-              'rgba(239, 68, 68, 1)'
-            ],
-            borderWidth: 1,
+            backgroundColor: ['#7C6FF7', '#38BDF8', '#FB7185'],
+            hoverOffset: 4,
           },
         ],
-      }
+      },
+      timelineData: {
+        labels,
+        datasets: [
+          {
+            label: 'Net Position (₹)',
+            data: cumulativePayoff,
+            borderColor: '#7C6FF7',
+            backgroundColor: 'rgba(124, 111, 247, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: '#7C6FF7',
+          },
+        ],
+      },
     });
   };
 
@@ -111,14 +143,39 @@ export default function Finance() {
               </div>
             </div>
 
-            <div className="glass-panel p-6 flex flex-col items-center">
+            <div className="card p-6 flex flex-col items-center border-lavender/20">
+              <h3 className="text-lg font-bold mb-4 w-full text-left flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-lavender"/> Performance Timeline
+              </h3>
+              <div className="w-full h-64">
+                <Line 
+                  data={results.timelineData} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                      legend: { display: false },
+                      tooltip: { backgroundColor: '#1e293b', titleColor: '#fff', bodyColor: '#cbd5e1' } 
+                    },
+                    scales: { 
+                      y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                      x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+                    }
+                  }} 
+                />
+              </div>
+            </div>
+
+            <div className="card p-6 flex flex-col items-center border-sky-400/20">
               <h3 className="text-lg font-bold mb-4 w-full text-left">Cost Breakdown</h3>
-              <div className="w-64 h-64">
+              <div className="w-56 h-56">
                 <Doughnut 
                   data={results.chartData} 
                   options={{
-                    plugins: { legend: { position: 'bottom', labels: { color: '#fff' } } },
-                    cutout: '70%',
+                    plugins: { 
+                      legend: { position: 'bottom', labels: { color: '#64748b', font: { size: 10 }, padding: 20 } } 
+                    },
+                    cutout: '75%',
                     elements: { arc: { borderWidth: 0 } }
                   }} 
                 />

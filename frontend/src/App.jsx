@@ -13,6 +13,8 @@ import Jobs from './pages/Jobs';
 import Finance from './pages/Finance';
 import Housing from './pages/Housing';
 import BookingAppointments from './pages/BookingAppointments';
+import RAGEvaluation from './pages/RAGEvaluation';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -32,6 +34,8 @@ function App() {
             <Route path="/visa-chat" element={<VisaChat />} />
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/finance" element={<Finance />} />
+            <Route path="/evaluation" element={<RAGEvaluation />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
         </Route>
 

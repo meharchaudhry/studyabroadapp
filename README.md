@@ -48,6 +48,34 @@ python scripts/generate_housing.py
 python scripts/scrape_visa.py && python scripts/ingest_visa.py
 ```
 
+### University Ranking Sources (Kaggle)
+1. Add your QS and THE Kaggle dataset links in `backend/data/university_sources.json`.
+2. Make sure Kaggle CLI is configured locally:
+```bash
+pip install kaggle
+mkdir -p ~/.kaggle
+# put kaggle.json from your Kaggle account in ~/.kaggle/kaggle.json
+chmod 600 ~/.kaggle/kaggle.json
+```
+3. Download raw ranking files:
+```bash
+cd backend
+source venv/bin/activate
+python scripts/fetch_kaggle_rankings.py
+```
+
+Downloaded files will be stored under `backend/data/raw_rankings/`.
+
+4. Build merged university dataset (QS + THE):
+```bash
+python scripts/build_university_dataset.py
+```
+
+5. Seed merged data into DB:
+```bash
+python scripts/seed_universities.py
+```
+
 ### Frontend
 ```bash
 cd frontend

@@ -59,11 +59,28 @@ export default function Universities() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 p-1 bg-surfaceAlt rounded-xl border border-surfaceBorder w-fit">
-        {[['browse','Browse All'],['recommend','My Matches']].map(([v,l])=>(
-          <button key={v} onClick={()=>setViewMode(v)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${viewMode===v?'bg-lavender text-white shadow-soft':'text-textSoft hover:text-text'}`}>{l}</button>
-        ))}
+      <div className="flex flex-wrap gap-4 items-center justify-between">
+        <div className="flex gap-2 p-1 bg-surfaceAlt rounded-xl border border-surfaceBorder w-fit">
+          {[['browse','Browse All'],['recommend','My Matches']].map(([v,l])=>(
+            <button key={v} onClick={()=>setViewMode(v)}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${viewMode===v?'bg-lavender text-white shadow-soft':'text-textSoft hover:text-text'}`}>{l}</button>
+          ))}
+        </div>
+        
+        {/* GPA/Budget Inputs (for My Matches) */}
+        {viewMode === 'recommend' && (
+          <div className="flex gap-3 bg-surfaceAlt px-3 py-1.5 rounded-xl border border-surfaceBorder items-center animate-fade-in">
+             <div className="flex items-center gap-2 group">
+               <label className="text-[10px] font-bold text-muted uppercase">Min GPA</label>
+               <input type="number" step="0.1" defaultValue={8.5} className="w-12 bg-transparent text-sm font-bold text-lavender focus:outline-none"/>
+             </div>
+             <div className="w-px h-6 bg-surfaceBorder"/>
+             <div className="flex items-center gap-2 group">
+               <label className="text-[10px] font-bold text-muted uppercase">Max Budget</label>
+               <input type="text" defaultValue="₹40L" className="w-16 bg-transparent text-sm font-bold text-lavender focus:outline-none"/>
+             </div>
+          </div>
+        )}
       </div>
 
       {/* Filters (browse mode) */}
@@ -131,6 +148,14 @@ export default function Universities() {
                   <span className="text-xs font-semibold text-teal-600 bg-mintLight px-2 py-0.5 rounded-full">{formatINR(uni.tuition)}</span>
                   <span className="text-lavender text-xs font-medium flex items-center gap-1">Details <ChevronRight className="w-3 h-3"/></span>
                 </div>
+                {viewMode === 'recommend' && uni.match_explanation && (
+                  <div className="mt-3 pt-3 border-t border-surfaceBorder border-dashed">
+                     <p className="text-[10px] text-textSoft leading-relaxed line-clamp-2">
+                       <span className="font-bold text-lavender uppercase mr-1">AI Match Insight:</span>
+                       "{uni.match_explanation}"
+                     </p>
+                  </div>
+                )}
               </div>
             </Link>
           ))}

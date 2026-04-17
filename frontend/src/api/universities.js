@@ -1,6 +1,10 @@
 import apiClient from './client';
 
 export const universitiesAPI = {
+  getCountries: async () => {
+    const res = await apiClient.get('/universities/countries');
+    return res.data;
+  },
   getRecommendations: async () => {
     const res = await apiClient.post('/universities/recommendations');
     return res.data;

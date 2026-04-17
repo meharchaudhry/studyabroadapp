@@ -1,57 +1,153 @@
+import json
 import os
+import re
+from datetime import datetime
+from typing import Dict, Tuple
+
 import requests
 from bs4 import BeautifulSoup
 
-VISA_URLS = {
-    "UK": "https://www.gov.uk/student-visa",
-    "US": "https://travel.state.gov/content/travel/en/us-visas/study/student-visa.html",
-    "Canada": "https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit.html"
-}
 
-# Real Authentic content blocks based on the 2024/2025 actual configurations
-UK_CONTENT = """# UK Student Visa (Tier 4) - Guidelines for Indian Students
-The UK Student visa is essential for pursuing higher education in the UK.
-- **Post-Study Work**: The Graduate Route allows you to stay in the UK for at least 2 years after completing your degree (3 years for a PhD) to work or look for work.
-- **Financial Requirements**: You must have enough money to support yourself. For London, this is £1,334 per month for up to 9 months. Outside London, this is £1,023 per month.
-- **Work Limits**: During terms, you can work up to 20 hours a week on-campus or off-campus. Full-time work is allowed during holidays.
-- **Healthcare**: You must pay the Immigration Health Surcharge (IHS) of £776 per year of the visa.
-"""
+def _repo_root() -> str:
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-US_CONTENT = """# US F-1 Student Visa - Guidelines for Indian Students
-The F-1 visa is the cornerstone for international students in America.
-- **Post-Study Work (OPT)**: Optional Practical Training (OPT) allows 1 year of post-study work. If your degree is STEM-designated, you can apply for a 24-month STEM extension, granting 3 total years to work.
-- **Financial Requirements**: You must demonstrate enough liquid funds to cover the first year's tuition and living expenses (as printed on your I-20 form).
-- **Work Limits**: Strict limits. In your first year, you can only work ON-CAMPUS for up to 20 hours per week during term. After the first year, you can do CPT (Curricular Practical Training).
-- **Dependents**: Spouses on F-2 visas are strictly NOT allowed to work under any circumstances.
-"""
 
-CANADA_CONTENT = """# Canada Study Permit - Guidelines for Indian Students
-The Study Permit allows Indian students to complete standard academic degrees.
-- **Post-Graduation Work Permit (PGWP)**: One of the most generous systems. Completing a 2-year or longer program grants a 3-year PGWP allowing unrestricted work.
-- **Financial Requirements**: As of Jan 2024, you must show you have CAD $20,635 for living expenses in addition to your first year of tuition and travel costs.
-- **Work Limits**: During academic sessions, you can work up to 20 hours off-campus per week. During scheduled breaks, you can work full-time.
-- **GIC Requirement**: Under the Student Direct Stream (SDS) typically used by Indians, purchasing a CAD $20,635 Guaranteed Investment Certificate (GIC) is mandatory.
-"""
+def _slugify(value: str) -> str:
+    value = value.strip().lower()
+    value = re.sub(r"[^a-z0-9]+", "_", value)
+    return value.strip("_")
 
-def scrape_visas():
-    # Since these government websites strictly block automated scrapers or present heavy Captchas, 
-    # we simulate the "scraping" extraction via pre-verified 2024 authentic intelligence.
-    
-    docs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "visa_docs")
-    os.makedirs(docs_dir, exist_ok=True)
-    
-    files = [
-        ("UKVI_Student_Visa.md", UK_CONTENT),
-        ("USCIS_F1_Visa.md", US_CONTENT),
-        ("IRCC_Study_Permit.md", CANADA_CONTENT)
+
+def _load_visa_catalog() -> Dict[str, Dict]:
+    path = os.path.join(_repo_root(), "data", "visa_data.json")
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data.get("countries", {})
+
+
+def _fetch_official_page(url: str) -> Tuple[str, bool, str]:
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+        )
+    }
+    try:
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        for node in soup(["script", "style", "noscript", "svg", "img", "iframe"]):
+            node.decompose()
+
+        text_parts = []
+        for selector in ["h1", "h2", "h3", "h4", "p", "li"]:
+            for element in soup.select(selector):
+                text = element.get_text(" ", strip=True)
+                if text:
+                    text_parts.append(text)
+
+        text = "\n".join(text_parts)
+        text = re.sub(r"\n{3,}", "\n\n", text).strip()
+        if len(text) < 200:
+            text = soup.get_text("\n", strip=True)
+            text = re.sub(r"\n{3,}", "\n\n", text).strip()
+
+        if len(text) > 20000:
+            text = text[:20000] + "\n\n[truncated]"
+
+        return text, True, "fetched"
+    except Exception as exc:
+        return "", False, str(exc)
+
+
+def _fallback_markdown(country: str, meta: Dict[str, object]) -> str:
+    checklist = meta.get("checklist", []) or []
+    lines = [
+        f"# {country} Student Visa",
+        "",
+        f"Official Link: {meta.get('official_link', '')}",
+        f"Processing Time: {meta.get('processing_time', '')}",
+        f"Visa Fee (INR): {meta.get('visa_fee_inr', '')}",
+        "",
+        "## Checklist",
     ]
-    
-    for filename, content in files:
-        path = os.path.join(docs_dir, filename)
-        with open(path, "w", encoding="utf-8") as f:
+    for item in checklist:
+        lines.append(f"- [{item.get('category', 'Other')}] {item.get('item', '')}")
+    return "\n".join(lines).strip() + "\n"
+
+
+def _build_markdown(country: str, meta: Dict[str, object], extracted_text: str, fetch_status: str) -> str:
+    checklist = meta.get("checklist", []) or []
+    lines = [
+        f"# {country} Student Visa",
+        "",
+        f"Official Link: {meta.get('official_link', '')}",
+        f"Processing Time: {meta.get('processing_time', '')}",
+        f"Visa Fee (INR): {meta.get('visa_fee_inr', '')}",
+        f"Source Fetch Status: {fetch_status}",
+        f"Last Refreshed (UTC): {datetime.utcnow().isoformat()}Z",
+        "",
+        "## Checklist",
+    ]
+    for item in checklist:
+        lines.append(f"- [{item.get('category', 'Other')}] {item.get('item', '')}")
+
+    if extracted_text:
+        lines.extend([
+            "",
+            "## Extracted Official Page Text",
+            extracted_text,
+        ])
+    else:
+        lines.extend([
+            "",
+            "## Fallback Summary",
+            _fallback_markdown(country, meta),
+        ])
+
+    return "\n".join(lines).strip() + "\n"
+
+
+def scrape_visas() -> None:
+    docs_dir = os.path.join(_repo_root(), "data", "visa_docs")
+    os.makedirs(docs_dir, exist_ok=True)
+
+    catalog = _load_visa_catalog()
+    manifest = []
+
+    for country, meta in catalog.items():
+        official_link = meta.get("official_link", "")
+        extracted_text = ""
+        fetch_ok = False
+        fetch_note = ""
+
+        if official_link:
+            extracted_text, fetch_ok, fetch_note = _fetch_official_page(str(official_link))
+
+        filename = f"{_slugify(country)}_student_visa.md"
+        content = _build_markdown(country, meta, extracted_text if fetch_ok else "", fetch_note if official_link else "no_official_link")
+
+        with open(os.path.join(docs_dir, filename), "w", encoding="utf-8") as f:
             f.write(content)
-            
-    print(f"✅ Successfully compiled & loaded authentic Visa policy documents to {docs_dir}")
+
+        manifest.append(
+            {
+                "country": country,
+                "file": filename,
+                "official_link": official_link,
+                "fetch_ok": fetch_ok,
+                "fetch_note": fetch_note,
+            }
+        )
+
+    manifest_path = os.path.join(docs_dir, "_refresh_manifest.json")
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump({"generated_at_utc": datetime.utcnow().isoformat() + "Z", "countries": manifest}, f, indent=2)
+
+    print(f"✅ Compiled visa documents for {len(manifest)} countries into {docs_dir}")
+    print(f"✅ Refresh manifest written to {manifest_path}")
+
 
 if __name__ == "__main__":
     scrape_visas()

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.models.university import University
-from app.services.recommendation import calculate_score
+from app.services.recommendation import calculate_score, build_match_explanation
 
 router = APIRouter()
 
@@ -27,6 +27,7 @@ class UniDetail(BaseModel):
     scholarships: Optional[str] = None
     course_duration: Optional[int] = None
     match_score: Optional[float] = None
+    match_explanation: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -37,6 +38,18 @@ class UniListResponse(BaseModel):
 
 class RecommendationResponse(BaseModel):
     recommendations: List[UniDetail]
+
+
+@router.get("/countries")
+def get_university_countries(db: Session = Depends(get_db)):
+    rows = (
+        db.query(University.country)
+        .filter(University.country.isnot(None))
+        .distinct()
+        .all()
+    )
+    countries = sorted([r[0] for r in rows if r and r[0]])
+    return {"countries": countries}
 
 @router.get("", response_model=UniListResponse)
 def list_universities(
@@ -85,6 +98,7 @@ def recommend_universities(
         score = calculate_score(current_user, uni)
         d = UniDetail.model_validate(uni)
         d.match_score = score
+        d.match_explanation = build_match_explanation(current_user, uni, score)
         results.append(d)
 
     results.sort(key=lambda x: x.match_score or 0, reverse=True)

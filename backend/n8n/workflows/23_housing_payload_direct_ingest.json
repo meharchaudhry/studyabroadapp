@@ -1,0 +1,119 @@
+{
+  "name": "StudyAbroad - Housing Payload Direct Ingest",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * 0"
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Sunday Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 240]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.BACKEND_BASE_URL + '/api/v1/universities/countries'}}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "get_countries",
+      "name": "Get Dataset Countries",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 240]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const response = $input.first().json || {};\nconst countries = Array.isArray(response.countries) ? response.countries : [];\n\nconst supported = countries.length ? countries : ['United Kingdom', 'Canada', 'United States', 'Australia'];\n\nreturn supported.map((country) => ({\n  json: {\n    country,\n    source_url: `https://www.numbeo.com/cost-of-living/country_result.jsp?country=${encodeURIComponent(country)}&displayCurrency=INR`\n  }\n}));"
+      },
+      "id": "build_sources",
+      "name": "Build Housing Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 240]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$json.source_url}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 240000,
+          "ignoreResponseCode": true
+        }
+      },
+      "id": "fetch_pages",
+      "name": "Fetch Housing Cost Pages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 240]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $input.all();\nconst listings = [];\n\nconst fallback = {\n  'United Kingdom': 90000,\n  'Canada': 70000,\n  'United States': 110000,\n  'Australia': 85000\n};\n\nfor (const [idx, row] of rows.entries()) {\n  const j = row.json || {};\n  const country = j.country || 'Unknown';\n  const raw = (j.body || j.data || '').toString();\n  const cleaned = raw.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ');\n\n  const rentMatch = cleaned.match(/Apartment.*City Centre[^0-9]*([0-9][0-9,]*)/i);\n  const parsed = rentMatch ? Number(rentMatch[1].replace(/,/g, '')) : null;\n  const priceInr = Number.isFinite(parsed) && parsed > 0 ? parsed : (fallback[country] || 75000);\n\n  listings.push({\n    id: `n8n_${country.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${idx + 1}`,\n    title: `Student accommodation benchmark - ${country}`,\n    country,\n    price_inr: Math.round(priceInr),\n    distance_km: 2.5,\n    amenities: ['Wi-Fi', 'Laundry', 'Study Desk'],\n    image_url: null,\n    available_from: 'Monthly rolling',\n    student_friendly: true\n  });\n}\n\nreturn [{ json: { listings } }];"
+      },
+      "id": "build_payload",
+      "name": "Build Housing Ingest Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1220, 240]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.BACKEND_BASE_URL + '/api/v1/automation/ingest/housing'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{$env.N8N_AUTOMATION_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          },
+          "timeout": 600000
+        }
+      },
+      "id": "post_ingest",
+      "name": "POST Housing Ingest Payload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1500, 240]
+    }
+  ],
+  "connections": {
+    "Sunday Trigger": {"main": [[{"node": "Get Dataset Countries", "type": "main", "index": 0}]]},
+    "Get Dataset Countries": {"main": [[{"node": "Build Housing Sources", "type": "main", "index": 0}]]},
+    "Build Housing Sources": {"main": [[{"node": "Fetch Housing Cost Pages", "type": "main", "index": 0}]]},
+    "Fetch Housing Cost Pages": {"main": [[{"node": "Build Housing Ingest Payload", "type": "main", "index": 0}]]},
+    "Build Housing Ingest Payload": {"main": [[{"node": "POST Housing Ingest Payload", "type": "main", "index": 0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

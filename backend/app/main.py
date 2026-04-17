@@ -15,7 +15,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.api import auth, visa, university, jobs, decision, housing
+from app.api import auth, visa, university, jobs, decision, housing, automation
 from app.core.config import settings
 
 app.include_router(auth.router,       prefix=f"{settings.API_V1_STR}/auth",         tags=["auth"])
@@ -24,6 +24,7 @@ app.include_router(university.router, prefix=f"{settings.API_V1_STR}/universitie
 app.include_router(jobs.router,       prefix=f"{settings.API_V1_STR}/jobs",         tags=["jobs"])
 app.include_router(decision.router,   prefix=f"{settings.API_V1_STR}/decision",     tags=["decision"])
 app.include_router(housing.router,    prefix=f"{settings.API_V1_STR}/housing",      tags=["housing"])
+app.include_router(automation.router, prefix=f"{settings.API_V1_STR}/automation",   tags=["automation"])
 
 @app.get("/")
 def read_root():

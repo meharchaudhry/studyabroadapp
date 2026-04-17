@@ -1,0 +1,193 @@
+{
+  "name": "StudyAbroad - Visa Official Sources Monitor + Reingest",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Weekly Trigger (Mon)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 260]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.BACKEND_BASE_URL + '/api/v1/universities/countries'}}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "countries",
+      "name": "Fetch Countries From Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 260]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const countries = ($json.countries || []).map(c => String(c));\nconst officialVisaSources = {\n  'United States': ['https://travel.state.gov/content/travel/en/us-visas/study/student-visa.html','https://www.uscis.gov/working-in-the-united-states/students-and-exchange-visitors/students-and-employment'],\n  'United Kingdom': ['https://www.gov.uk/student-visa','https://www.gov.uk/graduate-visa'],\n  'Canada': ['https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit.html'],\n  'Australia': ['https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500'],\n  'Germany': ['https://www.make-it-in-germany.com/en/visa-residence/types/studying'],\n  'France': ['https://france-visas.gouv.fr/en/web/france-visas/student'],\n  'Netherlands': ['https://ind.nl/en/study'],\n  'Ireland': ['https://www.irishimmigration.ie/coming-to-study-in-ireland/'],\n  'New Zealand': ['https://www.immigration.govt.nz/new-zealand-visas/visas/visa/fee-paying-student-visa'],\n  'Singapore': ['https://www.ica.gov.sg/reside/STP/apply'],\n  'Japan': ['https://www.mofa.go.jp/j_info/visit/visa/long/visa6.html'],\n  'Sweden': ['https://www.migrationsverket.se/English/Private-individuals/Studying-in-Sweden.html'],\n  'Norway': ['https://www.udi.no/en/want-to-apply/studies/studietillatelse/'],\n  'Denmark': ['https://www.nyidanmark.dk/en-GB/You-want-to-apply/Study'],\n  'Finland': ['https://migri.fi/en/studying-in-finland'],\n  'UAE': ['https://u.ae/en/information-and-services/education/higher-education/student-visa']\n};\nconst out = [];\nfor (const country of countries) {\n  const urls = officialVisaSources[country] || [];\n  for (const url of urls) {\n    out.push({ json: { country, url, sourceType: 'official_visa' } });\n  }\n}\nreturn out;"
+      },
+      "id": "build_sources",
+      "name": "Build Official Visa Source List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 260]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "split_batches",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [960, 260]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$json.url}}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "string"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "fetch_source",
+      "name": "Fetch Official Source",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 260],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function checksum(str){let h=0;for(let i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;}return String(h);}\nconst body = String($json.body || '');\nconst statusCode = Number($json.statusCode || 0);\nconst key = $item(0).$node['Split In Batches'].json.country + '::' + $item(0).$node['Split In Batches'].json.url;\nconst staticData = getWorkflowStaticData('global');\nconst hashes = staticData.visaHashes || {};\nconst newHash = checksum(body.slice(0, 200000));\nconst oldHash = hashes[key];\nconst changed = statusCode >= 200 && statusCode < 300 && newHash !== oldHash;\nif (changed) hashes[key] = newHash;\nstaticData.visaHashes = hashes;\nreturn [{json: {country: $item(0).$node['Split In Batches'].json.country, url: $item(0).$node['Split In Batches'].json.url, statusCode, changed}}];"
+      },
+      "id": "hash_compare",
+      "name": "Hash Compare",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 260]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.changed}}",
+              "operation": "true"
+            }
+          ]
+        }
+      },
+      "id": "if_changed",
+      "name": "Changed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1660, 260]
+    },
+    {
+      "parameters": {
+        "mode": "append"
+      },
+      "id": "merge_changed",
+      "name": "Collect Changed Sources",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1880, 260]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const changedItems = items.map(i => i.json);\nreturn [{json: {changedCount: changedItems.length, changedItems}}];"
+      },
+      "id": "summarize_changes",
+      "name": "Summarize Changes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2100, 260]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.changedCount}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "if_any_change",
+      "name": "Any Changes?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2320, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.BACKEND_BASE_URL + '/api/v1/automation/visa/reingest'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{$env.N8N_AUTOMATION_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          },
+          "timeout": 1200000
+        }
+      },
+      "id": "reingest_backend",
+      "name": "Trigger Backend Visa Reingest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2540, 220]
+    }
+  ],
+  "connections": {
+    "Weekly Trigger (Mon)": {"main": [[{"node": "Fetch Countries From Backend", "type": "main", "index": 0}]]},
+    "Fetch Countries From Backend": {"main": [[{"node": "Build Official Visa Source List", "type": "main", "index": 0}]]},
+    "Build Official Visa Source List": {"main": [[{"node": "Split In Batches", "type": "main", "index": 0}]]},
+    "Split In Batches": {"main": [[{"node": "Fetch Official Source", "type": "main", "index": 0}],[]]},
+    "Fetch Official Source": {"main": [[{"node": "Hash Compare", "type": "main", "index": 0}]]},
+    "Hash Compare": {"main": [[{"node": "Changed?", "type": "main", "index": 0}]]},
+    "Changed?": {"main": [[{"node": "Collect Changed Sources", "type": "main", "index": 0}], [{"node": "Split In Batches", "type": "main", "index": 0}]]},
+    "Collect Changed Sources": {"main": [[{"node": "Split In Batches", "type": "main", "index": 0}], [{"node": "Summarize Changes", "type": "main", "index": 0}]]},
+    "Summarize Changes": {"main": [[{"node": "Any Changes?", "type": "main", "index": 0}]]},
+    "Any Changes?": {"main": [[{"node": "Trigger Backend Visa Reingest", "type": "main", "index": 0}], []]}
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

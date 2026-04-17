@@ -1,0 +1,125 @@
+{
+  "name": "StudyAbroad - Jobs Multi-Country Sources + Refresh",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 0"
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Sunday Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 260]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.BACKEND_BASE_URL + '/api/v1/universities/countries'}}"
+      },
+      "id": "countries",
+      "name": "Fetch Countries From Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 260]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const countries = ($json.countries || []).map(c => String(c));\nconst officialJobSources = {\n 'United States': ['https://www.careeronestop.org/','https://www.bls.gov/ooh/'],\n 'United Kingdom': ['https://findajob.dwp.gov.uk/','https://www.gov.uk/browse/working/finding-job'],\n 'Canada': ['https://www.jobbank.gc.ca/home'],\n 'Australia': ['https://www.workforceaustralia.gov.au/individuals/jobs/'],\n 'Germany': ['https://www.make-it-in-germany.com/en/working-in-germany/job-listings'],\n 'France': ['https://www.francetravail.fr/accueil/'],\n 'Netherlands': ['https://www.werk.nl/werkzoekenden/'],\n 'Ireland': ['https://www.jobsireland.ie/'],\n 'New Zealand': ['https://www.jobs.govt.nz/'],\n 'Singapore': ['https://www.mycareersfuture.gov.sg/'],\n 'Japan': ['https://www.hellowork.mhlw.go.jp/'],\n 'Sweden': ['https://arbetsformedlingen.se/'],\n 'Norway': ['https://www.nav.no/en/home/work-and-stay-in-norway/work-in-norway'],\n 'Denmark': ['https://jobnet.dk/'],\n 'Finland': ['https://tyomarkkinatori.fi/en'],\n 'UAE': ['https://www.mohre.gov.ae/en/services.aspx']\n};\nconst adzunaCountryCode = { 'United States':'us','United Kingdom':'gb','Canada':'ca','Australia':'au','Germany':'de','France':'fr','Netherlands':'nl','Singapore':'sg' };\nconst out = [];\nfor (const country of countries){\n  const sources = officialJobSources[country] || [];\n  for (const url of sources){ out.push({json:{country, url, sourceType:'official_jobs_site'}}); }\n  if (adzunaCountryCode[country]) { out.push({json:{country, url:`https://api.adzuna.com/v1/api/jobs/${adzunaCountryCode[country]}/search/1`, sourceType:'adzuna_api'}}); }\n}\nreturn out;"
+      },
+      "id": "build_sources",
+      "name": "Build Jobs Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 260]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "split",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [920, 260]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$json.url}}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "string"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "check_source",
+      "name": "Check Source Availability",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 260],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const src = $item(0).$node['Split In Batches'].json;\nconst statusCode = Number($json.statusCode || 0);\nconst ok = statusCode >= 200 && statusCode < 500;\nreturn [{json:{country: src.country, url: src.url, sourceType: src.sourceType, statusCode, ok}}];"
+      },
+      "id": "normalize",
+      "name": "Normalize Source Health",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1360, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.BACKEND_BASE_URL + '/api/v1/automation/jobs/refresh'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{$env.N8N_AUTOMATION_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          },
+          "timeout": 1200000
+        }
+      },
+      "id": "refresh_backend",
+      "name": "Trigger Backend Jobs Refresh",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1580, 220]
+    }
+  ],
+  "connections": {
+    "Sunday Trigger": {"main": [[{"node": "Fetch Countries From Backend", "type": "main", "index": 0}]]},
+    "Fetch Countries From Backend": {"main": [[{"node": "Build Jobs Sources", "type": "main", "index": 0}]]},
+    "Build Jobs Sources": {"main": [[{"node": "Split In Batches", "type": "main", "index": 0}]]},
+    "Split In Batches": {"main": [[{"node": "Check Source Availability", "type": "main", "index": 0}],[]]},
+    "Check Source Availability": {"main": [[{"node": "Normalize Source Health", "type": "main", "index": 0}]]},
+    "Normalize Source Health": {"main": [[{"node": "Split In Batches", "type": "main", "index": 0}], [{"node": "Trigger Backend Jobs Refresh", "type": "main", "index": 0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

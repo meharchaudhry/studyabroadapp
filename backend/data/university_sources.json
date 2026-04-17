@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "name": "QS University Rankings 2025",
+      "kaggle_url": "https://www.kaggle.com/datasets/darrylljk/worlds-best-universities-qs-rankings-2025/data",
+      "expected_csv": "qs-world-rankings-2025.csv",
+      "enabled": true
+    },
+    {
+      "name": "THE World University Rankings 2016-2026",
+      "kaggle_url": "https://www.kaggle.com/datasets/raymondtoo/the-world-university-rankings-2016-2024",
+      "expected_csv": "THE World University Rankings 2016-2026.csv",
+      "enabled": true
+    }
+  ]
+}

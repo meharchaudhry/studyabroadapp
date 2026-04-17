@@ -1,0 +1,86 @@
+{
+  "name": "StudyAbroad - Jobs Payload Direct Ingest",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 0"
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Sunday Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 240]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://remotive.com/api/remote-jobs",
+        "options": {
+          "timeout": 240000
+        }
+      },
+      "id": "fetch_remotive",
+      "name": "Fetch Remotive Jobs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 240]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const response = $input.first().json || {};\nconst rawJobs = Array.isArray(response.jobs) ? response.jobs : [];\n\nconst keywords = /(graduate|intern|internship|junior|entry|student|trainee)/i;\n\nconst jobs = rawJobs\n  .filter((j) => keywords.test(`${j.title || ''} ${j.category || ''}`))\n  .slice(0, 250)\n  .map((j) => ({\n    title: j.title || 'Role',\n    company: j.company_name || 'Unknown',\n    salary: j.salary || 'Competitive',\n    location: j.candidate_required_location || 'Remote',\n    job_type: /intern/i.test(j.title || '') ? 'internship' : 'graduate',\n    apply_link: j.url || '#',\n    source: 'remotive'\n  }));\n\nreturn [{ json: { jobs } }];"
+      },
+      "id": "build_payload",
+      "name": "Build Jobs Ingest Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 240]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.BACKEND_BASE_URL + '/api/v1/automation/ingest/jobs'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{$env.N8N_AUTOMATION_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          },
+          "timeout": 900000
+        }
+      },
+      "id": "post_ingest",
+      "name": "POST Jobs Ingest Payload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1040, 240]
+    }
+  ],
+  "connections": {
+    "Sunday Trigger": {"main": [[{"node": "Fetch Remotive Jobs", "type": "main", "index": 0}]]},
+    "Fetch Remotive Jobs": {"main": [[{"node": "Build Jobs Ingest Payload", "type": "main", "index": 0}]]},
+    "Build Jobs Ingest Payload": {"main": [[{"node": "POST Jobs Ingest Payload", "type": "main", "index": 0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

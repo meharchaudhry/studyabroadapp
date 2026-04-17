@@ -1,0 +1,119 @@
+{
+  "name": "StudyAbroad - Visa Payload Direct Ingest",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Weekly Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 240]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.BACKEND_BASE_URL + '/api/v1/universities/countries'}}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "get_countries",
+      "name": "Get Dataset Countries",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 240]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const response = $input.first().json || {};\nconst countries = Array.isArray(response.countries) ? response.countries : [];\n\nconst map = {\n  'United Kingdom': {\n    url: 'https://www.gov.uk/student-visa',\n    visa_type: 'UK Student Route Visa',\n    processing_time: '3-8 weeks',\n    visa_fee_inr: 52500,\n    checklist: [\n      { id: 'uk_1', category: 'Admission', item: 'CAS from UK university' },\n      { id: 'uk_2', category: 'Financial', item: 'Proof of funds for tuition and living' }\n    ]\n  },\n  'Canada': {\n    url: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit.html',\n    visa_type: 'Canada Study Permit',\n    processing_time: '4-12 weeks',\n    visa_fee_inr: 9200,\n    checklist: [\n      { id: 'ca_1', category: 'Admission', item: 'Letter of Acceptance (LOA)' },\n      { id: 'ca_2', category: 'Financial', item: 'Proof of funds for tuition and living' }\n    ]\n  },\n  'United States': {\n    url: 'https://travel.state.gov/content/travel/en/us-visas/study/student-visa.html',\n    visa_type: 'US F-1 Student Visa',\n    processing_time: '2-8 weeks (varies by embassy)',\n    visa_fee_inr: 15300,\n    checklist: [\n      { id: 'us_1', category: 'Admission', item: 'I-20 form from SEVP school' },\n      { id: 'us_2', category: 'Fees', item: 'SEVIS fee payment confirmation' }\n    ]\n  },\n  'Australia': {\n    url: 'https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500',\n    visa_type: 'Australia Student Visa (Subclass 500)',\n    processing_time: '4-10 weeks',\n    visa_fee_inr: 89000,\n    checklist: [\n      { id: 'au_1', category: 'Admission', item: 'Confirmation of Enrolment (CoE)' },\n      { id: 'au_2', category: 'Health', item: 'Overseas Student Health Cover (OSHC)' }\n    ]\n  }\n};\n\nconst picked = countries\n  .filter((c) => map[c])\n  .map((country) => ({\n    json: {\n      country,\n      source_url: map[country].url,\n      visa_type: map[country].visa_type,\n      processing_time: map[country].processing_time,\n      visa_fee_inr: map[country].visa_fee_inr,\n      checklist: map[country].checklist\n    }\n  }));\n\nif (!picked.length) {\n  return Object.keys(map).map((country) => ({\n    json: {\n      country,\n      source_url: map[country].url,\n      visa_type: map[country].visa_type,\n      processing_time: map[country].processing_time,\n      visa_fee_inr: map[country].visa_fee_inr,\n      checklist: map[country].checklist\n    }\n  }));\n}\n\nreturn picked;"
+      },
+      "id": "build_sources",
+      "name": "Build Official Visa Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 240]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$json.source_url}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 240000,
+          "ignoreResponseCode": true
+        }
+      },
+      "id": "fetch_pages",
+      "name": "Fetch Official Visa Pages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 240]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $input.all();\nconst countries = {};\nconst documents = [];\n\nfor (const row of rows) {\n  const j = row.json || {};\n  const country = j.country;\n  if (!country) continue;\n\n  countries[country] = {\n    visa_type: j.visa_type || 'Student Visa',\n    official_link: j.source_url || '',\n    processing_time: j.processing_time || '',\n    visa_fee_inr: Number(j.visa_fee_inr || 0),\n    checklist: Array.isArray(j.checklist) ? j.checklist : []\n  };\n\n  const raw = (j.body || j.data || '').toString();\n  const text = raw\n    .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n    .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .slice(0, 3500);\n\n  documents.push({\n    country,\n    filename: country.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '_student_visa.md',\n    official_link: j.source_url || '',\n    content: text || `Official guidance not parsed. Visit ${j.source_url || 'official source'} for latest details.`\n  });\n}\n\nreturn [{ json: { countries, documents } }];"
+      },
+      "id": "build_payload",
+      "name": "Build Visa Ingest Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1220, 240]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.BACKEND_BASE_URL + '/api/v1/automation/ingest/visa'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Automation-Token",
+              "value": "={{$env.N8N_AUTOMATION_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          },
+          "timeout": 1200000
+        }
+      },
+      "id": "post_ingest",
+      "name": "POST Visa Ingest Payload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1500, 240]
+    }
+  ],
+  "connections": {
+    "Weekly Trigger": {"main": [[{"node": "Get Dataset Countries", "type": "main", "index": 0}]]},
+    "Get Dataset Countries": {"main": [[{"node": "Build Official Visa Sources", "type": "main", "index": 0}]]},
+    "Build Official Visa Sources": {"main": [[{"node": "Fetch Official Visa Pages", "type": "main", "index": 0}]]},
+    "Fetch Official Visa Pages": {"main": [[{"node": "Build Visa Ingest Payload", "type": "main", "index": 0}]]},
+    "Build Visa Ingest Payload": {"main": [[{"node": "POST Visa Ingest Payload", "type": "main", "index": 0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
