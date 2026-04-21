@@ -1,7 +1,9 @@
+import csv
+import os
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy.exc import SQLAlchemyError
 from pydantic import BaseModel
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
@@ -71,51 +73,36 @@ class RecommendationResponse(BaseModel):
     recommendations: List[UniDetail]
 
 
-class ExplainResponse(BaseModel):
-    match_score: float
-    summary: str
-    reasons: dict
-    financial: dict
+@router.get("/countries")
+def get_university_countries(db: Session = Depends(get_db)):
+    try:
+        rows = (
+            db.query(University.country)
+            .filter(University.country.isnot(None))
+            .distinct()
+            .all()
+        )
+        countries = sorted([r[0] for r in rows if r and r[0]])
+        return {"countries": countries}
+    except SQLAlchemyError:
+        # Fallback: allow automation workflows to continue from local dataset when DB is down.
+        csv_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "data",
+            "universities.csv",
+        )
+        countries = set()
+        try:
+            with open(csv_path, newline="", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    c = (row.get("country") or "").strip()
+                    if c:
+                        countries.add(c)
+        except Exception:
+            return {"countries": []}
 
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-def _enrich(u: University) -> UniDetail:
-    d = UniDetail.model_validate(u)
-    d.grad_salary_usd  = GRAD_SALARY_USD.get(u.country)
-    d.job_market_score = JOB_SCORE.get(u.country)
-    return d
-
-
-# ── Subject expansion: map UI label → keywords that appear in pipe-sep subject field
-SUBJECT_KEYWORDS: dict[str, list[str]] = {
-    "Computer Science": ["Computer Science", "Computing", "Software", "Informatics", "CS"],
-    "Engineering":      ["Engineering", "Mechanical", "Electrical", "Civil", "Chemical", "Aerospace", "Biomedical Engineering"],
-    "Data Science":     ["Data Science", "Data Analytics", "Machine Learning", "AI", "Statistics", "Big Data"],
-    "Business":         ["Business", "Management", "MBA", "Commerce", "Administration", "Strategy"],
-    "Finance":          ["Finance", "Accounting", "Banking", "Financial"],
-    "Economics":        ["Economics", "Econometrics", "Political Economy", "Economic"],
-    "Medicine":         ["Medicine", "Medical", "Health Sciences", "Pharmacy", "Nursing", "Biomedical"],
-    "Law":              ["Law", "Legal", "Jurisprudence", "International Law"],
-    "Arts":             ["Arts", "Humanities", "Liberal Arts", "Design", "Media", "Journalism", "History", "Philosophy", "Literature"],
-    "Architecture":     ["Architecture", "Urban Planning", "Built Environment"],
-    "Psychology":       ["Psychology", "Cognitive", "Neuroscience", "Behavioural"],
-    "Physics":          ["Physics", "Mathematics", "Applied Mathematics", "Maths", "Mathematical"],
-    "Environmental":    ["Environmental", "Sustainability", "Climate", "Ecology", "Earth Science"],
-    "Public Health":    ["Public Health", "Epidemiology", "Global Health", "Health Policy"],
-    "Education":        ["Education", "Teaching", "Pedagogy"],
-    "Social Science":   ["Social Science", "Sociology", "Anthropology", "Political Science", "International Relations", "Geography"],
-}
-
-
-def _subject_filter(query, subject_str: str):
-    """Apply ILIKE filters across the pipe-separated subject column."""
-    keywords = SUBJECT_KEYWORDS.get(subject_str, [subject_str])
-    conditions = [University.subject.ilike(f"%{kw}%") for kw in keywords]
-    return query.filter(or_(*conditions))
-
-
-# ── Endpoints ─────────────────────────────────────────────────────────────────
+        return {"countries": sorted(countries)}
 
 @router.get("", response_model=UniListResponse)
 def list_universities(

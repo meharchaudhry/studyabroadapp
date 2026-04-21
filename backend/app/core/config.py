@@ -26,6 +26,8 @@ class Settings(BaseSettings):
 
     ADZUNA_APP_ID: str = os.getenv("ADZUNA_APP_ID", "dummy_id")
     ADZUNA_APP_KEY: str = os.getenv("ADZUNA_APP_KEY", "dummy_key")
+    KAGGLE_API_TOKEN: Optional[str] = os.getenv("KAGGLE_API_TOKEN")
+    KAGGLE_USERNAME: Optional[str] = os.getenv("KAGGLE_USERNAME")
 
     # n8n -> backend automation webhook auth
     N8N_WEBHOOK_TOKEN: Optional[str] = os.getenv("N8N_WEBHOOK_TOKEN")
@@ -44,6 +46,10 @@ class Settings(BaseSettings):
             return self.DATABASE_URL
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="ignore",
+    )
 
 settings = Settings()
