@@ -1,246 +1,222 @@
 import { useState, useEffect } from 'react';
-import { 
-  Sparkles, 
-  ChevronRight, 
-  Target, 
-  BrainCircuit, 
-  ArrowRight,
-  TrendingUp,
-  MapPin,
-  GraduationCap,
-  Loader2
+import {
+  Sparkles, ArrowRight, GraduationCap, FileCheck, Briefcase,
+  Calculator, Globe, Trophy, MapPin, BookOpen, CheckCircle2,
+  TrendingUp, DollarSign,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { decisionAPI } from '../api/decision';
+import { authAPI } from '../api/auth';
+import { universitiesAPI } from '../api/universities';
+import { getUniversityImage, getCountryFlag } from '../utils/universityImages';
 
-const STEP_ICON = {
-  profile: Target,
-  visa: Sparkles,
-  finance: TrendingUp,
-  jobs: MapPin,
-  synthesis: BrainCircuit,
-};
+// ── Checklist data ─────────────────────────────────────────────────────────────
 
-const FLAG = { USA:'🇺🇸', UK:'🇬🇧', Germany:'🇩🇪', France:'🇫🇷', Netherlands:'🇳🇱', Australia:'🇦🇺', Singapore:'🇸🇬', HongKong:'🇭🇰', Spain:'🇪🇸', Switzerland:'🇨🇭', Finland:'🇫🇮' };
+const CHECKLIST = [
+  { id: 'profile',    label: 'Complete your profile',      href: '/profile',     key: 'has_profile'   },
+  { id: 'unis',       label: 'Explore university matches',  href: '/universities',key: null            },
+  { id: 'visa',       label: 'Check visa requirements',     href: '/visa-chat',  key: null            },
+  { id: 'finance',    label: 'Run financial ROI analysis',  href: '/finance',    key: null            },
+  { id: 'decision',   label: 'Get AI Decision Dashboard',   href: '/decision',   key: null            },
+  { id: 'housing',    label: 'Browse student housing',      href: '/housing',    key: null            },
+];
 
 export default function Dashboard() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [decision, setDecision] = useState(null);
-  const [isRunning, setIsRunning] = useState(false);
-  const [activeStep, setActiveStep] = useState(4); // default to all done
-
-  const fetchDecision = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const data = await decisionAPI.getDecision();
-      setDecision(data);
-      const totalSteps = (data.agent_steps || []).length;
-      setActiveStep(Math.max(0, totalSteps - 1));
-    } catch {
-      setError('Unable to load recommendation chain right now.');
-      setDecision(null);
-    } finally {
-      setLoading(false);
-      setIsRunning(false);
-    }
-  };
+  const [profile, setProfile]   = useState(null);
+  const [topUnis, setTopUnis]   = useState([]);
+  const [done, setDone]         = useState(() => {
+    try { return JSON.parse(localStorage.getItem('sp_checklist') || '{}'); }
+    catch { return {}; }
+  });
 
   useEffect(() => {
-    fetchDecision();
+    authAPI.getProfile().then(setProfile).catch(() => {});
+    universitiesAPI.getRecommendations(3)
+      .then(r => setTopUnis((r.recommendations || []).slice(0, 3)))
+      .catch(() => {});
   }, []);
 
-  const runChain = () => {
-    const steps = decision?.agent_steps || [];
-    if (!steps.length) {
-      fetchDecision();
-      return;
-    }
-
-    setIsRunning(true);
-    setActiveStep(-1);
-    let step = 0;
-    const interval = setInterval(() => {
-      setActiveStep(step);
-      step += 1;
-      if (step >= steps.length) {
-        clearInterval(interval);
-        fetchDecision();
-      }
-    }, 900);
+  const toggleDone = (id) => {
+    setDone(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      localStorage.setItem('sp_checklist', JSON.stringify(next));
+      return next;
+    });
   };
 
-  const recommendations = decision?.recommendations || [];
-  const agentSteps = decision?.agent_steps || [];
-
-  if (loading) {
-    return (
-      <div className="py-24 flex flex-col items-center gap-3 text-muted">
-        <Loader2 className="w-8 h-8 animate-spin text-lavender" />
-        <span className="text-sm">Running recommendation chain...</span>
-      </div>
-    );
-  }
+  const name        = profile?.full_name || profile?.email?.split('@')[0] || 'Student';
+  const cgpa        = profile?.cgpa;
+  const ielts       = profile?.english_score;
+  const countries   = (profile?.target_countries || []).join(', ') || null;
+  const field       = profile?.field_of_study;
+  const completedN  = CHECKLIST.filter(c => done[c.id]).length;
 
   return (
-    <div className="space-y-8 animate-fade-in pb-10">
-      
-      {/* ── Welcome Banner ── */}
-      <div className="relative card overflow-hidden bg-gradient-to-br from-lavender to-[#5C4DDF] p-8 text-white border-none">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="max-w-xl">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md"><Sparkles className="w-5 h-5 text-white"/></div>
-              <h1 className="text-2xl font-bold">Your AI-Powered Decision Dashboard</h1>
+    <div className="space-y-6 animate-fade-in">
+
+      {/* ── Hero banner ── */}
+      <div className="relative overflow-hidden rounded-2xl p-8 text-white"
+        style={{ background: 'linear-gradient(135deg,#4C3BCF 0%,#7C6FF7 55%,#9B8FF7 100%)' }}>
+        <div className="absolute -top-16 -right-16 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-8 -left-8 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <p className="text-white/80 text-sm leading-relaxed mb-6">
-              This dashboard combines profile fit, visa complexity, financial ROI, and job-market signals to produce your top study-abroad options.
-            </p>
-            <button 
-              onClick={runChain} 
-              disabled={isRunning}
-              className="px-6 py-2.5 bg-white text-lavender font-bold rounded-xl text-sm shadow-lg hover:shadow-xl transition-all flex items-center gap-2 group"
-            >
-              {isRunning ? 'Swarm Thinking...' : 're-run recommendation chain'}
-              <ArrowRight className={`w-4 h-4 group-hover:translate-x-1 transition-transform ${isRunning ? 'animate-spin' : ''}`}/>
-            </button>
+            <span className="text-white/70 text-sm font-medium">AI Study Abroad Platform</span>
           </div>
-          <div className="hidden md:flex items-center gap-4 bg-white/10 p-5 rounded-2xl backdrop-blur-md">
-            <div className="text-center px-4">
-              <div className="text-2xl font-black">{recommendations.length || 0}</div>
-              <div className="text-[10px] uppercase font-bold opacity-70">Top Options</div>
-            </div>
-            <div className="w-px h-10 bg-white/20"/>
-            <div className="text-center px-4">
-              <div className="text-2xl font-black">{Math.round((recommendations[0]?.final_score || 0) * 100)}%</div>
-              <div className="text-[10px] uppercase font-bold opacity-70">Best Score</div>
-            </div>
+          <h1 className="text-3xl font-black mb-1">Welcome back, {name}! 👋</h1>
+          <div className="flex flex-wrap gap-3 mt-1 text-sm text-white/70">
+            {cgpa && <span>CGPA {cgpa}</span>}
+            {ielts && <span>· IELTS {ielts}</span>}
+            {field && <span>· {field}</span>}
+            {countries && <span>· Targeting {countries}</span>}
+          </div>
+          <div className="flex gap-3 mt-5 flex-wrap">
+            <Link to="/decision"
+              className="inline-flex items-center gap-2 bg-white text-lavender px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-lavendLight transition-colors shadow-md">
+              <Trophy className="w-4 h-4" /> Run AI Decision
+            </Link>
+            <Link to="/universities"
+              className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/25 px-4 py-2.5 rounded-xl font-semibold text-sm hover:bg-white/20 transition-colors">
+              <GraduationCap className="w-4 h-4" /> View My Matches
+            </Link>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* ── Agent Process Sidebar ── */}
-        <div className="lg:col-span-1 space-y-4">
-          <h2 className="text-sm font-bold text-text mb-4 uppercase tracking-wider flex items-center gap-2">
-            <BrainCircuit className="w-4 h-4 text-lavender"/> Swarm Execution
-          </h2>
-          <div className="space-y-3 relative">
-            <div className="absolute left-6 top-6 bottom-6 w-px bg-surfaceBorder hidden sm:block"/>
-            {agentSteps.map((step, i) => {
-              const Icon = STEP_ICON[step.id] || BrainCircuit;
-              const isActive = activeStep === i;
-              const isPast = activeStep > i;
-              return (
-                <div key={step.id} 
-                  className={`card p-4 transition-all duration-500 relative ml-0 sm:ml-4 border-l-4 ${
-                    isActive ? 'border-lavender bg-lavendLight/20 shadow-soft' : 
-                    isPast ? 'border-mint bg-mintLight/5' : 'border-transparent opacity-60'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                      isActive ? 'bg-lavender text-white' : 
-                      isPast ? 'bg-mint text-white' : 'bg-surfaceAlt text-muted'
-                    }`}>
-                      <Icon className="w-4 h-4"/>
-                    </div>
-                    <span className={`text-xs font-bold ${isActive ? 'text-lavender' : isPast ? 'text-teal-600' : 'text-text'}`}>
-                      {step.name}
-                    </span>
-                    {isPast && <span className="ml-auto text-[10px] font-bold text-mint">Done</span>}
-                  </div>
-                  {(isActive || isPast) && (
-                    <p className="text-[11px] text-textSoft leading-snug animate-slide-up">
-                      {step.result}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
+      {/* ── Stats row ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { icon: GraduationCap, label: 'Universities',  value: '600+', sub: 'in database',           color: 'bg-lavendLight text-lavender'  },
+          { icon: Globe,          label: 'Countries',     value: '21',   sub: 'with visa AI guidance', color: 'bg-skyLight text-blue-600'     },
+          { icon: Briefcase,      label: 'Jobs',          value: 'Live', sub: '4 live sources',        color: 'bg-mintLight text-teal-600'    },
+          { icon: Sparkles,       label: 'AI Features',   value: '5',    sub: 'Claude-powered tools',  color: 'bg-amberLight text-amber-600'  },
+        ].map(({ icon: Icon, label, value, sub, color }) => (
+          <div key={label} className="card p-5">
+            <div className={`page-icon ${color} mb-3`}><Icon className="w-4 h-4" /></div>
+            <p className="text-2xl font-black text-text">{value}</p>
+            <p className="text-xs font-semibold text-textSoft">{label}</p>
+            <p className="text-xs text-muted mt-0.5">{sub}</p>
           </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* ── Top matches ── */}
+        <div className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-text flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-lavender" /> Your Top Matches
+            </h2>
+            <Link to="/universities" className="text-sm text-lavender font-semibold hover:underline flex items-center gap-1">
+              See all <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          {topUnis.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {topUnis.map((uni, i) => {
+                const img  = getUniversityImage(uni);
+                const flag = getCountryFlag(uni.country);
+                const pct  = uni.match_score ? Math.round(uni.match_score * 100) : null;
+                const rankColors = ['bg-amber-400', 'bg-slate-400', 'bg-orange-400'];
+                return (
+                  <Link key={uni.id} to={`/universities/${uni.id}`} className="group">
+                    <div className="card-hover card overflow-hidden">
+                      <div className="relative h-32 overflow-hidden bg-surfaceAlt">
+                        <img src={img} alt={uni.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          onError={e => e.target.style.display = 'none'} />
+                        <div className="absolute top-2 left-2">
+                          <span className={`badge ${rankColors[i]} text-white`}>#{i + 1}</span>
+                        </div>
+                        {pct && (
+                          <div className="absolute top-2 right-2">
+                            <div className={`w-9 h-9 rounded-full text-[10px] font-black flex items-center justify-center border-2 border-white shadow
+                              ${pct >= 75 ? 'bg-teal-500 text-white' : 'bg-lavender text-white'}`}>{pct}%</div>
+                          </div>
+                        )}
+                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2 pt-6">
+                          <span className="text-white/90 text-xs">{flag} {uni.country}</span>
+                        </div>
+                      </div>
+                      <div className="p-3">
+                        <h3 className="font-bold text-text text-xs line-clamp-2 group-hover:text-lavender transition-colors">{uni.name}</h3>
+                        <div className="flex gap-3 mt-1.5">
+                          {uni.tuition && <span className="text-[10px] text-muted">${(uni.tuition / 1000).toFixed(0)}k/yr</span>}
+                          {uni.grad_salary_usd && (
+                            <span className="text-[10px] text-teal-600 font-semibold">
+                              Grad: ${(uni.grad_salary_usd / 1000).toFixed(0)}k
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="card p-8 text-center">
+              <GraduationCap className="w-10 h-10 text-muted mx-auto mb-3 opacity-30" />
+              <p className="font-semibold text-text">No matches yet</p>
+              <p className="text-sm text-muted mt-1 mb-4">Complete your profile to get AI recommendations</p>
+              <Link to="/profile" className="btn-primary text-sm">Complete Profile</Link>
+            </div>
+          )}
         </div>
 
-        {/* ── Top Recommendations ── */}
-        <div className="lg:col-span-2 space-y-6">
-          <h2 className="text-sm font-bold text-text uppercase tracking-wider flex items-center gap-2">
-            <Target className="w-4 h-4 text-peach"/> Final Recommendations
-          </h2>
-          
-          <div className="grid grid-cols-1 gap-4">
-            {error && (
-              <div className="card p-4 text-sm text-rose">{error}</div>
-            )}
-            {recommendations.length === 0 && !error && (
-              <div className="card p-4 text-sm text-muted">No recommendations yet. Complete your profile and rerun the chain.</div>
-            )}
-            {recommendations.map((rec, i) => (
-              <div key={rec.id} 
-                className={`card flex flex-col md:flex-row overflow-hidden group transition-all duration-700 animate-slide-up`}
-                style={{animationDelay: `${i * 200}ms`}}
-              >
-                <div className="w-full md:w-48 h-48 md:h-auto bg-surfaceAlt flex-shrink-0 relative flex items-center justify-center">
-                  <GraduationCap className="w-12 h-12 text-lavender/30" />
-                  <div className="absolute top-2 left-2 bg-white/90 px-2 py-1 rounded-lg text-xs font-bold text-lavender shadow-sm">
-                    {Math.round((rec.final_score || rec.match_score || 0) * 100)}% Final
-                  </div>
-                </div>
-                <div className="p-5 flex flex-1 flex-col justify-between">
-                  <div>
-                    <div className="flex items-start justify-between mb-1">
-                      <h3 className="text-lg font-bold text-text group-hover:text-lavender transition-colors">{rec.name}</h3>
-                      <Link to={`/universities/${rec.id}`} className="text-lavender p-1 hover:bg-lavendLight rounded-lg transition-colors" aria-label={`Open ${rec.name}`}>
-                        <ChevronRight className="w-5 h-5"/>
-                      </Link>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted mb-4">
-                      <MapPin className="w-3 h-3"/> {FLAG[rec.country] || '🌍'} {rec.country}
-                    </div>
-                    <div className="bg-lavendLight/30 border border-lavender/10 rounded-xl p-3 mb-4">
-                      <p className="text-xs text-textSoft leading-relaxed italic">"{rec.reason}"</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="px-2 py-0.5 bg-mintLight text-teal-600 text-[10px] font-bold rounded-full">
-                        Visa: {rec.visa?.difficulty || 'Unknown'}
-                      </span>
-                      <span className="px-2 py-0.5 bg-skyLight text-blue-700 text-[10px] font-bold rounded-full">
-                        ROI 5Y: {rec.finance?.roi_5y ?? '--'}%
-                      </span>
-                      <span className="px-2 py-0.5 bg-peachLight text-orange-700 text-[10px] font-bold rounded-full">
-                        Job Score: {Math.round((rec.jobs?.score || 0) * 100)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+        {/* ── Checklist ── */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-text">Getting Started</h2>
+            <span className="text-xs text-muted">{completedN}/{CHECKLIST.length} done</span>
+          </div>
+          <div className="card p-4 space-y-1">
+            {/* Progress bar */}
+            <div className="h-1.5 bg-surfaceBorder rounded-full mb-4 overflow-hidden">
+              <div className="h-full bg-lavender rounded-full transition-all duration-500"
+                style={{ width: `${(completedN / CHECKLIST.length) * 100}%` }} />
+            </div>
+            {CHECKLIST.map(({ id, label, href }) => (
+              <div key={id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-surfaceAlt transition-colors">
+                <button onClick={() => toggleDone(id)} className="shrink-0">
+                  <CheckCircle2 className={`w-5 h-5 transition-colors ${done[id] ? 'text-teal-500' : 'text-surfaceBorder'}`} />
+                </button>
+                <Link to={href} className={`flex-1 text-sm transition-colors ${done[id] ? 'text-muted line-through' : 'text-textSoft hover:text-lavender'}`}>
+                  {label}
+                </Link>
               </div>
             ))}
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-            <Link to="/universities" className="card p-5 group flex flex-col justify-between hover:bg-lavendLight/10 transition-all">
-              <div className="w-10 h-10 bg-lavendLight text-lavender rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <GraduationCap className="w-5 h-5"/>
-              </div>
-              <div>
-                <h3 className="font-bold text-text">Explore All Unis</h3>
-                <p className="text-xs text-muted mt-1">Browse all universities and compare fit details.</p>
-              </div>
-            </Link>
-            <Link to="/finance" className="card p-5 group flex flex-col justify-between hover:bg-mintLight/10 transition-all">
-              <div className="w-10 h-10 bg-mintLight text-teal-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <TrendingUp className="w-5 h-5"/>
-              </div>
-              <div>
-                <h3 className="font-bold text-text">ROI Deep Dive</h3>
-                <p className="text-xs text-muted mt-1">Detailed financial breakdown for your top recommendations.</p>
-              </div>
-            </Link>
-          </div>
         </div>
 
+      </div>
+
+      {/* ── Quick Actions ── */}
+      <div>
+        <h2 className="font-bold text-text mb-3">Quick Access</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+          {[
+            { to: '/ai-coach',     icon: Sparkles,      label: 'AI Study Coach',       sub: 'Claude · Checklist · Timeline', color: 'bg-lavendLight text-lavender'  },
+            { to: '/visa-chat',    icon: FileCheck,     label: 'Visa AI Assistant',    sub: 'RAG-powered, 96% accuracy',   color: 'bg-amberLight text-amber-600'  },
+            { to: '/jobs',         icon: Briefcase,     label: 'Browse Jobs',          sub: '4 live sources, global',      color: 'bg-skyLight text-blue-600'     },
+            { to: '/finance',      icon: Calculator,    label: 'ROI Calculator',       sub: 'Real salary + risk scoring',  color: 'bg-mintLight text-teal-600'    },
+            { to: '/decision',     icon: Trophy,        label: 'Decision Dashboard',   sub: '5-agent AI ranking',          color: 'bg-peachLight text-peach'      },
+            { to: '/universities', icon: GraduationCap, label: 'All Universities',     sub: '600+ with AI matching',       color: 'bg-roseLight text-rose'        },
+          ].map(({ to, icon: Icon, label, sub, color }) => (
+            <Link key={to} to={to}
+              className="card p-4 flex items-center gap-3 hover:shadow-cardHov transition-all group">
+              <div className={`page-icon ${color} flex-shrink-0`}><Icon className="w-4 h-4" /></div>
+              <div className="min-w-0">
+                <p className="font-semibold text-sm text-text group-hover:text-lavender transition-colors">{label}</p>
+                <p className="text-xs text-muted truncate">{sub}</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted ml-auto group-hover:text-lavender transition-colors flex-shrink-0" />
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

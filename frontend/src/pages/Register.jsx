@@ -1,397 +1,709 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { authAPI } from '../api/auth';
-import { universitiesAPI } from '../api/universities';
-import { 
-  Globe, Mail, Lock, User, DollarSign, Flag, Eye, EyeOff, 
-  ArrowRight, GraduationCap, BookOpen, Clock, Calendar, ChevronLeft, Check, Award,
-  Target, Zap, MapPin, Building2, Coffee, Briefcase, Loader2, Sparkles
+import {
+  Globe, Eye, EyeOff, ArrowRight, ArrowLeft,
+  GraduationCap, Check, User, BookOpen, Plane, ClipboardList, IndianRupee
 } from 'lucide-react';
 
-const FALLBACK_COUNTRIES = ['USA','UK','Germany','France','Netherlands','Australia','Singapore','Hong Kong','Spain','Switzerland','Finland'];
-const DEGREE_LEVELS = ['High School', 'Diploma', 'Bachelors', 'Masters', 'PhD'];
-const STANDARDIZED_TESTS = ['IELTS', 'TOEFL', 'PTE', 'GRE', 'GMAT', 'SAT', 'Duolingo', 'Other'];
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+const COUNTRIES = [
+  { code: "USA",         flag: "🇺🇸", label: "USA"         },
+  { code: "UK",          flag: "🇬🇧", label: "UK"          },
+  { code: "Canada",      flag: "🇨🇦", label: "Canada"      },
+  { code: "Australia",   flag: "🇦🇺", label: "Australia"   },
+  { code: "Germany",     flag: "🇩🇪", label: "Germany"     },
+  { code: "France",      flag: "🇫🇷", label: "France"      },
+  { code: "Netherlands", flag: "🇳🇱", label: "Netherlands" },
+  { code: "Ireland",     flag: "🇮🇪", label: "Ireland"     },
+  { code: "Singapore",   flag: "🇸🇬", label: "Singapore"   },
+  { code: "Japan",       flag: "🇯🇵", label: "Japan"       },
+  { code: "Sweden",      flag: "🇸🇪", label: "Sweden"      },
+  { code: "Norway",      flag: "🇳🇴", label: "Norway"      },
+  { code: "New Zealand", flag: "🇳🇿", label: "NZ"          },
+  { code: "UAE",         flag: "🇦🇪", label: "UAE"         },
+];
+
+const CURRENT_DEGREES = [
+  "B.Tech / B.E.", "B.Sc", "BCA", "B.Com", "BBA / BBM",
+  "BA", "MBBS / BDS", "LLB", "B.Arch", "Other",
+];
+
+const FIELDS_OF_STUDY = [
+  "Computer Science", "Data Science / AI", "Electrical Engineering",
+  "Mechanical Engineering", "Civil Engineering", "Chemical Engineering",
+  "Business / MBA", "Finance / Economics", "Marketing",
+  "Medicine / Public Health", "Law", "Architecture / Design",
+  "Physics / Mathematics", "Biotechnology", "Psychology",
+];
+
+const TARGET_DEGREES = [
+  { value: "Masters",   label: "M.S. / M.Eng",  sub: "STEM Master's"     },
+  { value: "MBA",       label: "MBA",            sub: "Business Master's" },
+  { value: "PhD",       label: "PhD",            sub: "Doctoral research" },
+  { value: "Bachelors", label: "Bachelor's",     sub: "Undergraduate"     },
+  { value: "Diploma",   label: "PG Diploma",     sub: "Short programme"   },
+  { value: "Other",     label: "Other",          sub: "Certificate etc."  },
+];
+
+const ENGLISH_TESTS = ["IELTS", "TOEFL", "PTE", "Duolingo", "Not yet taken"];
+
+const INTAKE_OPTIONS = [
+  { value: "Fall",   label: "Fall",   sub: "Aug–Sep intake" },
+  { value: "Spring", label: "Spring", sub: "Jan–Feb intake" },
+  { value: "Winter", label: "Winter", sub: "Dec intake"     },
+];
+
+const RANKING_OPTIONS = [
+  { value: "Top 50",  label: "Top 50",  sub: "World-class, highly selective" },
+  { value: "Top 100", label: "Top 100", sub: "Excellent, competitive"        },
+  { value: "Top 200", label: "Top 200", sub: "Strong, good ROI"              },
+  { value: "Any",     label: "Any",     sub: "Value & fit over rank"         },
+];
+
+// Budget presets in INR (annual, tuition + living)
+const BUDGET_PRESETS_INR = [
+  { label: "₹20L",  value: 2000000  },
+  { label: "₹30L",  value: 3000000  },
+  { label: "₹40L",  value: 4000000  },
+  { label: "₹60L+", value: 6000000  },
+];
+
+const STEPS = [
+  { id: 1, label: "Account",   icon: User          },
+  { id: 2, label: "Academic",  icon: BookOpen      },
+  { id: 3, label: "Test Scores",icon: ClipboardList },
+  { id: 4, label: "Goals",     icon: Plane         },
+  { id: 5, label: "Budget",    icon: IndianRupee   },
+];
+
+// ── Component ──────────────────────────────────────────────────────────────────
 
 export default function Register() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
-  const [showPass, setShowPass] = useState(false);
-  const [error, setError] = useState('');
+  const [step, setStep]       = useState(1);
   const [loading, setLoading] = useState(false);
-  const [countries, setCountries] = useState(FALLBACK_COUNTRIES);
+  const [error, setError]     = useState('');
+  const [showPwd, setShowPwd] = useState(false);
 
   const [form, setForm] = useState({
+    // Step 1 — Account
+    full_name: '',
     email: '',
     password: '',
+    // Step 2 — Academic
+    current_degree: '',
+    home_university: '',
+    field_of_study: '',
     cgpa: '',
-    budget: '',
-    degree_level: '',
-    specialization: '',
-    english_test_type: '',
-    english_test_score: '',
+    graduation_year: new Date().getFullYear() + 1,
+    // Step 3 — Test scores
+    english_test: '',
+    english_score: '',
+    toefl_score: '',
+    gre_score: '',
+    gmat_score: '',
     work_experience_years: '',
-    preferred_intake: '',
+    // Step 4 — Goals
+    preferred_degree: '',
+    intake_preference: '',
     target_countries: [],
-    // Psychographic Fields
-    career_goal: '',
-    preferred_environment: '',
-    study_priority: '',
-    learning_style: '',
-    living_preference: ''
+    ranking_preference: '',
+    work_abroad_interest: false,
+    // Step 5 — Budget
+    budget_inr: '',
+    scholarship_interest: false,
   });
 
-  const updateForm = (updates) => setForm(prev => ({ ...prev, ...updates }));
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  useEffect(() => {
-    const loadCountries = async () => {
-      try {
-        const data = await universitiesAPI.getCountries();
-        const list = (data.countries || []).filter(Boolean);
-        if (list.length) {
-          setCountries(list);
-        }
-      } catch {
-        setCountries(FALLBACK_COUNTRIES);
-      }
-    };
-    loadCountries();
-  }, []);
+  const toggleCountry = (code) =>
+    setForm(f => ({
+      ...f,
+      target_countries: f.target_countries.includes(code)
+        ? f.target_countries.filter(c => c !== code)
+        : [...f.target_countries, code],
+    }));
 
-  const toggleCountry = (c) => {
-    updateForm({
-      target_countries: form.target_countries.includes(c)
-        ? form.target_countries.filter(x => x !== c)
-        : [...form.target_countries, c]
-    });
-  };
-
-  const nextStep = () => {
-    if (step === 1 && (!form.email || !form.password)) {
-      setError('Please provide email and password');
-      return;
+  // ── Validation ──────────────────────────────────────────────────────────────
+  const validate = () => {
+    setError('');
+    if (step === 1) {
+      if (!form.full_name.trim()) return err('Please enter your full name.');
+      if (!form.email.trim()) return err('Please enter your email.');
+      if (form.password.length < 8) return err('Password must be at least 8 characters.');
     }
-    setError('');
-    setStep(step + 1);
+    if (step === 2) {
+      if (!form.current_degree) return err('Please select your current degree.');
+      if (!form.field_of_study) return err('Please select your field of study.');
+      if (!form.cgpa) return err('Please enter your CGPA.');
+      const cgpa = parseFloat(form.cgpa);
+      if (cgpa < 0 || cgpa > 10) return err('CGPA must be between 0 and 10.');
+    }
+    if (step === 4) {
+      if (!form.preferred_degree) return err('Please select your target degree.');
+      if (!form.target_countries.length) return err('Select at least one target country.');
+    }
+    if (step === 5) {
+      if (!form.budget_inr) return err('Please enter your annual budget.');
+    }
+    return true;
   };
+  const err = (msg) => { setError(msg); return false; };
 
-  const prevStep = () => {
-    setError('');
-    setStep(step - 1);
-  };
+  const next = () => { if (validate()) setStep(s => s + 1); };
+  const back = () => { setError(''); setStep(s => s - 1); };
 
   const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
+    e.preventDefault();
+    if (!validate()) return;
     setLoading(true);
     setError('');
     try {
-      // Construct nested academic objects for the new backend model
-      const payload = {
-        ...form,
-        budget: parseInt(form.budget, 10) || null,
-        work_experience_years: parseInt(form.work_experience_years, 10) || 0,
-        degrees: [
-          {
-            degree_level: form.degree_level,
-            specialization: form.specialization,
-            cgpa: parseFloat(form.cgpa) || 0,
-            institution: '', // Optional for onboarding
-            year_graduated: '' // Optional for onboarding
-          }
-        ],
-        tests: [
-          {
-            test_name: form.english_test_type || 'IELTS',
-            score: parseFloat(form.english_test_score) || 0,
-            test_date: '' // Optional for onboarding
-          }
-        ]
-      };
+      const budgetInr = parseInt(form.budget_inr, 10) || null;
+      const budgetUsd = budgetInr ? Math.round(budgetInr / 83) : null;
 
-      // Remove the old flat mappings that are no longer in the schema
-      delete payload.cgpa;
-      delete payload.degree_level;
-      delete payload.specialization;
-      delete payload.english_test_type;
-      delete payload.english_test_score;
-
-      await authAPI.register(payload);
-      navigate(`/verify-otp?email=${encodeURIComponent(form.email)}`);
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Registration failed. Please try again.');
+      const res = await authAPI.register({
+        email:                form.email,
+        password:             form.password,
+        full_name:            form.full_name,
+        current_degree:       form.current_degree || null,
+        home_university:      form.home_university || null,
+        field_of_study:       form.field_of_study || null,
+        cgpa:                 parseFloat(form.cgpa) || null,
+        graduation_year:      parseInt(form.graduation_year, 10) || null,
+        english_test:         form.english_test || null,
+        english_score:        form.english_score ? parseFloat(form.english_score) : null,
+        toefl_score:          form.toefl_score ? parseInt(form.toefl_score, 10) : null,
+        gre_score:            form.gre_score ? parseInt(form.gre_score, 10) : null,
+        gmat_score:           form.gmat_score ? parseInt(form.gmat_score, 10) : null,
+        work_experience_years:form.work_experience_years ? parseFloat(form.work_experience_years) : null,
+        preferred_degree:     form.preferred_degree || null,
+        intake_preference:    form.intake_preference || null,
+        target_countries:     form.target_countries,
+        ranking_preference:   form.ranking_preference || null,
+        work_abroad_interest: form.work_abroad_interest,
+        budget_inr:           budgetInr,
+        budget:               budgetUsd,
+        scholarship_interest: form.scholarship_interest,
+      });
+      navigate('/verify-otp', {
+        state: { email: form.email, devOtp: res.dev_otp || null },
+      });
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const MCQOption = ({ value, label, icon: Icon, field, description }) => (
-    <button type="button" onClick={() => updateForm({ [field]: value })}
-      className={`relative p-4 rounded-xl border text-left transition-all group ${
-        form[field] === value 
-          ? 'bg-lavender text-white border-lavender shadow-lg -translate-y-1' 
-          : 'bg-white border-surfaceBorder hover:border-lavender/50 text-textSoft hover:bg-lavender/5'
-      }`}>
-      <div className="flex items-center gap-3 mb-1">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${form[field] === value ? 'bg-white/20' : 'bg-lavendLight text-lavender'}`}>
-          <Icon className="w-4 h-4" />
-        </div>
-        <span className="font-bold text-sm">{label}</span>
-      </div>
-      {description && <p className={`text-[10px] leading-relaxed ${form[field] === value ? 'text-white/80' : 'text-muted'}`}>{description}</p>}
-    </button>
-  );
+  const isLastStep = step === STEPS.length;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-surfaceAlt pb-20"
-      style={{ backgroundImage: 'radial-gradient(ellipse at top right, rgba(124,111,247,0.1) 0%, transparent 60%), radial-gradient(ellipse at bottom left, rgba(78,204,163,0.05) 0%, transparent 60%)' }}>
-      
-      <div className="w-full max-w-2xl animate-scale-in">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 bg-lavender rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-card">
-            <Globe className="w-6 h-6 text-white" />
+    <div className="min-h-screen flex">
+
+      {/* ── Left brand panel ── */}
+      <div className="hidden lg:flex lg:w-[38%] relative overflow-hidden flex-col justify-between p-12"
+        style={{ background: 'linear-gradient(135deg,#4C3BCF 0%,#7C6FF7 50%,#9B8FF7 100%)' }}>
+        <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full bg-white/10 blur-3xl" />
+
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/30">
+            <Globe className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-text">AI Strategy Session</h1>
-          <p className="text-muted text-sm mt-1">Collecting deep insights to architect your study abroad journey</p>
+          <span className="text-white font-bold text-xl">StudyPathway</span>
         </div>
 
-        {/* Progress System */}
-        <div className="flex items-center justify-between mb-8 px-8 bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20 shadow-sm">
-          {[1,2,3,4,5].map(s => (
-            <div key={s} className="flex items-center flex-1 last:flex-none">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-500 ${
-                step === s ? 'bg-lavender text-white scale-125 shadow-lg ring-4 ring-lavender/20' : 
-                step > s ? 'bg-mint text-white' : 'bg-surface border border-surfaceBorder text-muted'
-              }`}>
-                {step > s ? <Check className="w-4 h-4"/> : s}
+        <div className="relative z-10 flex-1 flex flex-col justify-center">
+          <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-4">
+            Built for Indian students
+          </p>
+          <h1 className="text-3xl font-black text-white leading-tight mb-4">
+            Your AI advisor<br />for studying abroad
+          </h1>
+          <p className="text-white/70 text-sm mb-8 leading-relaxed">
+            Tell us your academic story — CGPA, test scores, field of study, budget in ₹.
+            Our AI matches you with universities where you'll actually get in.
+          </p>
+          {[
+            "Matches calibrated for Indian transcripts (10-pt CGPA)",
+            "GRE / GMAT / IELTS / TOEFL scoring",
+            "Budget in INR — no USD confusion",
+            "Visa guidance + financial ROI in ₹",
+            "5-agent AI decision dashboard",
+          ].map(f => (
+            <div key={f} className="flex items-center gap-3 mb-2.5">
+              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                <Check className="w-3 h-3 text-white" />
               </div>
-              {s < 5 && <div className={`h-1 flex-1 mx-2 rounded-full transition-all duration-700 ${step > s ? 'bg-mint' : 'bg-surfaceBorder'}`}/>}
+              <span className="text-white/85 text-sm">{f}</span>
             </div>
           ))}
         </div>
 
-        <div className="card p-8 shadow-cardHov relative overflow-hidden min-h-[500px] flex flex-col">
-          {error && <div className="bg-rose/10 border border-rose/20 text-rose rounded-xl px-4 py-3 text-sm mb-5 animate-shake">{error}</div>}
+        {/* Step tracker */}
+        <div className="relative z-10 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-5">
+          <p className="text-white/60 text-xs mb-3 font-medium uppercase tracking-wide">
+            Setup Progress — Step {step} of {STEPS.length}
+          </p>
+          <div className="flex gap-1.5 mb-4">
+            {STEPS.map(s => (
+              <div key={s.id}
+                className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${step >= s.id ? 'bg-white' : 'bg-white/20'}`} />
+            ))}
+          </div>
+          <div className="flex gap-3 flex-wrap">
+            {STEPS.map(s => {
+              const Icon = s.icon;
+              const done = step > s.id, active = step === s.id;
+              return (
+                <div key={s.id}
+                  className={`flex items-center gap-1.5 text-xs font-medium ${active ? 'text-white' : done ? 'text-white/60' : 'text-white/30'}`}>
+                  <Icon className="w-3.5 h-3.5" />
+                  {s.label}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
-          <div className="flex-1">
+      {/* ── Right form panel ── */}
+      <div className="flex-1 flex items-start justify-center p-8 bg-[#F8F9FC] overflow-y-auto">
+        <div className="w-full max-w-[500px] py-8">
+
+          {/* Mobile logo + progress */}
+          <div className="lg:hidden flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 bg-lavender rounded-lg flex items-center justify-center">
+              <Globe className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-bold text-text">StudyPathway</span>
+          </div>
+          <div className="lg:hidden flex gap-1.5 mb-5">
+            {STEPS.map(s => (
+              <div key={s.id}
+                className={`h-1.5 flex-1 rounded-full transition-all ${step >= s.id ? 'bg-lavender' : 'bg-surfaceBorder'}`} />
+            ))}
+          </div>
+
+          {/* Heading */}
+          <div className="mb-5">
+            <p className="text-xs font-bold text-lavender uppercase tracking-wider mb-1">
+              Step {step} of {STEPS.length}
+            </p>
+            <h2 className="text-2xl font-black text-text mb-0.5">
+              {step === 1 && 'Create your account'}
+              {step === 2 && 'Academic background'}
+              {step === 3 && 'Test scores & experience'}
+              {step === 4 && 'Study goals'}
+              {step === 5 && 'Budget & preferences'}
+            </h2>
+            <p className="text-muted text-sm">
+              {step === 1 && 'Free forever — no credit card required.'}
+              {step === 2 && 'Your current education & CGPA (10-point scale).'}
+              {step === 3 && 'All optional — add what you have.'}
+              {step === 4 && 'Where and what you want to study.'}
+              {step === 5 && 'Your total annual budget in Indian Rupees.'}
+            </p>
+          </div>
+
+          {error && (
+            <div className="mb-4 p-3.5 rounded-xl bg-rose/8 border border-rose/25 text-rose text-sm font-medium">
+              {error}
+            </div>
+          )}
+
+          <form
+            onSubmit={isLastStep ? handleSubmit : (e) => { e.preventDefault(); next(); }}
+            className="space-y-4"
+          >
+
             {/* ── Step 1: Account ── */}
             {step === 1 && (
-              <div className="space-y-4 animate-slide-right">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-bold text-text flex items-center gap-2">
-                    <Mail className="w-5 h-5 text-lavender"/> Basic Credentials
-                  </h2>
-                  <span className="text-[10px] uppercase font-bold text-lavender bg-lavendLight px-2 py-1 rounded-md">Step 1 of 5</span>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-text mb-1.5">Email address</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                      <input type="email" value={form.email} onChange={e=>updateForm({email:e.target.value})} placeholder="you@example.com" className="input-field pl-10"/>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-text mb-1.5">Create Secure Password</label>
-                    <div className="relative">
-                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                      <input type={showPass?'text':'password'} value={form.password} onChange={e=>updateForm({password:e.target.value})} placeholder="Min. 8 characters" className="input-field pl-10 pr-10"/>
-                      <button type="button" onClick={()=>setShowPass(!showPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted hover:text-text">
-                        {showPass ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ── Step 2: Academics ── */}
-            {step === 2 && (
-              <div className="space-y-4 animate-slide-right">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-bold text-text flex items-center gap-2">
-                    <GraduationCap className="w-5 h-5 text-lavender"/> Academic Profile
-                  </h2>
-                  <span className="text-[10px] uppercase font-bold text-lavender bg-lavendLight px-2 py-1 rounded-md">Step 2 of 5</span>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-text mb-1.5">Degree Level</label>
-                    <select value={form.degree_level} onChange={e=>updateForm({degree_level:e.target.value})} className="input-field py-2">
-                      <option value="">Select Level</option>
-                      {DEGREE_LEVELS.map(d=><option key={d} value={d}>{d}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-text mb-1.5">Cumulative CGPA</label>
-                    <input type="number" step="0.1" value={form.cgpa} onChange={e=>updateForm({cgpa:e.target.value})} placeholder="8.5 / 10" className="input-field"/>
-                  </div>
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-textSoft mb-1.5">Full name</label>
+                  <input type="text" required autoComplete="name" className="input-field"
+                    placeholder="e.g. Priya Sharma"
+                    value={form.full_name} onChange={e => set('full_name', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-text mb-1.5">Field of Study</label>
+                  <label className="block text-sm font-semibold text-textSoft mb-1.5">Email address</label>
+                  <input type="email" required autoComplete="email" className="input-field"
+                    placeholder="you@gmail.com"
+                    value={form.email} onChange={e => set('email', e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-textSoft mb-1.5">Password</label>
                   <div className="relative">
-                    <BookOpen className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                    <input type="text" value={form.specialization} onChange={e=>updateForm({specialization:e.target.value})} placeholder="e.g. Artificial Intelligence, Data Science" className="input-field pl-10"/>
+                    <input type={showPwd ? 'text' : 'password'} required minLength={8}
+                      autoComplete="new-password"
+                      className="input-field pr-11" placeholder="Min. 8 characters"
+                      value={form.password} onChange={e => set('password', e.target.value)} />
+                    <button type="button" onClick={() => setShowPwd(v => !v)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted hover:text-textSoft">
+                      {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-text mb-1.5">English Test</label>
-                    <select value={form.english_test_type} onChange={e=>updateForm({english_test_type:e.target.value})} className="input-field py-2">
-                      {STANDARDIZED_TESTS.map(t=><option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-text mb-1.5">Score</label>
-                    <input type="number" step="0.1" value={form.english_test_score} onChange={e=>updateForm({english_test_score:e.target.value})} placeholder="e.g. 7.5" className="input-field"/>
-                  </div>
-                </div>
-              </div>
+              </>
             )}
 
-            {/* ── Step 3: Career Path (MCQ) ── */}
-            {step === 3 && (
-              <div className="space-y-6 animate-slide-right">
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-lg font-bold text-text flex items-center gap-2">
-                    <Target className="w-5 h-5 text-lavender"/> Vision & Ambition
-                  </h2>
-                  <span className="text-[10px] uppercase font-bold text-lavender bg-lavendLight px-2 py-1 rounded-md">Step 3 of 5</span>
-                </div>
-                
+            {/* ── Step 2: Academic background ── */}
+            {step === 2 && (
+              <>
                 <div>
-                  <p className="text-xs font-bold text-muted uppercase tracking-wider mb-3">What is your primary career goal?</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <MCQOption field="career_goal" value="Industry" label="High-Growth Tech" icon={Zap} description="High-paying roles in multinational companies."/>
-                    <MCQOption field="career_goal" value="Research" label="Academic / Research" icon={BookOpen} description="PhD track and deep research in specialized labs."/>
-                    <MCQOption field="career_goal" value="Entrepreneur" label="Entrepreneurship" icon={Globe} description="Scale my own startup or join a startup ecosystem."/>
-                    <MCQOption field="career_goal" value="Pivot" label="Career Transformation" icon={User} description="Switching industries entirely for a fresh start."/>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs font-bold text-muted uppercase tracking-wider mb-3">Preferred Learning Style?</p>
-                  <div className="grid grid-cols-3 gap-3">
-                    <MCQOption field="learning_style" value="Practical" label="Hands-on" icon={Zap}/>
-                    <MCQOption field="learning_style" value="Theoretical" label="Academic" icon={BookOpen}/>
-                    <MCQOption field="learning_style" value="Hybrid" label="Hybrid" icon={Globe}/>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ── Step 4: Lifestyle (MCQ) ── */}
-            {step === 4 && (
-              <div className="space-y-6 animate-slide-right">
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-lg font-bold text-text flex items-center gap-2">
-                    <Coffee className="w-5 h-5 text-lavender"/> Environment & Cultural Fit
-                  </h2>
-                  <span className="text-[10px] uppercase font-bold text-lavender bg-lavendLight px-2 py-1 rounded-md">Step 4 of 5</span>
-                </div>
-
-                <div>
-                  <p className="text-xs font-bold text-muted uppercase tracking-wider mb-3">Where do you see yourself thriving?</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <MCQOption field="preferred_environment" value="Urban" label="Metropolitan Hustle" icon={Building2} description="Big cities like London, NYC, or Tokyo."/>
-                    <MCQOption field="preferred_environment" value="Campus" label="Classic University Town" icon={MapPin} description="Quiet, campus-centric towns like Oxford or Ithaca."/>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs font-bold text-muted uppercase tracking-wider mb-3">Study Priority?</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <MCQOption field="study_priority" value="Ranking" label="Prestige" icon={Award}/>
-                    <MCQOption field="study_priority" value="Budget" label="ROI" icon={DollarSign}/>
-                    <MCQOption field="study_priority" value="Work" label="VWP" icon={Briefcase}/>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs font-bold text-muted uppercase tracking-wider mb-3">Living Preference?</p>
-                  <div className="flex gap-3">
-                    <MCQOption field="living_preference" value="Dorm" label="On-Campus Dorm" icon={HomeIcon}/>
-                    <MCQOption field="living_preference" value="Apartment" label="Private Rental" icon={User}/>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ── Step 5: Logistics ── */}
-            {step === 5 && (
-              <div className="space-y-4 animate-slide-right">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-bold text-text flex items-center gap-2">
-                    <Flag className="w-5 h-5 text-lavender"/> Final Strategy Details
-                  </h2>
-                  <span className="text-[10px] uppercase font-bold text-lavender bg-lavendLight px-2 py-1 rounded-md">Step 5 of 5</span>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-text mb-1.5">Work Experience (Yrs)</label>
-                    <input type="number" value={form.work_experience_years} onChange={e=>updateForm({work_experience_years:e.target.value})} placeholder="0" className="input-field"/>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-text mb-1.5">Preferred Intake</label>
-                    <input type="text" value={form.preferred_intake} onChange={e=>updateForm({preferred_intake:e.target.value})} placeholder="Fall 2025" className="input-field"/>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-text mb-1.5">Max Yearly Budget <span className="text-muted text-xs">(₹ Total)</span></label>
-                  <input type="number" value={form.budget} onChange={e=>updateForm({budget:e.target.value})} placeholder="e.g. 5,000,000" className="input-field"/>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-text mb-2">Target Countries <span className="text-muted text-[10px]">(Select Multiple)</span></label>
-                  <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1 custom-scrollbar">
-                    {countries.map(c => (
-                      <button key={c} type="button" onClick={()=>toggleCountry(c)}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
-                          form.target_countries.includes(c)
-                            ? 'bg-lavender text-white border-lavender shadow-md'
-                            : 'bg-surfaceAlt text-textSoft border-surfaceBorder hover:border-lavender hover:text-lavender'
-                        }`}>
-                        {c}
+                  <label className="block text-sm font-semibold text-textSoft mb-2">Current degree</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {CURRENT_DEGREES.map(d => (
+                      <button key={d} type="button" onClick={() => set('current_degree', d)}
+                        className={`py-2 px-3 rounded-lg border text-xs font-medium text-left transition-all
+                          ${form.current_degree === d
+                            ? 'border-lavender bg-lavendLight text-lavender shadow-sm'
+                            : 'border-surfaceBorder bg-white text-textSoft hover:border-lavender/50'}`}>
+                        {d}
                       </button>
                     ))}
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
 
-          <div className="flex gap-4 mt-8 pt-6 border-t border-surfaceBorder">
-            {step > 1 && (
-              <button onClick={prevStep} className="btn-secondary flex-1 py-1.5 flex justify-center items-center gap-2">
-                <ChevronLeft className="w-4 h-4"/> Back
-              </button>
-            )}
-            {step < 5 ? (
-              <button onClick={nextStep} className="btn-primary flex-1 py-1.5">
-                Next Stage <ArrowRight className="w-4 h-4"/>
-              </button>
-            ) : (
-              <button onClick={handleSubmit} disabled={loading} className="btn-primary flex-1 py-1.5">
-                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto"/> : 'Finalize Profile & Get OTP'}
-              </button>
-            )}
-          </div>
+                <div>
+                  <label className="block text-sm font-semibold text-textSoft mb-1.5">
+                    College / University <span className="text-muted font-normal">(optional)</span>
+                  </label>
+                  <input type="text" className="input-field"
+                    placeholder="e.g. VIT Vellore, IIT Delhi, BITS Pilani…"
+                    value={form.home_university} onChange={e => set('home_university', e.target.value)} />
+                </div>
 
-          <p className="text-center text-[11px] text-muted mt-5">
-            Already a member?{' '}
-            <Link to="/login" className="text-lavender font-bold hover:underline">Log in</Link>
+                <div>
+                  <label className="block text-sm font-semibold text-textSoft mb-2">Field / Branch</label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {FIELDS_OF_STUDY.map(f => (
+                      <button key={f} type="button" onClick={() => set('field_of_study', f)}
+                        className={`py-2 px-2 rounded-lg border text-center text-xs font-medium transition-all leading-tight
+                          ${form.field_of_study === f
+                            ? 'border-lavender bg-lavendLight text-lavender shadow-sm'
+                            : 'border-surfaceBorder bg-white text-textSoft hover:border-lavender/50'}`}>
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-semibold text-textSoft mb-1.5">
+                      CGPA <span className="font-normal text-muted">(out of 10)</span>
+                    </label>
+                    <input type="number" required min="0" max="10" step="0.01" className="input-field"
+                      placeholder="e.g. 8.5"
+                      value={form.cgpa} onChange={e => set('cgpa', e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-textSoft mb-1.5">Graduation year</label>
+                    <select className="input-field" value={form.graduation_year}
+                      onChange={e => set('graduation_year', e.target.value)}>
+                      {[2024, 2025, 2026, 2027, 2028].map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ── Step 3: Test scores & experience ── */}
+            {step === 3 && (
+              <>
+                <p className="text-xs text-muted bg-surfaceAlt rounded-lg p-3 border border-surfaceBorder">
+                  ℹ️ All fields on this step are optional. Add what you have — you can update later.
+                </p>
+
+                <div>
+                  <label className="block text-sm font-semibold text-textSoft mb-2">English test</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {ENGLISH_TESTS.map(t => (
+                      <button key={t} type="button" onClick={() => set('english_test', t)}
+                        className={`px-3 py-2 rounded-lg border text-xs font-semibold transition-all
+                          ${form.english_test === t
+                            ? 'border-lavender bg-lavendLight text-lavender'
+                            : 'border-surfaceBorder bg-white text-textSoft hover:border-lavender/50'}`}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {form.english_test && form.english_test !== 'Not yet taken' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {(form.english_test === 'IELTS' || form.english_test === 'PTE') && (
+                      <div>
+                        <label className="block text-sm font-semibold text-textSoft mb-1.5">
+                          {form.english_test} score
+                          <span className="font-normal text-muted ml-1">
+                            {form.english_test === 'IELTS' ? '(0–9 band)' : '(10–90)'}
+                          </span>
+                        </label>
+                        <input type="number" min="0" max="90" step="0.5" className="input-field"
+                          placeholder={form.english_test === 'IELTS' ? 'e.g. 7.5' : 'e.g. 65'}
+                          value={form.english_score} onChange={e => set('english_score', e.target.value)} />
+                      </div>
+                    )}
+                    {form.english_test === 'TOEFL' && (
+                      <div>
+                        <label className="block text-sm font-semibold text-textSoft mb-1.5">
+                          TOEFL iBT score <span className="font-normal text-muted">(0–120)</span>
+                        </label>
+                        <input type="number" min="0" max="120" className="input-field"
+                          placeholder="e.g. 105"
+                          value={form.toefl_score} onChange={e => set('toefl_score', e.target.value)} />
+                      </div>
+                    )}
+                    {form.english_test === 'Duolingo' && (
+                      <div>
+                        <label className="block text-sm font-semibold text-textSoft mb-1.5">
+                          Duolingo score <span className="font-normal text-muted">(10–160)</span>
+                        </label>
+                        <input type="number" min="10" max="160" className="input-field"
+                          placeholder="e.g. 120"
+                          value={form.english_score} onChange={e => set('english_score', e.target.value)} />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-semibold text-textSoft mb-1.5">
+                      GRE score <span className="font-normal text-muted">(260–340)</span>
+                    </label>
+                    <input type="number" min="260" max="340" className="input-field"
+                      placeholder="e.g. 320"
+                      value={form.gre_score} onChange={e => set('gre_score', e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-textSoft mb-1.5">
+                      GMAT score <span className="font-normal text-muted">(200–800)</span>
+                    </label>
+                    <input type="number" min="200" max="800" className="input-field"
+                      placeholder="e.g. 680"
+                      value={form.gmat_score} onChange={e => set('gmat_score', e.target.value)} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-textSoft mb-1.5">
+                    Work experience <span className="font-normal text-muted">(years full-time)</span>
+                  </label>
+                  <div className="flex gap-2 flex-wrap">
+                    {['0', '1', '2', '3', '4', '5+'].map(y => (
+                      <button key={y} type="button"
+                        onClick={() => set('work_experience_years', y === '5+' ? '5' : y)}
+                        className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all
+                          ${form.work_experience_years === (y === '5+' ? '5' : y)
+                            ? 'border-lavender bg-lavendLight text-lavender'
+                            : 'border-surfaceBorder bg-white text-textSoft hover:border-lavender/50'}`}>
+                        {y}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ── Step 4: Study goals ── */}
+            {step === 4 && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-textSoft mb-2">Target degree</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {TARGET_DEGREES.map(d => (
+                      <button key={d.value} type="button" onClick={() => set('preferred_degree', d.value)}
+                        className={`py-2.5 px-3 rounded-xl border text-left transition-all
+                          ${form.preferred_degree === d.value
+                            ? 'border-lavender bg-lavendLight shadow-sm'
+                            : 'border-surfaceBorder bg-white hover:border-lavender/50'}`}>
+                        <p className={`text-sm font-bold ${form.preferred_degree === d.value ? 'text-lavender' : 'text-text'}`}>
+                          {d.label}
+                        </p>
+                        <p className="text-xs text-muted">{d.sub}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-textSoft mb-2">
+                    Target countries <span className="text-muted font-normal">(select all that interest you)</span>
+                  </label>
+                  <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7">
+                    {COUNTRIES.map(({ code, flag, label }) => {
+                      const selected = form.target_countries.includes(code);
+                      return (
+                        <button key={code} type="button" onClick={() => toggleCountry(code)}
+                          className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl border text-center transition-all text-xs font-medium
+                            ${selected
+                              ? 'border-lavender bg-lavendLight text-lavender shadow-sm'
+                              : 'border-surfaceBorder bg-white text-textSoft hover:border-lavender/50'}`}>
+                          <span className="text-xl">{flag}</span>
+                          <span>{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-semibold text-textSoft mb-2">Preferred intake</label>
+                    <div className="space-y-2">
+                      {INTAKE_OPTIONS.map(o => (
+                        <button key={o.value} type="button" onClick={() => set('intake_preference', o.value)}
+                          className={`w-full py-2 px-3 rounded-lg border text-left transition-all
+                            ${form.intake_preference === o.value
+                              ? 'border-lavender bg-lavendLight'
+                              : 'border-surfaceBorder bg-white hover:border-lavender/50'}`}>
+                          <p className={`text-sm font-bold ${form.intake_preference === o.value ? 'text-lavender' : 'text-text'}`}>{o.label}</p>
+                          <p className="text-xs text-muted">{o.sub}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-textSoft mb-2">University ranking</label>
+                    <div className="space-y-2">
+                      {RANKING_OPTIONS.map(o => (
+                        <button key={o.value} type="button" onClick={() => set('ranking_preference', o.value)}
+                          className={`w-full py-2 px-3 rounded-lg border text-left transition-all
+                            ${form.ranking_preference === o.value
+                              ? 'border-lavender bg-lavendLight'
+                              : 'border-surfaceBorder bg-white hover:border-lavender/50'}`}>
+                          <p className={`text-sm font-bold ${form.ranking_preference === o.value ? 'text-lavender' : 'text-text'}`}>{o.label}</p>
+                          <p className="text-xs text-muted">{o.sub}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-3 p-3 border border-surfaceBorder rounded-xl cursor-pointer hover:bg-surfaceAlt transition-colors">
+                  <div
+                    className={`w-10 h-5 rounded-full transition-colors relative flex-shrink-0 ${form.work_abroad_interest ? 'bg-lavender' : 'bg-surfaceBorder'}`}
+                    onClick={() => set('work_abroad_interest', !form.work_abroad_interest)}>
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.work_abroad_interest ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-text">I want to work after graduation</p>
+                    <p className="text-xs text-muted">Factors post-study work visa into recommendations</p>
+                  </div>
+                </label>
+              </>
+            )}
+
+            {/* ── Step 5: Budget ── */}
+            {step === 5 && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-textSoft mb-1.5">
+                    Annual budget (tuition + living) in ₹
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted font-semibold text-sm">₹</span>
+                    <input type="number" required min="500000" className="input-field pl-8"
+                      placeholder="e.g. 3000000"
+                      value={form.budget_inr} onChange={e => set('budget_inr', e.target.value)} />
+                  </div>
+                  <p className="text-xs text-muted mt-1">
+                    {form.budget_inr
+                      ? `≈ $${Math.round(parseInt(form.budget_inr) / 83).toLocaleString()} USD/year`
+                      : 'Includes tuition fees + accommodation + living costs for one year'}
+                  </p>
+                  <div className="flex gap-2 mt-2 flex-wrap">
+                    {BUDGET_PRESETS_INR.map(p => (
+                      <button key={p.value} type="button"
+                        onClick={() => set('budget_inr', String(p.value))}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all
+                          ${form.budget_inr === String(p.value)
+                            ? 'bg-lavender text-white border-lavender'
+                            : 'bg-white text-textSoft border-surfaceBorder hover:border-lavender/50'}`}>
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-3 p-3.5 border border-surfaceBorder rounded-xl cursor-pointer hover:bg-surfaceAlt transition-colors">
+                  <div
+                    className={`w-10 h-5 rounded-full transition-colors relative flex-shrink-0 ${form.scholarship_interest ? 'bg-lavender' : 'bg-surfaceBorder'}`}
+                    onClick={() => set('scholarship_interest', !form.scholarship_interest)}>
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.scholarship_interest ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-text">I'm interested in scholarships</p>
+                    <p className="text-xs text-muted">We'll highlight universities with strong merit scholarships for Indian students</p>
+                  </div>
+                </label>
+
+                <div className="bg-lavendLight/50 border border-lavender/20 rounded-xl p-4 text-sm text-textSoft">
+                  <p className="font-semibold text-lavender mb-1">Quick budget reference (₹ per year)</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                    {[
+                      ['Germany (public)', '₹8–15 L/yr'],
+                      ['Canada (incl. living)', '₹25–40 L/yr'],
+                      ['UK (London)', '₹35–55 L/yr'],
+                      ['USA (top 100)', '₹40–60 L/yr'],
+                      ['Australia', '₹30–50 L/yr'],
+                      ['Singapore', '₹35–55 L/yr'],
+                    ].map(([k, v]) => (
+                      <div key={k} className="flex justify-between">
+                        <span className="text-muted">{k}</span>
+                        <span className="font-semibold text-text">{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Navigation */}
+            <div className="flex gap-3 pt-2">
+              {step > 1 && (
+                <button type="button" onClick={back}
+                  className="btn-secondary flex items-center gap-2 px-5 py-3">
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+              )}
+              <button type="submit" disabled={loading}
+                className="btn-primary flex-1 py-3 text-[15px] flex items-center justify-center gap-2">
+                {loading
+                  ? 'Creating account…'
+                  : isLastStep
+                    ? <><GraduationCap className="w-4 h-4" /> Create account &amp; get OTP</>
+                    : step === 3
+                      ? <><span>Continue</span><ArrowRight className="w-4 h-4" /></>
+                      : <><span>Continue</span><ArrowRight className="w-4 h-4" /></>
+                }
+              </button>
+            </div>
+
+            {step === 3 && (
+              <button type="button" onClick={next}
+                className="w-full text-center text-sm text-muted hover:text-lavender transition-colors">
+                Skip test scores for now →
+              </button>
+            )}
+          </form>
+
+          <p className="text-center text-sm text-muted mt-5">
+            Already have an account?{' '}
+            <Link to="/login" className="text-lavender font-semibold hover:underline">Sign in</Link>
           </p>
         </div>
       </div>
     </div>
   );
 }
-
-const HomeIcon = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-  </svg>
-);
-
-

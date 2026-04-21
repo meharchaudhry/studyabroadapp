@@ -1,38 +1,73 @@
+import asyncio
 from fastapi import APIRouter, Query
 from typing import Optional
-import json
-import os
+from app.services.housing_scraper import get_real_listings, COUNTRY_SCRAPERS, SEARCH_LINKS
 
 router = APIRouter()
 
-def load_live_housing():
-    data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data", "live_housing.json")
-    try:
-        with open(data_path, "r") as f:
-            return json.load(f)
-    except Exception:
-        return []
+SUPPORTED_COUNTRIES = list(COUNTRY_SCRAPERS.keys()) + list(SEARCH_LINKS.keys())
+
+# City options per country
+COUNTRY_CITIES = {
+    "United Kingdom": [
+        "London", "Manchester", "Edinburgh", "Birmingham", "Bristol",
+        "Leeds", "Glasgow", "Liverpool", "Nottingham", "Sheffield",
+    ],
+    "Germany": ["Munich", "Berlin", "Hamburg", "Frankfurt", "Cologne", "Heidelberg"],
+    "Australia": ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide"],
+    "United States": ["New York", "Boston", "Chicago", "Los Angeles", "San Francisco"],
+    "Canada": ["Toronto", "Vancouver", "Montreal", "Ottawa"],
+    "Netherlands": ["Amsterdam", "Rotterdam", "The Hague", "Eindhoven"],
+    "France": ["Paris", "Lyon", "Marseille", "Bordeaux"],
+    "Singapore": ["Singapore"],
+    "Japan": ["Tokyo", "Osaka", "Kyoto"],
+    "Ireland": ["Dublin", "Cork", "Galway"],
+    "Sweden": ["Stockholm", "Gothenburg", "Malmö"],
+}
+
 
 @router.get("/listings")
-def get_housing_listings(
-    country: Optional[str] = Query(None, description="Country name"),
-    min_price: Optional[int] = Query(None),
-    max_price: Optional[int] = Query(None),
-    student_friendly: Optional[bool] = Query(None),
+async def get_housing_listings(
+    country: str = Query("United Kingdom", description="Country name"),
+    city: Optional[str] = Query(None, description="City within the country"),
+    max_budget_inr: Optional[int] = Query(None, description="Max monthly budget in INR"),
+    student_friendly: Optional[bool] = Query(None, description="Filter student-friendly only"),
 ):
-    listings = load_live_housing()
+    """Fetch real housing listings from live property websites."""
 
-    if country and country != "All":
-        # Handle cases like "UK" matching "United Kingdom"
-        c_map = {"UK": "United Kingdom", "USA": "United States"}
-        target_country = c_map.get(country, country).lower()
-        listings = [l for l in listings if target_country in l.get("country", "").lower() or target_country == l.get("country_code", "").lower()]
-        
-    if min_price is not None:
-        listings = [l for l in listings if l.get("price_inr", 0) >= min_price]
-    if max_price is not None:
-        listings = [l for l in listings if l.get("price_inr", 0) <= max_price]
-    if student_friendly is not None and student_friendly:
-        listings = [l for l in listings if l.get("student_friendly") == True]
+    data = await get_real_listings(
+        country=country,
+        city=city,
+        max_budget_inr=max_budget_inr,
+    )
 
-    return {"total": len(listings), "results": listings}
+    listings = data.get("listings", [])
+
+    # Apply student_friendly filter
+    if student_friendly:
+        listings = [l for l in listings if l.get("student_friendly")]
+
+    return {
+        "country": country,
+        "city": city,
+        "source": data.get("source"),
+        "scraped": data.get("scraped", False),
+        "search_link": data.get("search_link"),
+        "total": len(listings),
+        "results": listings,
+    }
+
+
+@router.get("/countries")
+def get_housing_countries():
+    """List all supported countries and their cities."""
+    return {
+        "countries": [
+            {
+                "name": c,
+                "cities": COUNTRY_CITIES.get(c, []),
+                "scraped": c in COUNTRY_SCRAPERS,
+            }
+            for c in SUPPORTED_COUNTRIES
+        ]
+    }

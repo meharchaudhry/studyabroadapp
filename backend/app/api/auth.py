@@ -2,7 +2,7 @@ import os
 import random
 import string
 from datetime import datetime, timedelta
-from typing import Any, Optional, List
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
@@ -12,10 +12,9 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import verify_password, get_password_hash, create_access_token
 from app.core.config import settings
-from app.models.user import User, Degree, TestScore
-from app.schemas.user import UserCreate, UserResponse, Token, DegreeCreate, TestScoreCreate
+from app.models.user import User
+from app.schemas.user import UserCreate, UserResponse, Token
 from app.api.deps import get_current_user
-from app.services.notification import notification_service
 
 router = APIRouter()
 
@@ -23,6 +22,45 @@ router = APIRouter()
 
 def generate_otp(length: int = 6) -> str:
     return "".join(random.choices(string.digits, k=length))
+
+def send_otp_email(email: str, otp: str):
+    """
+    Send OTP via SMTP if credentials are available, otherwise log to console.
+    Set EMAIL_USER and EMAIL_PASSWORD env vars (Gmail App Password) to enable real emails.
+    """
+    email_user = os.getenv("EMAIL_USER")
+    email_pass = os.getenv("EMAIL_PASSWORD")
+
+    if email_user and email_pass:
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "Your StudyPathway Verification Code"
+        msg["From"] = email_user
+        msg["To"] = email
+
+        html = f"""
+        <html><body style="font-family:Inter,sans-serif;background:#f7f8fc;padding:40px;">
+          <div style="max-width:480px;margin:auto;background:#fff;border-radius:16px;padding:40px;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+            <h2 style="color:#7C6FF7;margin-bottom:8px;">StudyPathway</h2>
+            <p style="color:#5A6275;">Your verification code is:</p>
+            <div style="font-size:48px;font-weight:700;letter-spacing:12px;color:#1A1D2E;text-align:center;margin:24px 0;">{otp}</div>
+            <p style="color:#8B95A8;font-size:13px;">This code expires in 10 minutes. Do not share it.</p>
+          </div>
+        </body></html>
+        """
+        msg.attach(MIMEText(html, "html"))
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                server.login(email_user, email_pass)
+                server.sendmail(email_user, email, msg.as_string())
+            print(f"✅ OTP email sent to {email}")
+        except Exception as e:
+            print(f"⚠️  Email send failed: {e} — OTP for {email}: {otp}")
+    else:
+        print(f"📧 [MOCK EMAIL] OTP for {email}: {otp}  (set EMAIL_USER + EMAIL_PASSWORD to send real emails)")
 
 # ── Schemas ────────────────────────────────────────────────────────────────────
 
@@ -37,22 +75,6 @@ class OTPVerifyResponse(BaseModel):
     access_token: str
     token_type: str
 
-class UserUpdate(BaseModel):
-    password: Optional[str] = None
-    budget: Optional[int] = None
-    target_countries: Optional[List[str]] = None
-    work_experience_years: Optional[int] = None
-    preferred_intake: Optional[str] = None
-    career_goal: Optional[str] = None
-    preferred_environment: Optional[str] = None
-    study_priority: Optional[str] = None
-    learning_style: Optional[str] = None
-    living_preference: Optional[str] = None
-    
-    # Nested Collections
-    degrees: Optional[List[DegreeCreate]] = None
-    tests: Optional[List[TestScoreCreate]] = None
-
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
 @router.post("/register", response_model=dict, status_code=status.HTTP_201_CREATED)
@@ -64,49 +86,64 @@ def register(user_in: UserCreate, background_tasks: BackgroundTasks, db: Session
     otp = generate_otp()
     expires = datetime.utcnow() + timedelta(minutes=10)
 
-    # Base user data
-    user_data = {
-        "hashed_password": get_password_hash(user_in.password),
-        "budget": user_in.budget,
-        "target_countries": user_in.target_countries,
-        "work_experience_years": user_in.work_experience_years,
-        "preferred_intake": user_in.preferred_intake,
-        "career_goal": user_in.career_goal,
-        "preferred_environment": user_in.preferred_environment,
-        "study_priority": user_in.study_priority,
-        "learning_style": user_in.learning_style,
-        "living_preference": user_in.living_preference,
-        "otp": otp,
-        "otp_expires_at": expires,
-        "is_verified": False
-    }
+    # Convert INR budget to USD (1 USD ≈ 83 INR)
+    budget_usd = user_in.budget
+    if user_in.budget_inr and not budget_usd:
+        budget_usd = int(user_in.budget_inr / 83)
+
+    profile_fields = dict(
+        full_name=user_in.full_name,
+        cgpa=user_in.cgpa,
+        budget=budget_usd,
+        budget_inr=user_in.budget_inr,
+        target_countries=user_in.target_countries,
+        field_of_study=user_in.field_of_study,
+        preferred_degree=user_in.preferred_degree,
+        current_degree=user_in.current_degree,
+        home_university=user_in.home_university,
+        graduation_year=user_in.graduation_year,
+        english_test=user_in.english_test,
+        english_score=user_in.english_score,
+        toefl_score=user_in.toefl_score,
+        gre_score=user_in.gre_score,
+        gmat_score=user_in.gmat_score,
+        work_experience_years=user_in.work_experience_years,
+        intake_preference=user_in.intake_preference,
+        ranking_preference=user_in.ranking_preference,
+        scholarship_interest=user_in.scholarship_interest,
+        work_abroad_interest=user_in.work_abroad_interest,
+    )
 
     if existing:
-        # Update existing unverified user
-        for key, value in user_data.items():
-            setattr(existing, key, value)
-        
-        # Clear old degrees/tests for this unverified user
-        db.query(Degree).filter(Degree.user_id == existing.id).delete()
-        db.query(TestScore).filter(TestScore.user_id == existing.id).delete()
+        # Resend OTP — update existing unverified user
+        existing.hashed_password = get_password_hash(user_in.password)
+        for k, v in profile_fields.items():
+            setattr(existing, k, v)
+        existing.otp = otp
+        existing.otp_expires_at = expires
+        db.commit()
         user = existing
     else:
-        # Create new user
-        user = User(email=user_in.email, **user_data)
+        user = User(
+            email=user_in.email,
+            hashed_password=get_password_hash(user_in.password),
+            is_verified=False,
+            otp=otp,
+            otp_expires_at=expires,
+            **profile_fields,
+        )
         db.add(user)
-        db.flush() # Get user.id
+        db.commit()
+        db.refresh(user)
 
-    # Add new degrees
-    for d_in in user_in.degrees:
-        db.add(Degree(user_id=user.id, **d_in.dict()))
-    
-    # Add new tests
-    for t_in in user_in.tests:
-        db.add(TestScore(user_id=user.id, **t_in.dict()))
+    background_tasks.add_task(send_otp_email, user.email, otp)
+    response: dict = {"email": user.email, "message": "OTP sent to your email. Please verify to activate your account."}
+    # Dev mode: return OTP in response when no email service is configured
+    if not os.getenv("EMAIL_USER"):
+        response["dev_otp"] = otp
+        response["dev_note"] = "No email configured — OTP returned here for development. Remove in production."
+    return response
 
-    db.commit()
-    background_tasks.add_task(notification_service.send_otp_email, user_in.email, otp)
-    return {"email": user_in.email, "message": "OTP sent to your email. Please verify to activate your account."}
 
 @router.post("/send-otp", response_model=dict)
 def send_otp(req: OTPRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)) -> Any:
@@ -119,8 +156,11 @@ def send_otp(req: OTPRequest, background_tasks: BackgroundTasks, db: Session = D
     user.otp_expires_at = datetime.utcnow() + timedelta(minutes=10)
     db.commit()
     
-    background_tasks.add_task(notification_service.send_otp_email, user.email, otp)
-    return {"message": "OTP sent to your email."}
+    background_tasks.add_task(send_otp_email, user.email, otp)
+    response: dict = {"message": "OTP sent to your email."}
+    if not os.getenv("EMAIL_USER"):
+        response["dev_otp"] = otp
+    return response
 
 
 @router.post("/verify-otp", response_model=OTPVerifyResponse)
@@ -159,36 +199,4 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
 
 @router.get("/me", response_model=UserResponse)
 def get_user_me(current_user: User = Depends(get_current_user)) -> Any:
-    return current_user
-
-@router.patch("/me", response_model=UserResponse)
-def update_user_me(
-    user_update: UserUpdate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-) -> Any:
-    data = user_update.dict(exclude_unset=True)
-    if "password" in data:
-        current_user.hashed_password = get_password_hash(data.pop("password"))
-    
-    # Handle nested degrees (Clear and Replace)
-    if "degrees" in data:
-        new_degrees = data.pop("degrees")
-        db.query(Degree).filter(Degree.user_id == current_user.id).delete()
-        for d_in in new_degrees:
-            # d_in is a dict because of .dict() on user_update
-            db.add(Degree(user_id=current_user.id, **d_in))
-            
-    # Handle nested tests (Clear and Replace)
-    if "tests" in data:
-        new_tests = data.pop("tests")
-        db.query(TestScore).filter(TestScore.user_id == current_user.id).delete()
-        for t_in in new_tests:
-            db.add(TestScore(user_id=current_user.id, **t_in))
-
-    for key, value in data.items():
-        setattr(current_user, key, value)
-    
-    db.commit()
-    db.refresh(current_user)
     return current_user

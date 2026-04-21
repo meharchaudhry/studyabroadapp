@@ -1,54 +1,64 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { authAPI } from '../api/auth';
-import { Globe, Mail, RefreshCw, CheckCircle } from 'lucide-react';
+import { Globe, RefreshCw, CheckCircle, Mail, KeyRound, AlertCircle } from 'lucide-react';
 
 export default function OTPVerify() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const email = searchParams.get('email') || '';
+  const location  = useLocation();
 
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  // email and optional dev OTP passed from Register page via navigation state
+  const email  = location.state?.email  || '';
+  const devOtp = location.state?.devOtp || null;
+
+  const [digits, setDigits] = useState(['', '', '', '', '', '']);
+  const [loading, setLoading]   = useState(false);
   const [resending, setResending] = useState(false);
-  const [resent, setResent] = useState(false);
-  const refs = useRef([]);
+  const [error, setError]   = useState('');
+  const [success, setSuccess] = useState(false);
+  const [devOtpVisible, setDevOtpVisible] = useState(false);
+  const inputRefs = useRef([]);
 
-  useEffect(() => { refs.current[0]?.focus(); }, []);
+  useEffect(() => {
+    inputRefs.current[0]?.focus();
+  }, []);
 
   const handleChange = (i, val) => {
     if (!/^\d?$/.test(val)) return;
-    const next = [...otp];
+    const next = [...digits];
     next[i] = val;
-    setOtp(next);
-    if (val && i < 5) refs.current[i + 1]?.focus();
+    setDigits(next);
+    if (val && i < 5) inputRefs.current[i + 1]?.focus();
   };
 
   const handleKeyDown = (i, e) => {
-    if (e.key === 'Backspace' && !otp[i] && i > 0) refs.current[i - 1]?.focus();
+    if (e.key === 'Backspace' && !digits[i] && i > 0) inputRefs.current[i - 1]?.focus();
   };
 
   const handlePaste = (e) => {
-    const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (text.length === 6) {
-      setOtp(text.split(''));
-      refs.current[5]?.focus();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted.length === 6) {
+      setDigits(pasted.split(''));
+      inputRefs.current[5]?.focus();
     }
-    e.preventDefault();
   };
 
-  const handleVerify = async () => {
-    const code = otp.join('');
-    if (code.length !== 6) return setError('Please enter all 6 digits.');
+  const otp = digits.join('');
+
+  const handleSubmit = async (e) => {
+    e?.preventDefault();
+    if (otp.length < 6) return;
     setLoading(true);
     setError('');
     try {
-      const res = await authAPI.verifyOTP(email, code);
-      localStorage.setItem('token', res.access_token);
-      navigate('/dashboard');
+      const data = await authAPI.verifyOTP(email, otp);
+      localStorage.setItem('token', data.access_token);
+      setSuccess(true);
+      setTimeout(() => navigate('/dashboard'), 1200);
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid OTP. Please try again.');
+      setDigits(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
     } finally {
       setLoading(false);
     }
@@ -58,71 +68,123 @@ export default function OTPVerify() {
     setResending(true);
     setError('');
     try {
-      await authAPI.sendOTP(email);
-      setResent(true);
-      setTimeout(() => setResent(false), 4000);
-    } catch (err) {
-      setError('Could not resend OTP. Please try again.');
+      const res = await authAPI.sendOTP(email);
+      if (res.dev_otp) {
+        // Update dev OTP if a new one was issued
+        location.state.devOtp = res.dev_otp;
+      }
+    } catch {
+      setError('Failed to resend OTP.');
     } finally {
       setResending(false);
     }
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-surfaceAlt"
-      style={{ backgroundImage: 'radial-gradient(ellipse at top right, rgba(124,111,247,0.10) 0%, transparent 60%)' }}>
-      
-      <div className="w-full max-w-sm animate-scale-in">
-        <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-lavender rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-card">
-            <Mail className="w-6 h-6 text-white" />
+  // Auto-submit once all 6 digits entered
+  useEffect(() => {
+    if (otp.length === 6 && !loading) handleSubmit();
+  }, [otp]);
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FC]">
+        <div className="text-center animate-scale-in">
+          <div className="w-20 h-20 bg-mintLight rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-10 h-10 text-teal-500" />
           </div>
-          <h1 className="text-2xl font-bold text-text">Check your email</h1>
-          <p className="text-muted text-sm mt-1">We sent a 6-digit code to</p>
-          <p className="text-lavender font-semibold text-sm mt-0.5">{email}</p>
+          <h2 className="text-2xl font-black text-text mb-1">Verified!</h2>
+          <p className="text-muted text-sm">Taking you to your dashboard…</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#F8F9FC] p-6">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="flex items-center gap-2 mb-10 justify-center">
+          <div className="w-9 h-9 bg-lavender rounded-xl flex items-center justify-center">
+            <Globe className="w-4.5 h-4.5 text-white w-[18px] h-[18px]" />
+          </div>
+          <span className="font-bold text-text text-lg">StudyPathway</span>
         </div>
 
-        <div className="card p-8 shadow-cardHov">
-          {error && <div className="bg-rose/10 border border-rose/20 text-rose rounded-xl px-4 py-3 text-sm mb-5">{error}</div>}
-          {resent && (
-            <div className="bg-mint/10 border border-mint/20 text-teal-700 rounded-xl px-4 py-3 text-sm mb-5 flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-mint" /> New OTP sent to your email!
+        <div className="card p-8 animate-scale-in">
+          {/* Header */}
+          <div className="flex justify-center mb-6">
+            <div className="w-14 h-14 bg-lavendLight rounded-2xl flex items-center justify-center">
+              <KeyRound className="w-7 h-7 text-lavender" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-black text-text text-center mb-1">Check your email</h2>
+          <p className="text-muted text-sm text-center mb-6">
+            We sent a 6-digit code to<br />
+            <span className="font-semibold text-text">{email || 'your email'}</span>
+          </p>
+
+          {/* Dev mode banner */}
+          {devOtp && (
+            <div className="mb-5 p-3.5 rounded-xl bg-amberLight border border-amber/30">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                  <span className="text-xs font-semibold text-amber-700">Dev mode — no email configured</span>
+                </div>
+                <button onClick={() => setDevOtpVisible(v => !v)}
+                  className="text-xs text-amber-600 font-medium hover:underline">
+                  {devOtpVisible ? 'Hide' : 'Show OTP'}
+                </button>
+              </div>
+              {devOtpVisible && (
+                <div className="mt-2 text-center">
+                  <span className="text-2xl font-black tracking-[0.3em] text-amber-700 font-mono">{devOtp}</span>
+                </div>
+              )}
             </div>
           )}
 
-          <div className="flex gap-2 justify-center mb-6">
-            {otp.map((d, i) => (
-              <input
-                key={i}
-                ref={el => refs.current[i] = el}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                value={d}
-                onChange={e => handleChange(i, e.target.value)}
-                onKeyDown={e => handleKeyDown(i, e)}
-                onPaste={handlePaste}
-                className={`w-11 h-14 text-center text-2xl font-bold rounded-xl border-2 bg-surfaceAlt text-text
-                  focus:outline-none focus:border-lavender focus:bg-lavendLight transition-all
-                  ${d ? 'border-lavender bg-lavendLight' : 'border-surfaceBorder'}`}
-              />
-            ))}
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-rose/8 border border-rose/25 text-rose text-sm font-medium text-center">
+              {error}
+            </div>
+          )}
+
+          {/* OTP input */}
+          <form onSubmit={handleSubmit}>
+            <div className="flex gap-2 justify-center mb-6" onPaste={handlePaste}>
+              {digits.map((d, i) => (
+                <input
+                  key={i}
+                  ref={el => inputRefs.current[i] = el}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={d}
+                  onChange={e => handleChange(i, e.target.value)}
+                  onKeyDown={e => handleKeyDown(i, e)}
+                  className={`w-12 h-14 text-center text-xl font-bold rounded-xl border-2 bg-surfaceAlt outline-none transition-all
+                    ${d ? 'border-lavender bg-lavendLight text-lavender' : 'border-surfaceBorder text-text'}
+                    focus:border-lavender focus:bg-lavendLight focus:text-lavender`}
+                />
+              ))}
+            </div>
+
+            <button type="submit" disabled={loading || otp.length < 6} className="btn-primary w-full py-3.5 text-[15px]">
+              {loading ? 'Verifying…' : 'Verify & Continue'}
+            </button>
+          </form>
+
+          <div className="flex items-center justify-between mt-5">
+            <button onClick={handleResend} disabled={resending}
+              className="flex items-center gap-1.5 text-sm text-muted hover:text-lavender transition-colors">
+              <RefreshCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
+              {resending ? 'Sending…' : 'Resend code'}
+            </button>
+            <Link to="/register" className="text-sm text-muted hover:text-lavender transition-colors">
+              Wrong email?
+            </Link>
           </div>
-
-          <button onClick={handleVerify} disabled={loading} className="btn-primary w-full">
-            {loading ? (
-              <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Verifying…</span>
-            ) : 'Verify & Continue'}
-          </button>
-
-          <button onClick={handleResend} disabled={resending} className="btn-ghost w-full mt-3 text-sm">
-            <RefreshCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
-            {resending ? 'Sending…' : 'Resend code'}
-          </button>
-
-          <p className="text-center text-xs text-muted mt-4">
-            <Link to="/login" className="hover:text-lavender transition-colors">← Back to sign in</Link>
-          </p>
         </div>
       </div>
     </div>

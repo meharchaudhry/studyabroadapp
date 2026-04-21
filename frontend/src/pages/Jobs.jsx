@@ -1,203 +1,323 @@
 import { useState, useEffect } from 'react';
-import { jobsAPI_ext } from '../api/visa';
 import { jobsAPI } from '../api/jobs';
-import { Briefcase, ExternalLink, Search, MapPin, Loader2, Building2, Bookmark } from 'lucide-react';
+import {
+  Briefcase, Search, MapPin, DollarSign, ExternalLink, Loader2,
+  Wifi, Building2, Clock, TrendingUp, Globe, ChevronDown
+} from 'lucide-react';
 
-const ALL_COUNTRIES = ['UK','Germany','France','Netherlands','Australia','Singapore','HongKong','USA','Finland','Spain','Switzerland'];
-const JOB_TYPES = [
-  { label: 'All', value: '' },
-  { label: 'Internships', value: 'internship' },
-  { label: 'Part-Time', value: 'part-time' },
-  { label: 'Graduate', value: 'graduate' },
+const LOCATIONS = [
+  "London", "New York", "Berlin", "Toronto", "Sydney",
+  "Singapore", "Dublin", "Amsterdam", "Paris", "Dubai",
+  "Los Angeles", "Tokyo", "Melbourne", "Edinburgh", "Munich",
+  "Vancouver", "Zurich", "Boston", "Chicago", "San Francisco",
+  "Hamburg", "Frankfurt", "Cologne", "Rotterdam", "Lyon", "Montreal", "Ottawa",
 ];
-const FLAG = { USA:'🇺🇸', UK:'🇬🇧', Germany:'🇩🇪', France:'🇫🇷', Netherlands:'🇳🇱', Australia:'🇦🇺', Singapore:'🇸🇬', HongKong:'🇭🇰', Spain:'🇪🇸', Switzerland:'🇨🇭', Finland:'🇫🇮' };
+
+const FIELDS = [
+  "All fields", "Computer Science", "Data Science", "Finance",
+  "Marketing", "Engineering", "Medicine", "Law", "Business", "Design",
+];
+
+const JOB_TYPES = [
+  { value: "all",        label: "All Jobs"    },
+  { value: "graduate",   label: "Graduate"    },
+  { value: "internship", label: "Internship"  },
+  { value: "part-time",  label: "Part-time"   },
+  { value: "remote",     label: "Remote"      },
+];
+
+const TYPE_STYLES = {
+  "graduate":   "badge-mint",
+  "internship": "badge-lavender",
+  "part-time":  "badge-amber",
+  "remote":     "badge-sky",
+  "full-time":  "badge-peach",
+};
+
+// Salary range estimates by city (annual USD)
+const CITY_SALARY = {
+  "London":        { min: 28000,  max: 65000,  currency: 'GBP', symbol: '£'  },
+  "New York":      { min: 50000,  max: 110000, currency: 'USD', symbol: '$'  },
+  "Berlin":        { min: 32000,  max: 70000,  currency: 'EUR', symbol: '€'  },
+  "Toronto":       { min: 45000,  max: 90000,  currency: 'CAD', symbol: 'C$' },
+  "Sydney":        { min: 55000,  max: 95000,  currency: 'AUD', symbol: 'A$' },
+  "Singapore":     { min: 40000,  max: 85000,  currency: 'SGD', symbol: 'S$' },
+  "Dublin":        { min: 35000,  max: 75000,  currency: 'EUR', symbol: '€'  },
+  "Amsterdam":     { min: 38000,  max: 80000,  currency: 'EUR', symbol: '€'  },
+  "Paris":         { min: 30000,  max: 65000,  currency: 'EUR', symbol: '€'  },
+  "Dubai":         { min: 60000,  max: 130000, currency: 'AED', symbol: 'AED'},
+  "Los Angeles":   { min: 50000,  max: 105000, currency: 'USD', symbol: '$'  },
+  "Tokyo":         { min: 3000000,max: 7000000,currency: 'JPY', symbol: '¥'  },
+  "Melbourne":     { min: 55000,  max: 90000,  currency: 'AUD', symbol: 'A$' },
+  "Edinburgh":     { min: 25000,  max: 55000,  currency: 'GBP', symbol: '£'  },
+  "Munich":        { min: 42000,  max: 85000,  currency: 'EUR', symbol: '€'  },
+  "Vancouver":     { min: 50000,  max: 95000,  currency: 'CAD', symbol: 'C$' },
+  "Zurich":        { min: 75000,  max: 140000, currency: 'CHF', symbol: 'CHF'},
+  "Boston":        { min: 55000,  max: 115000, currency: 'USD', symbol: '$'  },
+  "Chicago":       { min: 48000,  max: 100000, currency: 'USD', symbol: '$'  },
+  "San Francisco": { min: 80000,  max: 160000, currency: 'USD', symbol: '$'  },
+};
+
+function timeAgo(dateStr) {
+  if (!dateStr) return null;
+  const ts = typeof dateStr === 'number' ? dateStr * 1000 : Date.parse(dateStr);
+  if (!ts || isNaN(ts)) return null;
+  const diff = Date.now() - ts;
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  if (days < 30) return `${days}d ago`;
+  return `${Math.floor(days / 30)}mo ago`;
+}
+
+function formatSalary(salaryStr) {
+  if (!salaryStr || salaryStr === 'Competitive') return null;
+  // Already formatted — return as-is
+  return salaryStr;
+}
 
 export default function Jobs() {
-  const [country, setCountry] = useState('UK');
-  const [jobType, setJobType] = useState('');
-  const [portals, setPortals] = useState([]);
-  const [portalsLoading, setPortalsLoading] = useState(true);
+  const [location, setLocation]   = useState('London');
+  const [jobType, setJobType]     = useState('all');
+  const [field, setField]         = useState('All fields');
+  const [keywords, setKeywords]   = useState('');
+  const [jobs, setJobs]           = useState([]);
+  const [loading, setLoading]     = useState(false);
+  const [searched, setSearched]   = useState(false);
+  const [error, setError]         = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Live search state
-  const [liveJobs, setLiveJobs] = useState([]);
-  const [location, setLocation] = useState('London');
-  const [keywords, setKeywords] = useState('Software');
-  const [liveLoading, setLiveLoading] = useState(false);
-  const [savedJobs, setSavedJobs] = useState(new Set());
-
-  const fetchPortals = async () => {
-    setPortalsLoading(true);
-    try {
-      const params = { country };
-      if (jobType) params.job_type = jobType;
-      const res = await jobsAPI_ext.getPortals(params);
-      setPortals(res.results || []);
-    } catch {
-      setPortals([]);
-    } finally {
-      setPortalsLoading(false);
-    }
+  const buildKeywords = () => {
+    const parts = [keywords];
+    if (field !== 'All fields') parts.unshift(field);
+    return parts.filter(Boolean).join(' ');
   };
 
-  const fetchLiveJobs = async () => {
-    setLiveLoading(true);
+  const search = async () => {
+    setLoading(true); setError(''); setSearched(true);
     try {
-      const data = await jobsAPI.searchJobs(location, 'graduate', keywords);
-      setLiveJobs(data.jobs || []);
-    } catch {
-      setLiveJobs([]);
-    } finally {
-      setLiveLoading(false);
-    }
+      const res = await jobsAPI.searchJobs(location, jobType, buildKeywords());
+      setJobs(res.jobs || []);
+    } catch { setError('Failed to fetch jobs. Please try again.'); }
+    finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchPortals(); }, [country, jobType]);
-  useEffect(() => { fetchLiveJobs(); }, []);
+  useEffect(() => { search(); }, []);
 
-  const handleSave = async (id) => {
-    try {
-      await jobsAPI.saveJob(id);
-      setSavedJobs(new Set([...savedJobs, id]));
-    } catch {}
-  };
+  const salaryInfo = CITY_SALARY[location];
+  const filteredJobs = jobs.filter(j =>
+    jobType === 'all' || j.job_type === jobType || (jobType === 'remote' && j.remote)
+  );
 
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="space-y-5 animate-fade-in">
+      {/* Header */}
       <div className="page-header">
-        <div className="page-icon bg-peachLight"><Briefcase className="w-5 h-5 text-peach"/></div>
+        <div className="page-icon bg-skyLight text-blue-600"><Briefcase className="w-5 h-5" /></div>
         <div>
-          <h1 className="text-2xl font-bold text-text">Jobs & Internships</h1>
-          <p className="text-muted text-sm mt-0.5">Country-specific job portals + live Adzuna listings</p>
+          <h1 className="text-2xl font-black text-text">Jobs & Careers</h1>
+          <p className="text-muted text-sm">Live listings from Arbeitnow · Remotive · RemoteOK · The Muse — refreshed every 30 min</p>
         </div>
       </div>
 
-      {/* ── Section 1: Job Portals ── */}
-      <div className="card p-5 space-y-4">
-        <h2 className="font-bold text-text text-base">🌐 Job Portals by Country</h2>
-
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3">
-          <div>
-            <label className="text-xs font-semibold text-muted block mb-1">Country</label>
-            <div className="flex flex-wrap gap-1.5">
-              {ALL_COUNTRIES.map(c => (
-                <button key={c} onClick={() => setCountry(c)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                    country===c ? 'bg-peach text-white border-peach' : 'bg-surfaceAlt text-textSoft border-surfaceBorder hover:border-peach hover:text-peach'
-                  }`}>
-                  {FLAG[c]||'🌍'} {c}
-                </button>
-              ))}
+      {/* Salary insight banner */}
+      {salaryInfo && (
+        <div className="card p-4 bg-gradient-to-r from-skyLight/50 to-lavendLight/30 border-blue-100 flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <div className="page-icon bg-skyLight text-blue-600 w-8 h-8">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-text">Typical graduate salary in {location}</p>
+              <p className="text-xs text-muted">
+                {salaryInfo.symbol}{(salaryInfo.min / 1000).toFixed(0)}k – {salaryInfo.symbol}{(salaryInfo.max / 1000).toFixed(0)}k {salaryInfo.currency}/year · based on market data
+              </p>
             </div>
           </div>
-          <div>
-            <label className="text-xs font-semibold text-muted block mb-1">Job Type</label>
-            <div className="flex gap-1.5">
-              {JOB_TYPES.map(t => (
-                <button key={t.value} onClick={() => setJobType(t.value)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                    jobType===t.value ? 'bg-peach text-white border-peach' : 'bg-surfaceAlt text-textSoft border-surfaceBorder hover:border-peach hover:text-peach'
-                  }`}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
+          <div className="ml-auto hidden sm:flex items-center gap-1 text-xs text-muted">
+            <Globe className="w-3.5 h-3.5" />
+            Salaries vary by role and experience
           </div>
         </div>
+      )}
 
-        {portalsLoading ? (
-          <div className="py-8 flex justify-center"><div className="w-7 h-7 border-2 border-peach/30 border-t-peach rounded-full animate-spin"/></div>
-        ) : portals.length === 0 ? (
-          <div className="text-center text-muted py-6 text-sm">No portals found.</div>
-        ) : (
-          portals.map(group => (
-            <div key={group.country}>
-              <h3 className="text-sm font-bold text-text mb-2">{FLAG[group.country]||'🌍'} {group.country}</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {group.portals.map(p => (
-                  <a key={p.id} href={p.url} target="_blank" rel="noreferrer"
-                    className="block border border-surfaceBorder rounded-xl p-4 hover:border-peach/50 hover:shadow-soft hover:-translate-y-0.5 transition-all group">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{backgroundColor:p.logo_color}}>
-                          {p.name[0]}
-                        </div>
-                        <h4 className="font-bold text-text text-sm group-hover:text-peach transition-colors">{p.name}</h4>
-                      </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-muted flex-shrink-0 mt-0.5 group-hover:text-peach transition-colors"/>
-                    </div>
-                    <p className="text-xs text-textSoft leading-snug mb-2">{p.description}</p>
-                    <div className="flex flex-wrap gap-1">
-                      {p.type?.map(t=>(
-                        <span key={t} className="badge badge-peach text-[10px]">
-                          {t==='internship'?'🎓 Internship':t==='part-time'?'⏰ Part-time':'💼 Graduate'}
-                        </span>
-                      ))}
-                      {p.student_friendly && <span className="badge badge-mint text-[10px]">✅ Student Friendly</span>}
-                    </div>
-                  </a>
+      {/* Search bar */}
+      <div className="card p-4 space-y-3">
+        <div className="flex gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-48">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
+            <input
+              className="input-field pl-10"
+              placeholder="Keywords: python, marketing, finance…"
+              value={keywords}
+              onChange={e => setKeywords(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && search()}
+            />
+          </div>
+          <div className="relative w-44">
+            <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
+            <select
+              className="input-field pl-10 w-full appearance-none"
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+            >
+              {LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+          </div>
+          <button onClick={search} className="btn-primary px-6">
+            <Search className="w-4 h-4" /> Search
+          </button>
+          <button
+            onClick={() => setShowFilters(f => !f)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-surfaceBorder text-sm text-textSoft font-medium hover:border-lavender/50 transition-colors"
+          >
+            Filters <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+
+        {/* Expanded filters */}
+        {showFilters && (
+          <div className="pt-3 border-t border-surfaceBorder space-y-3">
+            <div>
+              <p className="text-xs font-semibold text-muted mb-2">Field of Study</p>
+              <div className="flex gap-2 flex-wrap">
+                {FIELDS.map(f => (
+                  <button key={f} onClick={() => setField(f)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
+                      ${field === f ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-textSoft border-surfaceBorder hover:border-blue-300'}`}>
+                    {f}
+                  </button>
                 ))}
               </div>
             </div>
-          ))
+          </div>
         )}
+
+        {/* Job type chips */}
+        <div className="flex gap-2 flex-wrap">
+          {JOB_TYPES.map(t => (
+            <button key={t.value} onClick={() => setJobType(t.value)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
+                ${jobType === t.value ? 'bg-lavender text-white border-lavender' : 'bg-white text-textSoft border-surfaceBorder hover:border-lavender/50'}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* ── Section 2: Live Listings ── */}
-      <div className="card p-5 space-y-4">
-        <h2 className="font-bold text-text text-base">🔴 Live Job Search</h2>
-        <form onSubmit={e=>{e.preventDefault();fetchLiveJobs();}} className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"/>
-            <input type="text" className="input-field pl-9 py-2 text-sm" placeholder="Keywords" value={keywords} onChange={e=>setKeywords(e.target.value)}/>
+      {/* Results */}
+      {loading ? (
+        <div className="flex flex-col items-center py-20 gap-3">
+          <Loader2 className="w-8 h-8 text-lavender animate-spin" />
+          <p className="text-muted text-sm">Fetching live jobs from multiple sources…</p>
+        </div>
+      ) : error ? (
+        <div className="card p-6 text-center text-rose font-medium">{error}</div>
+      ) : filteredJobs.length > 0 ? (
+        <div className="space-y-3">
+          <p className="text-sm text-muted font-medium">
+            <strong>{filteredJobs.length}</strong> jobs found near <strong>{location}</strong>
+            {field !== 'All fields' && <> · {field}</>}
+          </p>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+            {filteredJobs.map((job, i) => <JobCard key={job.id || i} job={job} locationSalary={salaryInfo} />)}
           </div>
-          <div className="relative flex-1 min-w-[150px]">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"/>
-            <input type="text" className="input-field pl-9 py-2 text-sm" placeholder="Location" value={location} onChange={e=>setLocation(e.target.value)}/>
-          </div>
-          <button type="submit" disabled={liveLoading} className="btn-primary py-2">
-            {liveLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : 'Search'}
-          </button>
-        </form>
+        </div>
+      ) : searched ? (
+        <div className="card p-12 text-center">
+          <Briefcase className="w-10 h-10 text-muted mx-auto mb-3 opacity-30" />
+          <p className="font-semibold text-text">No jobs found</p>
+          <p className="text-sm text-muted mt-1">Try different keywords or a different location</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
-        {liveLoading ? (
-          <div className="py-8 flex justify-center"><Loader2 className="w-7 h-7 text-peach animate-spin"/></div>
-        ) : liveJobs.length === 0 ? (
-          <div className="text-center text-muted py-6 text-sm bg-surfaceAlt rounded-xl">
-            No live listings yet. Live results require an Adzuna API key in your <code className="bg-surfaceBorder px-1 rounded">.env</code>.
+function JobCard({ job, locationSalary }) {
+  const initials  = (job.company || 'Co').slice(0, 2).toUpperCase();
+  const colorIdx  = initials.charCodeAt(0) % 5;
+  const colors    = [
+    'bg-lavendLight text-lavender',
+    'bg-mintLight text-teal-600',
+    'bg-skyLight text-blue-600',
+    'bg-peachLight text-peach',
+    'bg-amberLight text-amber-600',
+  ];
+  const posted    = timeAgo(job.posted);
+  const salary    = formatSalary(job.salary);
+
+  return (
+    <div className="card p-4 hover:shadow-cardHov transition-shadow">
+      <div className="flex items-start gap-3">
+        {/* Company logo */}
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 ${colors[colorIdx]}`}>
+          {initials}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h3 className="font-bold text-text text-sm line-clamp-1">{job.title}</h3>
+              <p className="text-textSoft text-xs mt-0.5 flex items-center gap-1">
+                <Building2 className="w-3 h-3" />{job.company || 'Company'}
+              </p>
+            </div>
+            {job.apply_url && (
+              <a
+                href={job.apply_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-shrink-0 btn-primary px-3 py-1.5 text-xs"
+              >
+                Apply <ExternalLink className="w-3 h-3" />
+              </a>
+            )}
           </div>
-        ) : (
-          <div className="space-y-3">
-            {liveJobs.map((job, i) => (
-              <div key={job.id} className="card p-4 flex flex-col sm:flex-row gap-4 justify-between items-center group">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-bold text-text group-hover:text-peach transition-colors">{job.title}</h3>
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                      job.title.toLowerCase().includes('graduate') ? 'bg-lavendLight text-lavender' :
-                      i % 3 === 0 ? 'bg-mintLight text-teal-600' : 'bg- peachLight text-peach'
-                    }`}>
-                      {job.title.toLowerCase().includes('graduate') ? '🎓 Graduate Role' :
-                       i % 3 === 0 ? '🏠 On-campus' : '⏰ Part-time'}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-3 text-xs text-muted mt-1">
-                    <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5"/>{job.company}</span>
-                    <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5"/>{job.location}</span>
-                    {job.salary && <span className="font-semibold text-teal-600 bg-mintLight px-2 py-0.5 rounded-full">{job.salary}</span>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button onClick={()=>handleSave(job.id)}
-                    className={`p-2 rounded-lg border transition-all ${savedJobs.has(job.id)?'bg-peachLight border-peach text-peach':'border-surfaceBorder hover:bg-surfaceAlt'}`}>
-                    <Bookmark className="w-4 h-4"/>
-                  </button>
-                  <a href={job.apply_link||'#'} target="_blank" rel="noreferrer" className="btn-primary py-2 text-xs">Apply Now</a>
-                </div>
-              </div>
+
+          <div className="flex flex-wrap gap-2 mt-2">
+            {job.location && (
+              <span className="flex items-center gap-1 text-xs text-muted">
+                {job.remote ? <Wifi className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
+                {job.location}
+              </span>
+            )}
+            {salary ? (
+              <span className="flex items-center gap-1 text-xs font-semibold text-teal-600">
+                <DollarSign className="w-3 h-3" />{salary}
+              </span>
+            ) : locationSalary ? (
+              <span className="flex items-center gap-1 text-xs text-muted">
+                <DollarSign className="w-3 h-3" />
+                est. {locationSalary.symbol}{(locationSalary.min / 1000).toFixed(0)}k–{locationSalary.symbol}{(locationSalary.max / 1000).toFixed(0)}k/yr
+              </span>
+            ) : null}
+            {posted && (
+              <span className="flex items-center gap-1 text-xs text-muted">
+                <Clock className="w-3 h-3" />{posted}
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            <span className={`badge ${TYPE_STYLES[job.job_type] || 'badge-lavender'}`}>
+              {job.job_type}
+            </span>
+            {job.remote && <span className="badge badge-sky">Remote</span>}
+            {job.source && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-surfaceAlt text-textSoft border border-surfaceBorder">
+                {job.source}
+              </span>
+            )}
+            {(job.tags || []).slice(0, 2).map(t => (
+              <span key={t} className="badge badge-lavender opacity-70">{t}</span>
             ))}
           </div>
-        )}
+
+          {job.description && (
+            <p className="text-xs text-muted mt-2 line-clamp-2 leading-relaxed">{job.description}</p>
+          )}
+        </div>
       </div>
     </div>
   );

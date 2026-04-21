@@ -142,58 +142,6 @@
   color: var(--color-lavender);
 }
 
-.btn-peach {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  border-radius: 0.75rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  background: var(--color-peach);
-  color: white;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
-}
-.btn-peach:hover { opacity: 0.9; }
-.btn-peach:active { transform: scale(0.98); }
-
-.btn-mint {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  border-radius: 0.75rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  background: var(--color-mint);
-  color: white;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
-}
-.btn-mint:hover { opacity: 0.9; }
-
-.input-field-peach {
-  width: 100%;
-  background: white;
-  border: 2px solid var(--color-peach-light);
-  border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
-  color: var(--color-text);
-  font-size: 0.875rem;
-  font-family: 'Inter', sans-serif;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  outline: none;
-}
-.input-field-peach:focus {
-  border-color: var(--color-peach);
-  box-shadow: 0 0 0 3px rgba(255, 140, 105, 0.15);
-}
-
 /* ── Badges ── */
 .badge {
   display: inline-flex;

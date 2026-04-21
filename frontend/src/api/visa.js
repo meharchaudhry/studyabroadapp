@@ -9,8 +9,16 @@ export const visaAPI = {
     const res = await apiClient.get(`/visa/checklist/${country}`);
     return res.data;
   },
-  query: async (country, question) => {
-    const res = await apiClient.post('/visa/query', { query: question, country });
+  query: async (country, question, sessionId = 'default') => {
+    const res = await apiClient.post('/visa/query', {
+      query:      question,
+      country,
+      session_id: sessionId,
+    });
+    return res.data;
+  },
+  clearMemory: async (sessionId) => {
+    const res = await apiClient.delete(`/visa/session/${sessionId}`);
     return res.data;
   },
 };

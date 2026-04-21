@@ -1,16 +1,20 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Home, GraduationCap, FileCheck, Briefcase, Home as HomeIcon, LogOut, ChevronRight, Globe, Activity, User
+  Home, GraduationCap, FileCheck, Briefcase, Home as HomeIcon,
+  LogOut, ChevronRight, Globe, Sparkles, Calculator, User, BarChart
 } from 'lucide-react';
 
 const menuItems = [
   { name: 'Dashboard',    path: '/dashboard',     icon: Home },
+  { name: 'Profile',      path: '/profile',       icon: User },
+  { name: 'AI Coach',     path: '/ai-coach',      icon: Sparkles, highlight: true },
   { name: 'Universities', path: '/universities',  icon: GraduationCap },
   { name: 'Housing',      path: '/housing',       icon: HomeIcon },
   { name: 'Visa Guide',   path: '/visa-chat',     icon: FileCheck },
   { name: 'Jobs',         path: '/jobs',          icon: Briefcase },
-  { name: 'RAG Eval',     path: '/evaluation',    icon: Activity },
-  { name: 'Profile',      path: '/profile',       icon: User },
+  { name: 'Finance ROI',  path: '/finance',       icon: Calculator },
+  { name: 'My Decision',  path: '/decision',      icon: Globe },
+  { name: 'RAG Eval',     path: '/rag-eval',      icon: BarChart },
 ];
 
 export default function Layout() {
@@ -41,7 +45,7 @@ export default function Layout() {
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {menuItems.map(({ name, path, icon: Icon }) => {
+          {menuItems.map(({ name, path, icon: Icon, highlight }) => {
             const active = location.pathname === path;
             return (
               <Link
@@ -50,11 +54,16 @@ export default function Layout() {
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   active
                     ? 'bg-lavendLight text-lavender'
+                    : highlight
+                    ? 'text-lavender hover:bg-lavendLight/50'
                     : 'text-textSoft hover:bg-surfaceAlt hover:text-text'
                 }`}
               >
-                <Icon className={`w-4.5 h-4.5 w-[18px] h-[18px] ${active ? 'text-lavender' : ''}`} />
+                <Icon className={`w-[18px] h-[18px] ${active || highlight ? 'text-lavender' : ''}`} />
                 {name}
+                {highlight && !active && (
+                  <span className="ml-auto text-[9px] font-bold bg-lavender text-white px-1.5 py-0.5 rounded-full">AI</span>
+                )}
                 {active && <ChevronRight className="w-3.5 h-3.5 ml-auto text-lavender" />}
               </Link>
             );

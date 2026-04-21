@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean
+from sqlalchemy import Column, Integer, String, Float, Boolean, Text, ARRAY
 from app.core.database import Base
 
 class University(Base):
@@ -8,23 +8,28 @@ class University(Base):
     name = Column(String, nullable=False, index=True)
     country = Column(String, nullable=False, index=True)
     ranking = Column(Integer, nullable=True)
-    
+
     # QS Subject-specific ranking
     qs_subject_ranking = Column(Integer, nullable=True)
     subject = Column(String, nullable=True, index=True)
-    
-    # Financials in INR
+
+    # Financials (USD/year)
     tuition = Column(Float, nullable=True)
     living_cost = Column(Float, nullable=True)
-    
+
     # Rich info
     image_url = Column(String, nullable=True)
     website = Column(String, nullable=True)
-    
+    description = Column(Text, nullable=True)           # 2-3 sentence blurb
+    acceptance_rate = Column(Float, nullable=True)      # 0.0 – 1.0 (e.g. 0.08 = 8%)
+
     # Admission requirements for Indian students
     requirements_cgpa = Column(Float, nullable=True)   # min CGPA out of 10
-    ielts = Column(Float, nullable=True)
+    ielts = Column(Float, nullable=True)               # IELTS minimum band
     toefl = Column(Integer, nullable=True)
     gre_required = Column(Boolean, nullable=True)
     scholarships = Column(String, nullable=True)
-    course_duration = Column(Integer, nullable=True)    # in years
+    course_duration = Column(Integer, nullable=True)   # in years
+
+    # Intake info
+    intake_months = Column(ARRAY(String), nullable=True)  # e.g. ["September", "January"]

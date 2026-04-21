@@ -1,29 +1,35 @@
 from typing import Any, Optional
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
-from app.services.rag import get_visa_assistant_chain, evaluate_rag_response
+from app.services.rag import get_visa_assistant_chain, evaluate_rag_response, clear_session_memory
 import json
 import os
 
 router = APIRouter()
 
+
 class VisaQueryRequest(BaseModel):
     query: str
     country: str
+    session_id: Optional[str] = "default"  # conversation memory key
+
 
 class SourceInfo(BaseModel):
     doc: str
     chunk: str
+
 
 class VisaQueryResponse(BaseModel):
     answer: str
     sources: list[SourceInfo]
     metrics: dict
 
+
 class ChecklistItem(BaseModel):
     id: str
     category: str
     item: str
+
 
 class VisaChecklistResponse(BaseModel):
     country: str
@@ -33,6 +39,7 @@ class VisaChecklistResponse(BaseModel):
     visa_fee_inr: int
     checklist: list[ChecklistItem]
 
+
 def load_visa_data():
     data_path = os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -41,23 +48,26 @@ def load_visa_data():
     with open(data_path, "r") as f:
         return json.load(f)
 
+
 @router.get("/checklist/{country}", response_model=VisaChecklistResponse)
 def get_visa_checklist(country: str):
-    from fastapi import HTTPException
     data = load_visa_data()
     countries = data.get("countries", {})
-    
-    # Case-insensitive lookup
+
     matched = None
+    matched_key = None
     for key in countries:
         if key.lower() == country.lower():
             matched = countries[key]
             matched_key = key
             break
-    
+
     if not matched:
-        raise HTTPException(status_code=404, detail=f"Visa information for '{country}' not found. Available: {list(countries.keys())}")
-    
+        raise HTTPException(
+            status_code=404,
+            detail=f"Visa information for '{country}' not found. Available: {list(countries.keys())}"
+        )
+
     return VisaChecklistResponse(
         country=matched_key,
         visa_type=matched["visa_type"],
@@ -67,24 +77,44 @@ def get_visa_checklist(country: str):
         checklist=[ChecklistItem(**item) for item in matched["checklist"]]
     )
 
+
 @router.get("/countries")
 def get_visa_countries():
     data = load_visa_data()
     return {"countries": list(data.get("countries", {}).keys())}
 
+
 @router.post("/query", response_model=VisaQueryResponse)
 def visa_query(request: VisaQueryRequest) -> Any:
-    specific_query = f"Regarding {request.country} visa for Indian students: {request.query}"
+    """
+    RAG-powered visa Q&A with hybrid search, cross-encoder re-ranking,
+    and per-session conversation memory (last 6 exchanges).
+    """
+    specific_query = f"Regarding {request.country} student visa for Indian students: {request.query}"
     try:
         chain = get_visa_assistant_chain()
-        result = chain.invoke({"input": specific_query, "country": request.country})
+        result = chain.invoke({
+            "input":      specific_query,
+            "country":    request.country,
+            "session_id": request.session_id or "default",
+        })
         answer = result.get("answer", "No answer generated.")
-        docs = result.get("context", [])
+        docs   = result.get("context", [])
         sources = [
-            SourceInfo(doc=doc.metadata.get("source", "Unknown"), chunk=doc.page_content[:120] + "...")
+            SourceInfo(
+                doc=doc.metadata.get("source", "Unknown"),
+                chunk=doc.page_content[:120] + "..."
+            )
             for doc in docs
         ]
         metrics = evaluate_rag_response(request.query, docs, answer)
         return {"answer": answer, "sources": sources, "metrics": metrics}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/session/{session_id}")
+def clear_memory(session_id: str):
+    """Clear conversation memory for a given session."""
+    clear_session_memory(session_id)
+    return {"message": f"Memory cleared for session '{session_id}'"}
