@@ -19,20 +19,34 @@ KEYWORDS_BY_JOB_TYPE = {
     "part-time": ["part time", "student", "casual"],
 }
 
+COUNTRIES = {
+    "USA": "us",
+    "UK": "gb",
+    "Germany": "de",
+    "France": "fr",
+    "Netherlands": "nl",
+    "Australia": "au",
+    "Singapore": "sg",
+    "Spain": "es",
+    "Switzerland": "ch",
+    "Finland": "fi",
+    "India": "in",
+    # Hong Kong is not directly supported by Adzuna's country codes in the same way
+}
+
 COUNTRY_LOCATION_HINTS = {
-    "UK": "London",
-    "US": "New York",
     "USA": "New York",
+    "UK": "London",
     "Germany": "Berlin",
     "France": "Paris",
     "Netherlands": "Amsterdam",
     "Australia": "Sydney",
     "Singapore": "Singapore",
-    "HongKong": "Hong Kong",
     "Hong Kong": "Hong Kong",
     "Spain": "Madrid",
     "Switzerland": "Zurich",
     "Finland": "Helsinki",
+    "India": "Bangalore",
 }
 
 
@@ -62,7 +76,7 @@ def _unique_by_id(rows: List[Dict]) -> List[Dict]:
     return deduped
 
 
-def _fetch_adzuna(country_code: str, where: str, query: str, results_per_page: int = 10) -> List[Dict]:
+def _fetch_adzuna(country_code: str, where: str, query: str, results_per_page: int = 50) -> List[Dict]:
     if not APP_ID or not APP_KEY:
         return []
 
@@ -84,6 +98,26 @@ def _fetch_adzuna(country_code: str, where: str, query: str, results_per_page: i
         return []
 
 
+def _fetch_remotive(query: str) -> List[Dict]:
+    url = f"https://remotive.com/api/remote-jobs?search={query}"
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        return response.json().get("jobs", []) or []
+    except Exception:
+        return []
+
+
+def _fetch_arbeitnow(query: str) -> List[Dict]:
+    url = f"https://arbeitnow.com/api/job-board-api?search={query}"
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        return response.json().get("data", []) or []
+    except Exception:
+        return []
+
+
 def _normalize_salary(value: object) -> str:
     if value is None:
         return "Competitive"
@@ -97,15 +131,17 @@ def _build_job_rows_for_country(country_name: str, country_code: str) -> List[Di
     location_hint = COUNTRY_LOCATION_HINTS.get(country_name, country_name)
     rows: List[Dict] = []
 
+    # --- Adzuna API ---
     if APP_ID and APP_KEY:
         for job_type, keywords in KEYWORDS_BY_JOB_TYPE.items():
             for keyword in keywords:
-                results = _fetch_adzuna(country_code, location_hint, keyword, results_per_page=10)
+                results = _fetch_adzuna(country_code, location_hint, keyword, results_per_page=50)
                 for result in results:
                     rows.append(
                         {
                             "id": str(result.get("id")),
                             "title": result.get("title") or f"{job_type.title()} Role",
+                            "description": result.get("description", ""),
                             "company": result.get("company", {}).get("display_name") or "Unknown Company",
                             "salary": _normalize_salary(result.get("salary_min")),
                             "location": result.get("location", {}).get("display_name") or location_hint,
@@ -117,31 +153,63 @@ def _build_job_rows_for_country(country_name: str, country_code: str) -> List[Di
                             "collected_at_utc": datetime.utcnow().isoformat() + "Z",
                         }
                     )
-    else:
-        # Fallback when Adzuna credentials are missing: create country-specific portal-oriented rows
-        portals = _load_portals().get("portals", [])
-        matching_group = next(
-            (group for group in portals if str(group.get("country_code", "")).lower() == country_code.lower()),
-            None,
-        )
-        if matching_group:
-            for portal in matching_group.get("portals", [])[:4]:
-                for job_type in portal.get("type", ["graduate"]):
-                    rows.append(
-                        {
-                            "id": f"fallback_{_country_slug(country_name)}_{portal.get('id')}_{job_type}",
-                            "title": f"{job_type.title()} Opportunity via {portal.get('name')}",
-                            "company": portal.get("name", "Portal"),
-                            "salary": "Competitive",
-                            "location": country_name,
-                            "job_type": job_type,
-                            "source": "portal_fallback",
-                            "apply_link": portal.get("url", "#"),
-                            "country": country_name,
-                            "country_code": country_code,
-                            "collected_at_utc": datetime.utcnow().isoformat() + "Z",
-                        }
-                    )
+
+    # --- Remotive API (Remote) ---
+    for job_type, keywords in KEYWORDS_BY_JOB_TYPE.items():
+        if job_type == "part-time":  # Remotive is more for full-time
+            continue
+        for keyword in keywords:
+            results = _fetch_remotive(keyword)
+            for result in results:
+                # Filter by country if possible, otherwise accept remote jobs
+                candidate_countries = result.get("candidate_required_location", [])
+                if candidate_countries and country_name not in candidate_countries and country_code not in candidate_countries:
+                    continue
+
+                rows.append(
+                    {
+                        "id": f"remotive_{result.get('id')}",
+                        "title": result.get("title"),
+                        "description": result.get("description", ""),
+                        "company": result.get("company_name"),
+                        "salary": result.get("salary") or "Competitive",
+                        "location": result.get("candidate_required_location", ["Remote"]),
+                        "job_type": result.get("job_type", job_type),
+                        "source": "remotive",
+                        "apply_link": result.get("url"),
+                        "country": country_name,
+                        "country_code": country_code,
+                        "collected_at_utc": result.get("publication_date"),
+                    }
+                )
+
+    # --- Arbeitnow API ---
+    for job_type, keywords in KEYWORDS_BY_JOB_TYPE.items():
+        for keyword in keywords:
+            results = _fetch_arbeitnow(keyword)
+            for result in results:
+                if country_name.lower() not in result.get("location", "").lower():
+                    continue
+                rows.append(
+                    {
+                        "id": f"arbeitnow_{result.get('slug')}",
+                        "title": result.get("title"),
+                        "description": result.get("description", ""),
+                        "company": result.get("company_name"),
+                        "salary": "Competitive",
+                        "location": result.get("location"),
+                        "job_type": job_type,
+                        "source": "arbeitnow",
+                        "apply_link": result.get("url"),
+                        "country": country_name,
+                        "country_code": country_code,
+                        "collected_at_utc": result.get("created_at"),
+                    }
+                )
+
+    # --- Fallback for missing credentials ---
+    if not rows:
+        print(f"⚠️ No job results found for {country_name} via APIs. You may be missing API keys.")
 
     return rows
 
@@ -209,6 +277,7 @@ def generate_csv(jobs_data: List[Dict]) -> None:
     fieldnames = [
         "id",
         "title",
+        "description",
         "company",
         "salary",
         "location",
@@ -223,28 +292,38 @@ def generate_csv(jobs_data: List[Dict]) -> None:
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
-        for row in jobs_data:
-            writer.writerow(row)
-        for row in synthesized_campus_jobs:
-            writer.writerow(row)
+        writer.writerows(jobs_data)
 
-    print(f"✅ Harvested {len(jobs_data) + len(synthesized_campus_jobs)} job listings into {csv_path}")
+    print(f"✅ Harvested {len(jobs_data)} job listings into {csv_path}")
 
 
 def scrape_jobs() -> None:
-    portals = _load_portals().get("portals", [])
     all_rows: List[Dict] = []
+    countries_to_scrape = COUNTRIES
 
-    for group in portals:
-        country_name = group.get("country", "")
-        country_code = group.get("country_code", "")
+    print("🚀 Starting job scrape from all sources...")
+    i = 0
+    for country_name, country_code in countries_to_scrape.items():
+        i += 1
         if not country_name or not country_code:
             continue
 
+        print(f"[{i}/{len(countries_to_scrape)}] Fetching jobs for: {country_name} ({country_code})")
         group_rows = _build_job_rows_for_country(country_name, country_code)
         all_rows.extend(group_rows)
+        print(f"    -> Found {len(group_rows)} new listings for {country_name}.")
 
+    # Special handling for Hong Kong which doesn't have a dedicated Adzuna endpoint
+    print(f"[{i+1}/{len(countries_to_scrape)+1}] Fetching jobs for: Hong Kong")
+    hk_rows = _build_job_rows_for_country("Hong Kong", "hk") # Use 'hk' as a code, though Adzuna might not use it
+    all_rows.extend(hk_rows)
+    print(f"    -> Found {len(hk_rows)} new listings for Hong Kong.")
+
+
+    print("\nDeduplicating job listings...")
     all_rows = _unique_by_id(all_rows)
+    print(f"  -> {len(all_rows)} unique jobs found.")
+    
     generate_csv(all_rows)
 
 

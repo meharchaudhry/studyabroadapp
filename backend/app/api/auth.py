@@ -26,10 +26,10 @@ def generate_otp(length: int = 6) -> str:
 def send_otp_email(email: str, otp: str):
     """
     Send OTP via SMTP if credentials are available, otherwise log to console.
-    Set EMAIL_USER and EMAIL_PASSWORD env vars (Gmail App Password) to enable real emails.
+    Set SMTP_USER and SMTP_PASSWORD env vars (Gmail App Password) to enable real emails.
     """
-    email_user = os.getenv("EMAIL_USER")
-    email_pass = os.getenv("EMAIL_PASSWORD")
+    email_user = os.getenv("SMTP_USER")
+    email_pass = os.getenv("SMTP_PASSWORD")
 
     if email_user and email_pass:
         import smtplib

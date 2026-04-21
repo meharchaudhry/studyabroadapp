@@ -20,72 +20,8 @@
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "={{$env.BACKEND_BASE_URL + '/api/v1/universities/countries'}}",
-        "options": {
-          "timeout": 120000
-        }
-      },
-      "id": "get_countries",
-      "name": "Get Dataset Countries",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [460, 240]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "https://remotive.com/api/remote-jobs",
-        "options": {
-          "timeout": 240000
-        }
-      },
-      "id": "fetch_remotive",
-      "name": "Fetch Remotive Jobs",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [700, 160]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "https://www.arbeitnow.com/api/job-board-api",
-        "options": {
-          "timeout": 240000,
-          "ignoreResponseCode": true
-        }
-      },
-      "id": "fetch_arbeitnow",
-      "name": "Fetch Arbeitnow Jobs",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [700, 320]
-    },
-    {
-      "parameters": {
-        "mode": "append"
-      },
-      "id": "merge_sources",
-      "name": "Merge Source Fetches",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [900, 240]
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const remotiveRes = $items('Fetch Remotive Jobs', 0, 0)[0]?.json || {};\nconst arbeitRes = $items('Fetch Arbeitnow Jobs', 0, 0)[0]?.json || {};\n\nconst registrationCountries = [\"USA\", \"UK\", \"Canada\", \"Australia\", \"Germany\", \"France\", \"Netherlands\", \"Ireland\", \"Singapore\", \"Japan\", \"Sweden\", \"Norway\", \"New Zealand\", \"UAE\"];\nconst aliases = {\n  'UK': 'United Kingdom',\n  'USA': 'United States',\n  'US': 'United States',\n  'UAE': 'United Arab Emirates',\n  'HongKong': 'Hong Kong'\n};\n\nconst canonical = (c) => aliases[c] || c;\nconst countryList = registrationCountries.map(canonical);\n\nconst countryTokens = {};\nfor (const c of countryList) {\n  countryTokens[c] = [c.toLowerCase()];\n}\ncountryTokens['United States'] = [...(countryTokens['United States'] || []), 'usa', 'us', 'united states'];\ncountryTokens['United Kingdom'] = [...(countryTokens['United Kingdom'] || []), 'uk', 'united kingdom', 'england'];\ncountryTokens['Hong Kong'] = [...(countryTokens['Hong Kong'] || []), 'hong kong', 'hongkong'];\n\nconst inferCountry = (location) => {\n  const loc = String(location || '').toLowerCase();\n  for (const [country, tokens] of Object.entries(countryTokens)) {\n    if (tokens.some((t) => loc.includes(t))) return country;\n  }\n  return null;\n};\n\nconst entryPattern = /(graduate|intern|internship|junior|entry|student|trainee)/i;\nconst jobs = [];\n\nfor (const j of Array.isArray(remotiveRes.jobs) ? remotiveRes.jobs : []) {\n  const title = j.title || '';\n  const category = j.category || '';\n  const location = j.candidate_required_location || 'Remote';\n  const isEntry = entryPattern.test(`${title} ${category}`);\n  const country = inferCountry(location);\n  if (!isEntry) continue;\n  if (countryList.length && country && !countryList.includes(country)) continue;\n\n  jobs.push({\n    title: title || 'Role',\n    company: j.company_name || 'Unknown',\n    salary: j.salary || 'Competitive',\n    location: country ? `${location} (${country})` : location,\n    job_type: /intern/i.test(title) ? 'internship' : 'graduate',\n    apply_link: j.url || '#',\n    source: 'remotive'\n  });\n}\n\nfor (const j of Array.isArray(arbeitRes.data) ? arbeitRes.data : []) {\n  const title = j.title || '';\n  const tags = Array.isArray(j.tags) ? j.tags.join(' ') : '';\n  const location = j.location || 'Remote';\n  const country = inferCountry(location);\n  const isEntry = entryPattern.test(`${title} ${tags}`);\n  if (!isEntry) continue;\n  if (countryList.length && country && !countryList.includes(country)) continue;\n\n  jobs.push({\n    title: title || 'Role',\n    company: j.company_name || 'Unknown',\n    salary: 'Competitive',\n    location: country ? `${location} (${country})` : location,\n    job_type: /intern/i.test(title) ? 'internship' : 'graduate',\n    apply_link: j.url || '#',\n    source: 'arbeitnow'\n  });\n}\n\nconst dedup = new Map();\nfor (const job of jobs) {\n  const key = `${job.apply_link}::${job.title.toLowerCase()}::${job.company.toLowerCase()}`;\n  if (!dedup.has(key)) dedup.set(key, job);\n}\n\nconst finalJobs = Array.from(dedup.values()).slice(0, 800);\nreturn [{ json: { jobs: finalJobs } }];"
-      },
-      "id": "build_payload",
-      "name": "Build Jobs Ingest Payload",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1120, 240]
-    },
-    {
-      "parameters": {
         "method": "POST",
-        "url": "={{$vars.BACKEND_BASE_URL + '/api/v1/automation/ingest/jobs'}}",
+        "url": "={{$vars.BACKEND_BASE_URL + '/api/v1/automation/jobs/refresh'}}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -95,31 +31,29 @@
             }
           ]
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{$json}}",
         "options": {
-          "response": {
-            "response": {
-              "fullResponse": true
-            }
-          },
           "timeout": 900000
         }
       },
-      "id": "post_ingest",
-      "name": "POST Jobs Ingest Payload",
+      "id": "call_refresh_endpoint",
+      "name": "Call Jobs Refresh Endpoint",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1400, 240]
+      "position": [460, 240]
     }
   ],
   "connections": {
-    "Sunday Trigger": {"main": [[{"node": "Fetch Remotive Jobs", "type": "main", "index": 0}, {"node": "Fetch Arbeitnow Jobs", "type": "main", "index": 0}]]},
-    "Fetch Remotive Jobs": {"main": [[{"node": "Merge Source Fetches", "type": "main", "index": 0}]]},
-    "Fetch Arbeitnow Jobs": {"main": [[{"node": "Merge Source Fetches", "type": "main", "index": 1}]]},
-    "Merge Source Fetches": {"main": [[{"node": "Build Jobs Ingest Payload", "type": "main", "index": 0}]]},
-    "Build Jobs Ingest Payload": {"main": [[{"node": "POST Jobs Ingest Payload", "type": "main", "index": 0}]]}
+    "Sunday Trigger": {
+      "main": [
+        [
+          {
+            "node": "Call Jobs Refresh Endpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "settings": {
     "executionOrder": "v1"

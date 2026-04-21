@@ -113,6 +113,20 @@ def load_documents(docs_dir: str) -> list[Document]:
     return docs
 
 
+def save_chunks_to_json(chunks: list[Document], output_path: str):
+    """Saves the list of Document chunks to a JSON file for verification."""
+    import json
+    chunk_data = []
+    for chunk in chunks:
+        chunk_data.append({
+            "content": chunk.page_content,
+            "metadata": chunk.metadata,
+        })
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(chunk_data, f, indent=2, ensure_ascii=False)
+    print(f"  ✅ Saved {len(chunks)} chunks for verification to: {output_path}")
+
+
 def main():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     docs_dir = os.path.join(base_dir, "data", "visa_docs")
@@ -143,7 +157,11 @@ def main():
     )
     chunks = splitter.split_documents(raw_docs)
 
-    print(f"Chunking complete: {len(chunks)} chunks from {len(raw_docs)} documents")
+    # Save chunks to a local file for verification
+    output_path = os.path.join(base_dir, "data", "visa_ingest_preview.json")
+    save_chunks_to_json(chunks, output_path)
+
+    print(f"\nChunking complete: {len(chunks)} chunks from {len(raw_docs)} documents")
     print(f"  avg chunk size: {sum(len(c.page_content) for c in chunks) // len(chunks)} chars\n")
 
     # Per-document chunk count

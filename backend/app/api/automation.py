@@ -208,7 +208,7 @@ def reingest_visa(x_automation_token: str | None = Header(default=None)):
     _require_automation_token(x_automation_token)
 
     steps = [
-        _run_step("Refresh visa source docs", [sys.executable, "scripts/scrape_visa.py"]),
+        _run_step("Refresh visa source docs", [sys.executable, "scripts/scrape_visa_pages.py"]),
         _run_step("Rebuild visa embeddings", [sys.executable, "scripts/ingest_visa.py"]),
     ]
     ok = all(s["ok"] for s in steps)
@@ -232,7 +232,7 @@ def refresh_housing(x_automation_token: str | None = Header(default=None)):
     _require_automation_token(x_automation_token)
 
     steps = [
-        _run_step("Refresh housing listings JSON", [sys.executable, "scripts/generate_housing.py"]),
+        _run_step("Refresh housing listings JSON", [sys.executable, "scripts/scrape_housing.py"]),
     ]
     ok = all(s["ok"] for s in steps)
     return AutomationResponse(workflow="housing_refresh", ok=ok, steps=steps)

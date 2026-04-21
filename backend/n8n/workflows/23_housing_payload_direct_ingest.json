@@ -20,64 +20,8 @@
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "={{$env.BACKEND_BASE_URL + '/api/v1/universities/countries'}}",
-        "options": {
-          "timeout": 120000
-        }
-      },
-      "id": "get_countries",
-      "name": "Get Dataset Countries",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [460, 240]
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const response = $input.first().json || {};\nconst registrationCountries = [\"USA\", \"UK\", \"Canada\", \"Australia\", \"Germany\", \"France\", \"Netherlands\", \"Ireland\", \"Singapore\", \"Japan\", \"Sweden\", \"Norway\", \"New Zealand\", \"UAE\"];\nconst aliases = { 'UK': 'United Kingdom', 'USA': 'United States', 'HongKong': 'Hong Kong' };\nconst normalize = (c) => aliases[c] || c;\nconst countries = registrationCountries.map(normalize);\n\nconst cityMap = {\n  'United Kingdom': ['London', 'Manchester', 'Edinburgh'],\n  'United States': ['New York, NY', 'Boston, MA', 'Los Angeles, CA'],\n  'Canada': ['Toronto', 'Vancouver', 'Montreal'],\n  'Australia': ['Sydney', 'Melbourne', 'Brisbane'],\n  'Germany': ['Berlin', 'Munich', 'Hamburg'],\n  'France': ['Paris', 'Lyon', 'Toulouse'],\n  'Netherlands': ['Amsterdam', 'Rotterdam', 'Eindhoven'],\n  'Ireland': ['Dublin', 'Cork', 'Galway'],\n  'Spain': ['Madrid', 'Barcelona', 'Valencia'],\n  'Italy': ['Milan', 'Rome', 'Bologna'],\n  'Switzerland': ['Zurich', 'Lausanne', 'Geneva'],\n  'Singapore': ['Singapore']\n};\n\nconst selected = countries.filter((c) => cityMap[c]);\nconst finalCountries = selected.length ? selected : Object.keys(cityMap);\nconst items = [];\n\nfor (const country of finalCountries) {\n  for (const city of cityMap[country]) {\n    const citySlug = city.replace(/\\s+/g, '-');\n    items.push({\n      json: {\n        country,\n        city,\n        source_url: `https://www.numbeo.com/cost-of-living/in/${encodeURIComponent(citySlug)}?displayCurrency=INR`\n      }\n    });\n  }\n}\n\nreturn items;"
-      },
-      "id": "build_sources",
-      "name": "Build Housing Sources",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [700, 240]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "={{$json.source_url}}",
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "text"
-            }
-          },
-          "timeout": 240000,
-          "ignoreResponseCode": true
-        }
-      },
-      "id": "fetch_pages",
-      "name": "Fetch Housing Cost Pages",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [960, 240]
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const rows = $input.all();\nconst listings = [];\n\nconst fallback = {\n  'United Kingdom': 95000,\n  'United States': 120000,\n  'Canada': 78000,\n  'Australia': 90000,\n  'Germany': 68000,\n  'France': 76000,\n  'Netherlands': 88000,\n  'Ireland': 93000,\n  'Spain': 62000,\n  'Italy': 64000,\n  'Switzerland': 145000,\n  'Singapore': 130000\n};\n\nfor (const [idx, row] of rows.entries()) {\n  const j = row.json || {};\n  const country = j.country || 'Unknown';\n  const city = j.city || country;\n  const raw = (j.body || j.data || '').toString();\n  const cleaned = raw.replace(/<script[\\s\\S]*?<\\/script>/gi, ' ').replace(/<style[\\s\\S]*?<\\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ');\n\n  const cityCentre = cleaned.match(/Apartment.*City Centre[^0-9]*([0-9][0-9,]*)/i);\n  const outsideCentre = cleaned.match(/Apartment.*Outside of Centre[^0-9]*([0-9][0-9,]*)/i);\n\n  const cc = cityCentre ? Number(cityCentre[1].replace(/,/g, '')) : null;\n  const oc = outsideCentre ? Number(outsideCentre[1].replace(/,/g, '')) : null;\n  const base = Number.isFinite(cc) && cc > 0 ? cc : (Number.isFinite(oc) && oc > 0 ? oc : (fallback[country] || 80000));\n\n  const variants = [\n    { type: 'Student Dormitory', factor: 0.62, distance: 1.2, amenities: ['Wi-Fi', 'Laundry', 'Study Desk', 'Utilities Included'] },\n    { type: 'Private Room in Shared House', factor: 0.78, distance: 2.0, amenities: ['Wi-Fi', 'Kitchen Access', 'Laundry'] },\n    { type: 'Studio Apartment', factor: 1.0, distance: 2.8, amenities: ['Wi-Fi', 'Private Kitchen', 'Heating/Cooling'] }\n  ];\n\n  for (const [vIdx, v] of variants.entries()) {\n    listings.push({\n      id: `n8n_${country.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${city.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${vIdx + 1}_${idx + 1}`.slice(0, 120),\n      title: `${v.type} in ${city}`.slice(0, 140),\n      country,\n      price_inr: Math.max(15000, Math.round(base * v.factor)),\n      distance_km: v.distance,\n      amenities: v.amenities,\n      image_url: null,\n      available_from: 'Monthly rolling',\n      student_friendly: true\n    });\n  }\n}\n\nreturn [{ json: { listings: listings.slice(0, 2400) } }];"
-      },
-      "id": "build_payload",
-      "name": "Build Housing Ingest Payload",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1220, 240]
-    },
-    {
-      "parameters": {
         "method": "POST",
-        "url": "={{$vars.BACKEND_BASE_URL + '/api/v1/automation/ingest/housing'}}",
+        "url": "={{$vars.BACKEND_BASE_URL + '/api/v1/automation/housing/refresh'}}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -87,30 +31,29 @@
             }
           ]
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{$json}}",
         "options": {
-          "response": {
-            "response": {
-              "fullResponse": true
-            }
-          },
-          "timeout": 600000
+          "timeout": 900000
         }
       },
-      "id": "post_ingest",
-      "name": "POST Housing Ingest Payload",
+      "id": "call_refresh_endpoint",
+      "name": "Call Housing Refresh Endpoint",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1500, 240]
+      "position": [460, 240]
     }
   ],
   "connections": {
-    "Sunday Trigger": {"main": [[{"node": "Build Housing Sources", "type": "main", "index": 0}]]},
-    "Build Housing Sources": {"main": [[{"node": "Fetch Housing Cost Pages", "type": "main", "index": 0}]]},
-    "Fetch Housing Cost Pages": {"main": [[{"node": "Build Housing Ingest Payload", "type": "main", "index": 0}]]},
-    "Build Housing Ingest Payload": {"main": [[{"node": "POST Housing Ingest Payload", "type": "main", "index": 0}]]}
+    "Sunday Trigger": {
+      "main": [
+        [
+          {
+            "node": "Call Housing Refresh Endpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "settings": {
     "executionOrder": "v1"

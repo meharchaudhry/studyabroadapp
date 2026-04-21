@@ -1,0 +1,50 @@
+[
+  {
+    "country": "USA",
+    "url": "https://travel.state.gov/content/travel/en/us-visas/study/student-visa.html"
+  },
+  {
+    "country": "UK",
+    "url": "https://www.gov.uk/student-visa"
+  },
+  {
+    "country": "Germany",
+    "url": "https://www.make-it-in-germany.com/en/visa-residence/types/studying"
+  },
+  {
+    "country": "France",
+    "url": "https://www.campusfrance.org/en/the-different-types-of-visas"
+  },
+  {
+    "country": "Netherlands",
+    "url": "https://ind.nl/en/residence-permits/study/student-residence-permit-for-university-or-higher-professional-education"
+  },
+  {
+    "country": "Australia",
+    "url": "https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500"
+  },
+  {
+    "country": "Singapore",
+    "url": "https://www.ica.gov.sg/reside/STP/apply"
+  },
+  {
+    "country": "Hong Kong",
+    "url": "https://www.immd.gov.hk/eng/services/visas/study.html"
+  },
+  {
+    "country": "Spain",
+    "url": "https://www.exteriores.gob.es/Embajadas/nuevadelhi/en/ServiciosConsulares/Paginas/Consular/Visado-de-estudios.aspx"
+  },
+  {
+    "country": "Switzerland",
+    "url": "https://www.sem.admin.ch/sem/en/home/themen/einreise/visumantragsformular.html"
+  },
+  {
+    "country": "Finland",
+    "url": "https://www.studyinfinland.fi/admissions/student-residence-permit"
+  },
+  {
+    "country": "India",
+    "url": "https://boi.gov.in/boi/contents/visa-oci/apply-for-visa/list-of-visas"
+  }
+]
