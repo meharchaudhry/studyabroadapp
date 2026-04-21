@@ -4,9 +4,11 @@ import json
 import subprocess
 import sys
 from datetime import datetime
+from threading import Lock
 from typing import List
+from uuid import uuid4
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
@@ -18,6 +20,19 @@ class AutomationResponse(BaseModel):
     workflow: str
     ok: bool
     steps: List[dict]
+    task_id: str | None = None
+    status: str | None = None
+
+
+class AutomationTaskStatus(BaseModel):
+    task_id: str
+    workflow: str
+    status: str
+    ok: bool | None = None
+    started_at: str
+    finished_at: str | None = None
+    steps: List[dict]
+    error: str | None = None
 
 
 class VisaChecklistItemIn(BaseModel):
@@ -78,6 +93,10 @@ class HousingIngestRequest(BaseModel):
     listings: List[HousingListingIn] = Field(default_factory=list)
 
 
+_TASKS_LOCK = Lock()
+_AUTOMATION_TASKS: dict[str, dict] = {}
+
+
 def _require_automation_token(x_automation_token: str | None) -> None:
     expected = settings.N8N_WEBHOOK_TOKEN
     if not expected:
@@ -119,6 +138,56 @@ def _safe_slug(value: str) -> str:
     while "__" in out:
         out = out.replace("__", "_")
     return out.strip("_") or "doc"
+
+
+def _utc_iso() -> str:
+    return datetime.utcnow().isoformat() + "Z"
+
+
+def _create_task(workflow: str, steps: List[dict]) -> str:
+    task_id = str(uuid4())
+    with _TASKS_LOCK:
+        _AUTOMATION_TASKS[task_id] = {
+            "task_id": task_id,
+            "workflow": workflow,
+            "status": "running",
+            "ok": None,
+            "started_at": _utc_iso(),
+            "finished_at": None,
+            "steps": steps,
+            "error": None,
+        }
+    return task_id
+
+
+def _complete_task(task_id: str, step: dict) -> None:
+    with _TASKS_LOCK:
+        task = _AUTOMATION_TASKS.get(task_id)
+        if not task:
+            return
+        task["steps"].append(step)
+        task["ok"] = bool(step.get("ok", False))
+        task["status"] = "completed" if task["ok"] else "failed"
+        task["finished_at"] = _utc_iso()
+
+
+def _fail_task(task_id: str, message: str) -> None:
+    with _TASKS_LOCK:
+        task = _AUTOMATION_TASKS.get(task_id)
+        if not task:
+            return
+        task["ok"] = False
+        task["status"] = "failed"
+        task["error"] = message
+        task["finished_at"] = _utc_iso()
+
+
+def _run_visa_ingest_task(task_id: str) -> None:
+    try:
+        ingest_step = _run_step("Rebuild visa embeddings", [sys.executable, "scripts/ingest_visa.py"])
+        _complete_task(task_id, ingest_step)
+    except Exception as exc:  # pragma: no cover - defensive task guard
+        _fail_task(task_id, str(exc))
 
 
 @router.post("/universities/refresh", response_model=AutomationResponse)
@@ -172,6 +241,7 @@ def refresh_housing(x_automation_token: str | None = Header(default=None)):
 @router.post("/ingest/visa", response_model=AutomationResponse)
 def ingest_visa_payload(
     payload: VisaIngestRequest,
+    background_tasks: BackgroundTasks,
     x_automation_token: str | None = Header(default=None),
 ):
     _require_automation_token(x_automation_token)
@@ -231,10 +301,49 @@ def ingest_visa_payload(
             }
         )
 
-    ingest_step = _run_step("Rebuild visa embeddings", [sys.executable, "scripts/ingest_visa.py"])
-    steps = written_steps + [ingest_step]
-    ok = all(s.get("ok", False) for s in steps)
-    return AutomationResponse(workflow="visa_ingest_payload", ok=ok, steps=steps)
+    has_new_data = bool(payload.countries or payload.documents)
+    if not has_new_data:
+        steps = [
+            {
+                "title": "Skip visa embeddings rebuild",
+                "ok": True,
+                "reason": "No countries or documents provided in payload",
+            }
+        ]
+        return AutomationResponse(
+            workflow="visa_ingest_payload",
+            ok=True,
+            status="completed",
+            steps=steps,
+        )
+
+    queued_step = {
+        "title": "Rebuild visa embeddings",
+        "ok": True,
+        "status": "queued",
+    }
+    task_id = _create_task("visa_ingest_payload", written_steps + [queued_step])
+    background_tasks.add_task(_run_visa_ingest_task, task_id)
+    return AutomationResponse(
+        workflow="visa_ingest_payload",
+        ok=True,
+        status="queued",
+        task_id=task_id,
+        steps=written_steps + [queued_step],
+    )
+
+
+@router.get("/tasks/{task_id}", response_model=AutomationTaskStatus)
+def get_automation_task(task_id: str, x_automation_token: str | None = Header(default=None)):
+    _require_automation_token(x_automation_token)
+
+    with _TASKS_LOCK:
+        task = _AUTOMATION_TASKS.get(task_id)
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    return AutomationTaskStatus(**task)
 
 
 @router.post("/ingest/jobs", response_model=AutomationResponse)

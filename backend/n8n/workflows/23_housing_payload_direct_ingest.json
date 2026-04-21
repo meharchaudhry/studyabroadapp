@@ -35,7 +35,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const response = $input.first().json || {};\nconst aliases = { 'UK': 'United Kingdom', 'USA': 'United States', 'HongKong': 'Hong Kong' };\nconst normalize = (c) => aliases[c] || c;\nconst countries = Array.isArray(response.countries) ? response.countries.map(normalize) : [];\n\nconst cityMap = {\n  'United Kingdom': ['London', 'Manchester', 'Edinburgh'],\n  'United States': ['New York, NY', 'Boston, MA', 'Los Angeles, CA'],\n  'Canada': ['Toronto', 'Vancouver', 'Montreal'],\n  'Australia': ['Sydney', 'Melbourne', 'Brisbane'],\n  'Germany': ['Berlin', 'Munich', 'Hamburg'],\n  'France': ['Paris', 'Lyon', 'Toulouse'],\n  'Netherlands': ['Amsterdam', 'Rotterdam', 'Eindhoven'],\n  'Ireland': ['Dublin', 'Cork', 'Galway'],\n  'Spain': ['Madrid', 'Barcelona', 'Valencia'],\n  'Italy': ['Milan', 'Rome', 'Bologna'],\n  'Switzerland': ['Zurich', 'Lausanne', 'Geneva'],\n  'Singapore': ['Singapore']\n};\n\nconst selected = countries.filter((c) => cityMap[c]);\nconst finalCountries = selected.length ? selected : Object.keys(cityMap);\nconst items = [];\n\nfor (const country of finalCountries) {\n  for (const city of cityMap[country]) {\n    const citySlug = city.replace(/\\s+/g, '-');\n    items.push({\n      json: {\n        country,\n        city,\n        source_url: `https://www.numbeo.com/cost-of-living/in/${encodeURIComponent(citySlug)}?displayCurrency=INR`\n      }\n    });\n  }\n}\n\nreturn items;"
+        "jsCode": "const response = $input.first().json || {};\nconst registrationCountries = [\"USA\", \"UK\", \"Canada\", \"Australia\", \"Germany\", \"France\", \"Netherlands\", \"Ireland\", \"Singapore\", \"Japan\", \"Sweden\", \"Norway\", \"New Zealand\", \"UAE\"];\nconst aliases = { 'UK': 'United Kingdom', 'USA': 'United States', 'HongKong': 'Hong Kong' };\nconst normalize = (c) => aliases[c] || c;\nconst countries = registrationCountries.map(normalize);\n\nconst cityMap = {\n  'United Kingdom': ['London', 'Manchester', 'Edinburgh'],\n  'United States': ['New York, NY', 'Boston, MA', 'Los Angeles, CA'],\n  'Canada': ['Toronto', 'Vancouver', 'Montreal'],\n  'Australia': ['Sydney', 'Melbourne', 'Brisbane'],\n  'Germany': ['Berlin', 'Munich', 'Hamburg'],\n  'France': ['Paris', 'Lyon', 'Toulouse'],\n  'Netherlands': ['Amsterdam', 'Rotterdam', 'Eindhoven'],\n  'Ireland': ['Dublin', 'Cork', 'Galway'],\n  'Spain': ['Madrid', 'Barcelona', 'Valencia'],\n  'Italy': ['Milan', 'Rome', 'Bologna'],\n  'Switzerland': ['Zurich', 'Lausanne', 'Geneva'],\n  'Singapore': ['Singapore']\n};\n\nconst selected = countries.filter((c) => cityMap[c]);\nconst finalCountries = selected.length ? selected : Object.keys(cityMap);\nconst items = [];\n\nfor (const country of finalCountries) {\n  for (const city of cityMap[country]) {\n    const citySlug = city.replace(/\\s+/g, '-');\n    items.push({\n      json: {\n        country,\n        city,\n        source_url: `https://www.numbeo.com/cost-of-living/in/${encodeURIComponent(citySlug)}?displayCurrency=INR`\n      }\n    });\n  }\n}\n\nreturn items;"
       },
       "id": "build_sources",
       "name": "Build Housing Sources",
@@ -77,13 +77,13 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{$env.BACKEND_BASE_URL + '/api/v1/automation/ingest/housing'}}",
+        "url": "={{$vars.BACKEND_BASE_URL + '/api/v1/automation/ingest/housing'}}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "X-Automation-Token",
-              "value": "={{$env.N8N_AUTOMATION_TOKEN}}"
+              "value": "={{$vars.N8N_AUTOMATION_TOKEN}}"
             }
           ]
         },
@@ -107,8 +107,7 @@
     }
   ],
   "connections": {
-    "Sunday Trigger": {"main": [[{"node": "Get Dataset Countries", "type": "main", "index": 0}]]},
-    "Get Dataset Countries": {"main": [[{"node": "Build Housing Sources", "type": "main", "index": 0}]]},
+    "Sunday Trigger": {"main": [[{"node": "Build Housing Sources", "type": "main", "index": 0}]]},
     "Build Housing Sources": {"main": [[{"node": "Fetch Housing Cost Pages", "type": "main", "index": 0}]]},
     "Fetch Housing Cost Pages": {"main": [[{"node": "Build Housing Ingest Payload", "type": "main", "index": 0}]]},
     "Build Housing Ingest Payload": {"main": [[{"node": "POST Housing Ingest Payload", "type": "main", "index": 0}]]}

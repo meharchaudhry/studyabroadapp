@@ -4,6 +4,7 @@ from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import or_
 from pydantic import BaseModel
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
@@ -71,6 +72,49 @@ class UniListResponse(BaseModel):
 
 class RecommendationResponse(BaseModel):
     recommendations: List[UniDetail]
+
+
+class ExplainResponse(BaseModel):
+    match_score: float
+    reasons: dict
+    financial: dict
+    summary: str
+
+
+def _subject_filter(query, subject: str):
+    value = (subject or "").strip()
+    if not value:
+        return query
+    return query.filter(
+        or_(
+            University.subject.ilike(f"%{value}%"),
+            University.subject.ilike(f"%{value.replace(' ', '%')}%"),
+        )
+    )
+
+
+def _enrich(uni: University) -> UniDetail:
+    return UniDetail(
+        id=uni.id,
+        name=uni.name,
+        country=uni.country,
+        ranking=uni.ranking,
+        qs_subject_ranking=uni.qs_subject_ranking,
+        subject=uni.subject,
+        tuition=uni.tuition,
+        living_cost=uni.living_cost,
+        image_url=uni.image_url,
+        website=uni.website,
+        description=getattr(uni, "description", None),
+        acceptance_rate=getattr(uni, "acceptance_rate", None),
+        requirements_cgpa=uni.requirements_cgpa,
+        ielts=uni.ielts,
+        toefl=uni.toefl,
+        gre_required=uni.gre_required,
+        scholarships=getattr(uni, "scholarships", None),
+        course_duration=getattr(uni, "course_duration", None),
+        intake_months=getattr(uni, "intake_months", None),
+    )
 
 
 @router.get("/countries")
