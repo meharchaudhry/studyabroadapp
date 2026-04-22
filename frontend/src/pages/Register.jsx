@@ -397,7 +397,7 @@ export default function Register() {
                   <label className="block text-sm font-semibold text-textSoft mb-1.5">Password</label>
                   <div className="relative">
                     <input type={showPwd ? 'text' : 'password'} required minLength={8}
-                      pattern="(?=.*[A-Za-z])(?=.*\\d).{8,}"
+                      pattern="(?=.*[A-Za-z])(?=.*[0-9]).{8,}"
                       autoComplete="new-password"
                       className="input-field pr-11" placeholder="Min. 8 characters"
                       value={form.password} onChange={e => set('password', e.target.value)} />
