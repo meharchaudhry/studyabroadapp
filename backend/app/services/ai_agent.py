@@ -1290,46 +1290,300 @@ def ai_coach_chat(message: str, profile: dict, history: list) -> str:
     )
 
 
-def generate_sop_outline(profile: dict, university: str, program: str) -> str:
-    """Generate a personalised SOP outline. Gemini primary."""
+# ── University → Country lookup ────────────────────────────────────────────────
+# Maps common university names (lowercase, partial) → actual country
+_UNI_COUNTRY_LOOKUP: dict = {
+    # Spain
+    "ie university": "Spain", "ie business school": "Spain",
+    "esade": "Spain", "iese": "Spain", "esic": "Spain",
+    "universidad de navarra": "Spain", "universidad complutense": "Spain",
+    "universidad de barcelona": "Spain", "pompeu fabra": "Spain",
+    "autonomous university of barcelona": "Spain", "uab": "Spain",
+
+    # Italy
+    "bocconi": "Italy", "università bocconi": "Italy",
+    "politecnico di milano": "Italy", "polimi": "Italy",
+    "university of milan": "Italy", "sapienza": "Italy",
+    "luiss": "Italy", "scuola normale superiore": "Italy",
+
+    # France
+    "hec paris": "France", "insead": "France",
+    "sciences po": "France", "école polytechnique": "France",
+    "ecole polytechnique": "France", "sorbonne": "France",
+    "paris-saclay": "France", "ens paris": "France",
+    "em lyon": "France", "essec": "France", "edhec": "France",
+    "grenoble école de management": "France",
+
+    # Germany
+    "technical university of munich": "Germany", "tum": "Germany",
+    "lmu munich": "Germany", "lmu münchen": "Germany",
+    "heidelberg university": "Germany", "heidelberg": "Germany",
+    "humboldt": "Germany", "free university of berlin": "Germany",
+    "rwth aachen": "Germany", "karlsruhe": "Germany",
+    "goethe university": "Germany", "mannheim": "Germany",
+    "whu": "Germany", "esmt berlin": "Germany",
+
+    # Netherlands
+    "delft university": "Netherlands", "tu delft": "Netherlands",
+    "university of amsterdam": "Netherlands", "erasmus": "Netherlands",
+    "eindhoven": "Netherlands", "leiden": "Netherlands",
+    "tilburg": "Netherlands", "vrije universiteit": "Netherlands",
+    "vu amsterdam": "Netherlands", "maastricht": "Netherlands",
+
+    # Switzerland
+    "eth zurich": "Switzerland", "eth zürich": "Switzerland",
+    "epfl": "Switzerland", "university of zurich": "Switzerland",
+    "university of geneva": "Switzerland", "university of st. gallen": "Switzerland",
+    "st gallen": "Switzerland", "hsg": "Switzerland", "imd lausanne": "Switzerland",
+
+    # United Kingdom
+    "oxford": "United Kingdom", "cambridge": "United Kingdom",
+    "imperial college": "United Kingdom", "ucl": "United Kingdom",
+    "university college london": "United Kingdom",
+    "london school of economics": "United Kingdom", "lse": "United Kingdom",
+    "king's college london": "United Kingdom", "kcl": "United Kingdom",
+    "edinburgh": "United Kingdom", "manchester": "United Kingdom",
+    "warwick": "United Kingdom", "bristol": "United Kingdom",
+    "glasgow": "United Kingdom", "nottingham": "United Kingdom",
+    "southampton": "United Kingdom", "exeter": "United Kingdom",
+    "durham": "United Kingdom", "birmingham": "United Kingdom",
+    "leeds": "United Kingdom", "sheffield": "United Kingdom",
+    "london business school": "United Kingdom", "lbs": "United Kingdom",
+    "said business school": "United Kingdom", "judge business school": "United Kingdom",
+    "cranfield": "United Kingdom", "bath": "United Kingdom",
+    "strathclyde": "United Kingdom",
+
+    # United States
+    "mit": "United States", "massachusetts institute of technology": "United States",
+    "stanford": "United States", "harvard": "United States",
+    "caltech": "United States", "uchicago": "United States",
+    "university of chicago": "United States", "columbia": "United States",
+    "yale": "United States", "princeton": "United States",
+    "cornell": "United States", "upenn": "United States",
+    "university of pennsylvania": "United States",
+    "johns hopkins": "United States", "duke": "United States",
+    "northwestern": "United States", "dartmouth": "United States",
+    "brown": "United States", "vanderbilt": "United States",
+    "rice": "United States", "notre dame": "United States",
+    "uc berkeley": "United States", "berkeley": "United States",
+    "ucla": "United States", "michigan": "United States",
+    "carnegie mellon": "United States", "cmu": "United States",
+    "nyu": "United States", "new york university": "United States",
+    "georgia tech": "United States", "purdue": "United States",
+    "illinois": "United States", "texas": "United States",
+    "usc": "United States", "tufts": "United States",
+    "boston university": "United States", "northeastern": "United States",
+    "wharton": "United States", "booth": "United States",
+    "kellogg": "United States", "sloan": "United States",
+    "haas": "United States", "fuqua": "United States",
+
+    # Canada
+    "university of toronto": "Canada", "toronto": "Canada",
+    "mcgill": "Canada", "ubc": "Canada",
+    "university of british columbia": "Canada",
+    "waterloo": "Canada", "alberta": "Canada",
+    "western university": "Canada", "mcmaster": "Canada",
+    "queen's university": "Canada", "montreal": "Canada",
+    "hec montréal": "Canada", "ivey": "Canada",
+    "rotman": "Canada", "schulich": "Canada",
+
+    # Australia
+    "australian national university": "Australia", "anu": "Australia",
+    "university of melbourne": "Australia", "melbourne": "Australia",
+    "university of sydney": "Australia",
+    "university of queensland": "Australia", "uq": "Australia",
+    "monash": "Australia", "unsw": "Australia",
+    "university of new south wales": "Australia",
+    "university of western australia": "Australia",
+    "macquarie": "Australia", "rmit": "Australia",
+    "university of adelaide": "Australia",
+
+    # Singapore
+    "nus": "Singapore", "national university of singapore": "Singapore",
+    "ntu": "Singapore", "nanyang technological": "Singapore",
+    "smu": "Singapore", "singapore management university": "Singapore",
+    "insead asia": "Singapore",
+
+    # Japan
+    "university of tokyo": "Japan", "todai": "Japan",
+    "kyoto university": "Japan", "osaka university": "Japan",
+    "waseda": "Japan", "keio": "Japan",
+
+    # South Korea
+    "seoul national university": "South Korea", "snu": "South Korea",
+    "kaist": "South Korea", "yonsei": "South Korea", "korea university": "South Korea",
+
+    # Sweden
+    "karolinska": "Sweden", "kth": "Sweden",
+    "lund university": "Sweden", "stockholm school of economics": "Sweden",
+    "chalmers": "Sweden",
+
+    # Denmark
+    "copenhagen business school": "Denmark", "cbs": "Denmark",
+    "university of copenhagen": "Denmark", "dtu": "Denmark",
+
+    # Norway / Finland
+    "university of oslo": "Norway", "ntnu": "Norway",
+    "aalto": "Finland", "helsinki": "Finland",
+
+    # Ireland
+    "trinity college dublin": "Ireland", "tcd": "Ireland",
+    "university college dublin": "Ireland", "ucd": "Ireland",
+    "national university of ireland": "Ireland",
+
+    # UAE
+    "khalifa university": "UAE", "university of dubai": "UAE",
+    "american university of sharjah": "UAE", "american university in dubai": "UAE",
+
+    # China / Hong Kong
+    "peking university": "China", "tsinghua": "China",
+    "hkust": "Hong Kong", "hku": "Hong Kong",
+    "university of hong kong": "Hong Kong",
+    "chinese university of hong kong": "Hong Kong", "cuhk": "Hong Kong",
+    "city university of hong kong": "Hong Kong",
+
+    # Portugal
+    "nova school of business": "Portugal", "nova sbe": "Portugal",
+    "universidade de lisboa": "Portugal", "católica lisbon": "Portugal",
+
+    # Belgium
+    "ku leuven": "Belgium", "vlerick": "Belgium", "solvay": "Belgium",
+    "ghent university": "Belgium",
+}
+
+
+def resolve_university_country(university: str, user_country: str = "") -> dict:
+    """
+    Returns the best-known country for a university.
+    Priority: our lookup dict > user-provided value > unknown.
+    Returns dict: {country, source, note}
+    """
+    if not university:
+        return {"country": user_country or "", "source": "user", "note": ""}
+
+    key = university.lower().strip()
+    # Exact match first
+    if key in _UNI_COUNTRY_LOOKUP:
+        actual = _UNI_COUNTRY_LOOKUP[key]
+        note   = ""
+        if user_country and user_country != actual:
+            note = f"{university} is in {actual}, not {user_country}. SOP tailored to {actual} requirements."
+        return {"country": actual, "source": "lookup", "note": note}
+
+    # Partial match — check if any key is contained in the university name
+    for lookup_key, lookup_country in _UNI_COUNTRY_LOOKUP.items():
+        if lookup_key in key or key in lookup_key:
+            actual = lookup_country
+            note   = ""
+            if user_country and user_country != actual:
+                note = f"{university} appears to be in {actual}, not {user_country}. SOP tailored to {actual}."
+            return {"country": actual, "source": "lookup", "note": note}
+
+    # Not found — trust user input
+    if user_country:
+        return {"country": user_country, "source": "user", "note": ""}
+
+    return {"country": "", "source": "unknown", "note": "Country not identified — provide country-specific guidance manually."}
+
+
+def generate_sop_outline(profile: dict, university: str, program: str, country: str = "") -> str:
+    """Generate a personalised SOP outline. Gemini primary, no hallucination."""
     gemini      = _get_gemini()
     profile_txt = _profile_summary(profile)
 
-    prompt = f"""Generate a detailed, personalised Statement of Purpose (SOP) outline for an Indian student.
+    field       = profile.get("field_of_study", "")
+    cgpa        = profile.get("cgpa", "")
+    work_years  = profile.get("work_experience_years", 0) or 0
+    career_goal = profile.get("career_goal", "")
+    eng_test    = profile.get("english_test", "")
+    eng_score   = profile.get("english_score", "")
 
-University: {university}
-Program: {program}
+    # Country-specific SOP notes
+    country_note = ""
+    country_notes_map = {
+        "United Kingdom": (
+            "UK universities want a focused academic SOP (600-800 words). Emphasise academic curiosity, "
+            "specific research interests, and why THIS programme. Avoid career-focused language — "
+            "UK personal statements are about intellectual passion, not job outcomes."
+        ),
+        "United States": (
+            "US graduate programmes want 1-2 pages. Cover academic background, research experience, "
+            "specific faculty you want to work with, and career goals. Mention GRE/GMAT scores in context. "
+            "Show fit with the programme's research strengths."
+        ),
+        "Canada": (
+            "Canadian SOPs are similar to US (1-2 pages). Emphasise research potential, academic fit, "
+            "and how the programme supports your long-term career in Canada or globally. "
+            "Mention if you're open to co-op/internship opportunities."
+        ),
+        "Germany": (
+            "German universities (especially TU9) want a formal Motivationsschreiben. Emphasise "
+            "academic and technical skills. Keep it structured and formal — less storytelling, more "
+            "competence demonstration. Mention German language skills if any. APS certificate required."
+        ),
+        "Australia": (
+            "Australian SOPs are typically 500-1000 words. Cover academic background, career goals, "
+            "and why Australia/this institution. Emphasise post-study work intentions if relevant."
+        ),
+        "Netherlands": (
+            "Dutch universities want a motivation letter (500-800 words). Focus on academic motivation, "
+            "research interests, and why the Netherlands/this specific programme. Many programmes are "
+            "in English — highlight language proficiency."
+        ),
+        "Singapore": (
+            "NUS/NTU SOPs should be concise (500-800 words). Emphasise academic excellence, "
+            "research background, and alignment with Singapore's tech/finance/research ecosystem. "
+            "Competition is intense — highlight what sets you apart."
+        ),
+        "Ireland": (
+            "Irish university SOPs are typically 500-700 words. Similar to UK style — focus on "
+            "academic fit and genuine interest in the programme. Ireland's post-study visa is attractive "
+            "— you can mention interest in staying post-graduation."
+        ),
+    }
+    if country in country_notes_map:
+        country_note = f"\nCOUNTRY-SPECIFIC GUIDANCE FOR {country.upper()}:\n{country_notes_map[country]}\n"
 
-Student Profile:
+    prompt = f"""You are a study-abroad advisor helping an Indian student write a Statement of Purpose.
+
+University: {university or "[University Name]"}
+Programme: {program or "[Programme Name]"}
+Country: {country or "[Country]"}
+
+STUDENT PROFILE (use ONLY what is listed here — do NOT invent or assume):
 {profile_txt}
+{country_note}
+STRICT RULES:
+1. Do NOT invent internships, projects, publications, awards, or experiences not in the profile above.
+2. Do NOT use asterisks (*) anywhere. Use plain text only — no markdown bold, no markdown italic.
+3. Where profile data is missing for a section, write a placeholder like: [Add your own: describe your relevant project here]
+4. Use numbers and dashes for structure. No ** or * symbols.
+5. Keep advice grounded in the actual profile data provided.
 
-Create a PERSONALISED SOP outline with specific talking points drawn from the student's actual profile.
-Structure it as follows:
+Write a 7-section SOP outline with specific talking points drawn ONLY from the student's real profile:
 
-## 1. Opening Hook (suggested 2–3 sentences)
-[Suggest a compelling opening based on their field and background]
+Section 1: Opening Hook (2-3 sentences)
+Suggest a compelling opening grounded in their actual field ({field or "their field"}) and background. No invented stories.
 
-## 2. Academic Background
-[Key points to highlight — use their actual CGPA, notable courses, projects]
+Section 2: Academic Background (150-200 words)
+Based on CGPA {cgpa or "not specified"} and field of study {field or "not specified"}. Only mention courses/projects if stated in the profile. Suggest what to highlight and what gaps to address honestly.
 
-## 3. Research / Work Experience
-[Specific experiences to mention — projects, internships, publications if any]
+Section 3: Research and Work Experience (150-200 words)
+Based on {work_years} years of work experience as stated in the profile. Only reference what is listed. If minimal experience, suggest how to frame academic projects or coursework instead.
 
-## 4. Why {program} at {university}?
-[Specific reasons: research groups, faculty, courses, industry connections at this university]
+Section 4: Why {program or "this programme"} at {university or "this university"} (100-150 words)
+Mention 2-3 specific things about this institution/programme that align with their stated goals ({career_goal or "their career goals"}). These should be accurate and verifiable, not invented.
 
-## 5. Career Goals (Short-term & Long-term)
-[Where they want to be in 5–10 years — tailor to their field]
+Section 5: Career Goals — Short-term and Long-term (100-150 words)
+Based on their stated career goal: "{career_goal or "not specified"}". Keep grounded in reality for their field and destination country.
 
-## 6. Why You'll Succeed
-[Specific evidence from their profile that shows readiness]
+Section 6: Why You Will Succeed (100-150 words)
+Evidence from the actual profile: CGPA {cgpa or "?"}, {eng_test + " " + str(eng_score) if eng_test else "English proficiency"}, {work_years} years experience. Only use real data points.
 
-## 7. Closing Statement (suggested 2–3 sentences)
-[Call to action, enthusiasm, brief summary]
+Section 7: Closing Statement (2-3 sentences)
+Enthusiastic, professional close. Briefly summarise fit and express genuine motivation.
 
-**Word count guidance per section included.
-Format clearly with bullet points of specific talking points under each heading.
-Make it SPECIFIC to this student — mention their actual field '{profile.get("field_of_study","your field")}' and achievements."""
+After each section, include a word count target and one concrete tip for this specific student."""
 
     if gemini:
         try:
@@ -1342,7 +1596,7 @@ Make it SPECIFIC to this student — mention their actual field '{profile.get("f
     if client:
         try:
             resp = client.messages.create(
-                model="claude-haiku-4-5", max_tokens=1500,
+                model="claude-haiku-4-5", max_tokens=2000,
                 messages=[{"role": "user", "content": prompt}],
             )
             return resp.content[0].text

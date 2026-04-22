@@ -1,14 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authAPI } from '../api/auth';
-import { Eye, EyeOff, ArrowRight, Globe, GraduationCap, Sparkles, TrendingUp } from 'lucide-react';
-
-const FEATURES = [
-  { icon: GraduationCap, label: "600+ Universities",    sub: "ranked by your profile"         },
-  { icon: Globe,          label: "16 Countries",         sub: "AI visa guidance"                },
-  { icon: Sparkles,       label: "5-Agent AI",           sub: "personalised decision dashboard" },
-  { icon: TrendingUp,     label: "ROI Calculator",       sub: "financial break-even analysis"   },
-];
+import { Eye, EyeOff, ArrowRight, GraduationCap, MapPin, FileCheck, TrendingUp, Briefcase } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -36,7 +29,7 @@ export default function Login() {
     <div className="min-h-screen flex">
       {/* ── Left brand panel ── */}
       <div className="hidden lg:flex lg:w-[52%] relative overflow-hidden flex-col justify-between p-12"
-        style={{ background: 'linear-gradient(135deg, #4C3BCF 0%, #7C6FF7 50%, #9B8FF7 100%)' }}>
+        style={{ background: 'linear-gradient(135deg, #1E40AF 0%, #2563EB 60%, #3B82F6 100%)' }}>
         {/* Decorative circles */}
         <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full bg-white/10 blur-3xl" />
@@ -44,49 +37,42 @@ export default function Login() {
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/30">
-            <Globe className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/25">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3 C7 8 3 10 3 16 C7 14 10 13 12 15 C14 13 17 14 21 16 C21 10 17 8 12 3Z"
+                fill="white" fillOpacity="0.95"/>
+              <path d="M12 15 L12 21" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
           </div>
-          <span className="text-white font-bold text-xl tracking-tight">StudyPathway</span>
+          <span className="font-brand font-bold text-white tracking-wide" style={{ fontSize: '1.35rem' }}>udaan</span>
         </div>
 
         {/* Main copy */}
         <div className="relative z-10 flex-1 flex flex-col justify-center">
-          <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5 mb-6 w-fit">
-            <Sparkles className="w-3.5 h-3.5 text-white/80" />
-            <span className="text-white/80 text-xs font-medium">AI-Powered Study Abroad Platform</span>
-          </div>
-          <h1 className="text-5xl font-black text-white leading-[1.1] mb-5">
-            Your global<br />education<br />journey starts<br />here
+          <p className="text-white/60 text-xs font-medium tracking-widest uppercase mb-4">the study abroad app for indian students</p>
+          <h1 className="font-brand text-white leading-[1.05] mb-5"
+            style={{ fontSize: '3.8rem', fontWeight: 700, letterSpacing: '-0.01em' }}>
+            Your journey<br />starts here
           </h1>
-          <p className="text-white/70 text-lg mb-10 leading-relaxed max-w-sm">
-            Built exclusively for Indian students. Smart. Fast. Personalised.
+          <p className="text-white/75 text-base mb-10 leading-relaxed max-w-sm">
+            Find your best-fit university, plan your visa, and understand the financial ROI — all in one place.
           </p>
 
-          <div className="grid grid-cols-2 gap-3">
-            {FEATURES.map(({ icon: Icon, label, sub }) => (
-              <div key={label} className="bg-white/10 backdrop-blur-sm border border-white/15 rounded-xl p-4">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mb-2">
-                  <Icon className="w-4 h-4 text-white" />
+          <div className="space-y-3.5">
+            {[
+              { icon: GraduationCap, text: "600+ universities across 21 countries, matched to your GPA and field" },
+              { icon: FileCheck,     text: "Visa requirements, documents and timelines for every destination" },
+              { icon: TrendingUp,    text: "ROI calculator — compare tuition cost against graduate salaries" },
+              { icon: Briefcase,     text: "Live job listings and post-study work visa guidance by country" },
+              { icon: MapPin,        text: "Student housing, shortlist builder and application timeline" },
+            ].map(({ icon: Icon, text }) => (
+              <div key={text} className="flex items-start gap-3">
+                <div className="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Icon className="w-3.5 h-3.5 text-white/90" />
                 </div>
-                <p className="text-white font-semibold text-sm">{label}</p>
-                <p className="text-white/60 text-xs mt-0.5">{sub}</p>
+                <p className="text-white/80 text-sm leading-relaxed">{text}</p>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Testimonial */}
-        <div className="relative z-10 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-5 mt-8">
-          <p className="text-white/90 text-sm leading-relaxed mb-4">
-            "Got into TU Munich with a full scholarship. The 5-agent AI recommendation was spot-on and the visa guide saved me weeks of research!"
-          </p>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-mint to-teal-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">P</div>
-            <div>
-              <p className="text-white font-semibold text-sm">Priya Sharma</p>
-              <p className="text-white/55 text-xs">MS Computer Science · TU Munich 2024</p>
-            </div>
           </div>
         </div>
       </div>
@@ -96,10 +82,14 @@ export default function Login() {
         <div className="w-full max-w-[400px]">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="w-8 h-8 bg-lavender rounded-lg flex items-center justify-center">
-              <Globe className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #1E40AF, #3B82F6)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M12 3 C7 8 3 10 3 16 C7 14 10 13 12 15 C14 13 17 14 21 16 C21 10 17 8 12 3Z" fill="white" fillOpacity="0.95"/>
+                <path d="M12 15 L12 21" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
             </div>
-            <span className="font-bold text-text">StudyPathway</span>
+            <span className="font-brand font-bold text-text" style={{ fontSize: '1.1rem' }}>udaan</span>
           </div>
 
           <div className="mb-8">
@@ -140,7 +130,7 @@ export default function Login() {
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-surfaceBorder" /></div>
-            <div className="relative flex justify-center"><span className="bg-[#F8F9FC] px-3 text-xs text-muted">New to StudyPathway?</span></div>
+            <div className="relative flex justify-center"><span className="bg-[#F8F9FC] px-3 text-xs text-muted">New to udaan?</span></div>
           </div>
 
           <Link to="/register"

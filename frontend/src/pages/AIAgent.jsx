@@ -11,7 +11,6 @@ import { authAPI } from '../api/auth';
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
 const TABS = [
-  { id: 'chat',      label: 'AI Coach',         icon: Bot       },
   { id: 'checklist', label: 'Doc Checklist',    icon: FileCheck  },
   { id: 'timeline',  label: 'Timeline',         icon: Clock     },
   { id: 'profile',   label: 'Profile Analysis', icon: BarChart3  },
@@ -43,40 +42,79 @@ const CATEGORY_COLORS = {
 };
 
 // ── Markdown-lite renderer ───────────────────────────────────────────────────
+function formatInline(text) {
+  if (typeof text !== 'string') return text;
+  // Parse **bold**, *italic*, strip stray lone asterisks
+  const parts = text.split(/(\*\*[^*\n]+\*\*|\*[^*\n]+\*)/g);
+  return parts.map((p, j) => {
+    if (p.startsWith('**') && p.endsWith('**') && p.length > 4)
+      return <strong key={j} className="font-semibold text-text">{p.slice(2, -2)}</strong>;
+    if (p.startsWith('*') && p.endsWith('*') && p.length > 2)
+      return <em key={j} className="italic text-textSoft">{p.slice(1, -1)}</em>;
+    return p.replace(/\*/g, '');
+  });
+}
+
 function renderMd(text) {
   if (!text) return null;
-  const lines = text.split('\n');
+  const clean = text.replace(/\*\*\*/g, '**'); // collapse triple → double
+  const lines = clean.split('\n');
   const elements = [];
-  let inList = false;
 
   lines.forEach((line, i) => {
-    const bold = line.split(/(\*\*[^*]+\*\*)/g).map((p, j) =>
-      p.startsWith('**') && p.endsWith('**')
-        ? <strong key={j}>{p.slice(2, -2)}</strong>
-        : p
-    );
+    const trimmed = line.trimStart();
 
-    if (line.trimStart().startsWith('- ') || line.trimStart().startsWith('• ')) {
-      if (!inList) { inList = true; }
-      elements.push(<li key={i} className="ml-4 list-disc leading-relaxed">{bold}</li>);
+    if (line.startsWith('# ')) {
+      elements.push(
+        <h2 key={i} className="font-black text-text mt-5 mb-2 text-lg border-b-2 border-lavender/40 pb-1.5">
+          {line.slice(2).replace(/\*/g, '')}
+        </h2>
+      );
+    } else if (line.startsWith('## ')) {
+      elements.push(
+        <h3 key={i} className="font-bold text-text mt-4 mb-1.5 text-base border-b border-surfaceBorder pb-1">
+          {line.slice(3).replace(/\*/g, '')}
+        </h3>
+      );
+    } else if (line.startsWith('### ')) {
+      elements.push(
+        <h4 key={i} className="font-semibold text-lavender mt-3 mb-1 text-sm uppercase tracking-wide">
+          {line.slice(4).replace(/\*/g, '')}
+        </h4>
+      );
+    } else if (/^Section \d+[:\s]/.test(line) || /^[A-Z][A-Z\s]+:$/.test(line.trim())) {
+      // "Section 1: Title" or "ACADEMIC BACKGROUND:" style headings
+      elements.push(
+        <h3 key={i} className="font-bold text-lavender mt-5 mb-2 text-base border-b-2 border-lavender/30 pb-1.5">
+          {line.replace(/\*/g, '')}
+        </h3>
+      );
+    } else if (line.trim() === '---' || line.trim() === '***' || line.trim() === '===') {
+      elements.push(<hr key={i} className="border-surfaceBorder my-3" />);
+    } else if (trimmed.startsWith('- ') || trimmed.startsWith('• ') || trimmed.startsWith('* ')) {
+      const content = formatInline(trimmed.slice(2));
+      elements.push(
+        <div key={i} className="flex items-start gap-2 ml-1 py-0.5">
+          <span className="text-lavender flex-shrink-0 mt-1 text-xs font-bold">▸</span>
+          <span className="text-sm leading-relaxed text-textSoft">{content}</span>
+        </div>
+      );
+    } else if (line.match(/^\d+\.\s/)) {
+      const num  = line.match(/^(\d+)\./)?.[1];
+      const rest = formatInline(line.replace(/^\d+\.\s*/, ''));
+      elements.push(
+        <div key={i} className="flex items-start gap-2 ml-1 py-0.5">
+          <span className="text-lavender font-bold flex-shrink-0 w-5 text-xs mt-1">{num}.</span>
+          <span className="text-sm leading-relaxed text-textSoft">{rest}</span>
+        </div>
+      );
+    } else if (line.trim() === '') {
+      elements.push(<div key={i} className="h-2" />);
     } else {
-      inList = false;
-      if (line.match(/^\d+\.\s/)) {
-        elements.push(<li key={i} className="ml-4 list-decimal leading-relaxed">{bold}</li>);
-      } else if (line.startsWith('### ')) {
-        elements.push(<h4 key={i} className="font-bold text-text mt-3 mb-1">{line.slice(4)}</h4>);
-      } else if (line.startsWith('## ')) {
-        elements.push(<h3 key={i} className="font-bold text-text mt-4 mb-1 text-base">{line.slice(3)}</h3>);
-      } else if (line.startsWith('# ')) {
-        elements.push(<h2 key={i} className="font-black text-text mt-4 mb-1 text-lg">{line.slice(2)}</h2>);
-      } else if (line.trim() === '') {
-        elements.push(<div key={i} className="h-1.5" />);
-      } else {
-        elements.push(<p key={i} className="leading-relaxed">{bold}</p>);
-      }
+      elements.push(<p key={i} className="text-sm leading-relaxed text-textSoft">{formatInline(line)}</p>);
     }
   });
-  return elements;
+  return <div className="space-y-0.5">{elements}</div>;
 }
 
 // ── Chat suggestions ──────────────────────────────────────────────────────────
@@ -91,78 +129,37 @@ const SUGGESTIONS = [
   'What is post-study work rights in Australia vs UK?',
 ];
 
-// ── ICS Calendar Export ──────────────────────────────────────────────────────
-function generateICS(months, intakeMonth, intakeYear) {
-  const now      = new Date();
-  const lines    = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0',
-    'PRODID:-//StudyPathway AI//StudyPathway//EN',
-    'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
-    'X-WR-CALNAME:StudyPathway Application Timeline',
-    'X-WR-TIMEZONE:Asia/Kolkata',
-    '',
-  ];
+// (ICS generation removed — using direct Google Calendar links instead)
 
-  months.forEach((month, idx) => {
-    const d = new Date(now);
-    d.setMonth(d.getMonth() + idx);
-    const yyyymmdd = d.toISOString().slice(0, 10).replace(/-/g, '');
-    const uid      = `studypathway-${idx}-${Date.now()}@studypathway`;
-
-    lines.push('BEGIN:VEVENT');
-    lines.push(`DTSTART;VALUE=DATE:${yyyymmdd}`);
-    lines.push(`DTEND;VALUE=DATE:${yyyymmdd}`);
-    lines.push(`SUMMARY:📚 ${month.label}`);
-    lines.push(`DESCRIPTION:${month.tasks.map(t => `• ${t}`).join('\\n')}`);
-    lines.push(`UID:${uid}`);
-    lines.push('STATUS:CONFIRMED');
-    if (month.milestone) {
-      lines.push('BEGIN:VALARM');
-      lines.push('TRIGGER:-P7D');
-      lines.push('ACTION:DISPLAY');
-      lines.push(`DESCRIPTION:Reminder: ${month.label} — 1 week away`);
-      lines.push('END:VALARM');
-    }
-    lines.push('END:VEVENT');
+// ── Google Calendar URL builder ──────────────────────────────────────────────
+function makeGCalURL(title, yyyymmdd, details = '') {
+  // All-day event: end date = next day
+  const d    = new Date(`${yyyymmdd.slice(0,4)}-${yyyymmdd.slice(4,6)}-${yyyymmdd.slice(6,8)}`);
+  d.setDate(d.getDate() + 1);
+  const end  = d.toISOString().slice(0, 10).replace(/-/g, '');
+  const p    = new URLSearchParams({
+    action:  'TEMPLATE',
+    text:    title,
+    dates:   `${yyyymmdd}/${end}`,
+    details: details.slice(0, 1500), // GCal URL length limit
+    sf:      'true',
   });
-
-  // Add intake date as a special event
-  const intakeMonthIdx = INTAKE_MONTHS.indexOf(intakeMonth);
-  if (intakeMonthIdx >= 0 && intakeYear) {
-    const intakeDate = `${intakeYear}${String(intakeMonthIdx + 1).padStart(2, '0')}01`;
-    lines.push('BEGIN:VEVENT');
-    lines.push(`DTSTART;VALUE=DATE:${intakeDate}`);
-    lines.push(`DTEND;VALUE=DATE:${intakeDate}`);
-    lines.push(`SUMMARY:🎓 University Intake — ${intakeMonth} ${intakeYear}`);
-    lines.push(`UID:studypathway-intake-${Date.now()}@studypathway`);
-    lines.push('BEGIN:VALARM');
-    lines.push('TRIGGER:-P30D');
-    lines.push('ACTION:DISPLAY');
-    lines.push('DESCRIPTION:1 month until your university intake!');
-    lines.push('END:VALARM');
-    lines.push('END:VEVENT');
-  }
-
-  lines.push('END:VCALENDAR');
-  return lines.join('\r\n');
+  return `https://calendar.google.com/calendar/render?${p.toString()}`;
 }
 
-function downloadICS(months, intakeMonth, intakeYear) {
-  const ics  = generateICS(months, intakeMonth, intakeYear);
-  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = 'studypathway-timeline.ics';
-  a.click();
-  URL.revokeObjectURL(url);
+// Compute the calendar date for timeline month index i (from today + i months)
+function timelineDate(i) {
+  const d = new Date();
+  d.setDate(1); // avoid month-end edge cases
+  d.setMonth(d.getMonth() + i);
+  return d.toISOString().slice(0, 10).replace(/-/g, '');
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Main Page
 // ═════════════════════════════════════════════════════════════════════════════
 export default function AIAgent() {
-  const [tab, setTab]         = useState('chat');
+  const [tab, setTab]         = useState('checklist');
   const [profile, setProfile] = useState({});
 
   useEffect(() => {
@@ -177,9 +174,9 @@ export default function AIAgent() {
           <Sparkles className="w-5 h-5" />
         </div>
         <div>
-          <h1 className="text-2xl font-black text-text">AI Study Coach</h1>
+          <h1 className="text-2xl font-black text-text">Study Tools</h1>
           <p className="text-muted text-sm">
-            Gemini-powered · Document checklists · Timeline planning · Profile analysis
+            Document checklist · Application timeline · Profile analysis · SOP builder
           </p>
         </div>
       </div>
@@ -198,7 +195,6 @@ export default function AIAgent() {
       </div>
 
       {/* Tab content */}
-      {tab === 'chat'      && <ChatTab profile={profile} />}
       {tab === 'checklist' && <ChecklistTab profile={profile} />}
       {tab === 'timeline'  && <TimelineTab profile={profile} />}
       {tab === 'profile'   && <ProfileTab profile={profile} />}
@@ -254,10 +250,10 @@ function ChatTab({ profile }) {
             <Bot className="w-4 h-4 text-white" />
           </div>
           <div>
-            <p className="text-sm font-bold text-text">AI Study Coach</p>
+            <p className="text-sm font-bold text-text">Study Tools</p>
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
-              <p className="text-[10px] text-muted">Gemini · Personalised to your profile</p>
+              <p className="text-[10px] text-muted">Personalised to your profile</p>
             </div>
           </div>
         </div>
@@ -340,22 +336,62 @@ function ChatTab({ profile }) {
 // Checklist Tab
 // ═══════════════════════════════════════════════════════════
 function ChecklistTab({ profile }) {
-  const [country, setCountry]           = useState('United Kingdom');
+  const profileCountries = profile?.target_countries || [];
+  const defaultCountry   = profileCountries[0] || 'United Kingdom';
+
+  const [country, setCountry]           = useState(defaultCountry);
   const [result, setResult]             = useState(null);
   const [loading, setLoading]           = useState(false);
+  const [loadingSaved, setLoadingSaved] = useState(false);
   const [checked, setChecked]           = useState({});
   const [expandedCats, setExpandedCats] = useState({});
+  const [savedIndicator, setSavedIndicator] = useState(false);
+  const saveTimerRef = useRef(null);
+
+  // When profile loads, update default country
+  useEffect(() => {
+    if (profileCountries.length > 0 && !result) setCountry(profileCountries[0]);
+  }, [profile?.target_countries]);
+
+  // Load saved checklist whenever country changes
+  useEffect(() => {
+    setResult(null); setChecked({});
+    setLoadingSaved(true);
+    aiAPI.getChecklist(country)
+      .then(data => {
+        if (data.saved && data.items?.length) {
+          setResult({
+            country:        data.country || country,
+            visa_type:      data.visa_type,
+            visa_fee_usd:   data.visa_fee_usd,
+            timeline_weeks: data.timeline_weeks,
+            summary:        data.summary,
+            checklist:      data.items,
+          });
+          setChecked(data.checked || {});
+          const cats = [...new Set(data.items.map(i => i.category))];
+          const init = {};
+          cats.slice(0, 2).forEach(c => { init[c] = true; });
+          setExpandedCats(init);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingSaved(false));
+  }, [country]);
 
   const generate = async () => {
     setLoading(true); setResult(null); setChecked({});
     try {
       const data = await aiAPI.generateChecklist(country, profile);
       setResult(data);
-      // Auto-expand Identity and Admission
+      setChecked({});
       const cats = [...new Set((data.checklist || []).map(i => i.category))];
-      const initial = {};
-      cats.slice(0, 2).forEach(c => { initial[c] = true; });
-      setExpandedCats(initial);
+      const init = {};
+      cats.slice(0, 2).forEach(c => { init[c] = true; });
+      setExpandedCats(init);
+      // Backend auto-saves on generate — show indicator
+      setSavedIndicator(true);
+      setTimeout(() => setSavedIndicator(false), 2000);
     } catch {
       setResult({ error: true });
     } finally {
@@ -363,8 +399,28 @@ function ChecklistTab({ profile }) {
     }
   };
 
-  const toggleCheck = id  => setChecked(p => ({ ...p, [id]: !p[id] }));
-  const toggleCat   = cat => setExpandedCats(p => ({ ...p, [cat]: !p[cat] }));
+  const toggleCheck = id => {
+    const newChecked = { ...checked, [id]: !checked[id] };
+    setChecked(newChecked);
+    // Debounced save to DB
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      if (!result?.checklist) return;
+      try {
+        await aiAPI.saveChecklist(country, result.checklist, newChecked, {
+          visa_type:      result.visa_type,
+          visa_fee_usd:   result.visa_fee_usd,
+          timeline_weeks: result.timeline_weeks,
+          summary:        result.summary,
+          country:        result.country || country,
+        });
+        setSavedIndicator(true);
+        setTimeout(() => setSavedIndicator(false), 1500);
+      } catch {}
+    }, 600);
+  };
+
+  const toggleCat = cat => setExpandedCats(p => ({ ...p, [cat]: !p[cat] }));
 
   const grouped = (result?.checklist || []).reduce((acc, item) => {
     (acc[item.category] = acc[item.category] || []).push(item);
@@ -382,18 +438,43 @@ function ChecklistTab({ profile }) {
     navigator.clipboard.writeText(text).catch(() => {});
   };
 
+  // Show profile countries first, then the rest
+  const orderedCountries = [
+    ...profileCountries,
+    ...COUNTRIES.filter(c => !profileCountries.includes(c)),
+  ];
+
   return (
     <div className="space-y-4">
       {/* Country selector */}
       <div className="card p-4 space-y-3">
-        <p className="text-xs font-bold text-muted uppercase tracking-wide">Select Destination Country</p>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <p className="text-xs font-bold text-muted uppercase tracking-wide">Select Destination Country</p>
+          {savedIndicator && (
+            <span className="text-[11px] text-teal-600 flex items-center gap-1 font-semibold">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Progress saved
+            </span>
+          )}
+          {loadingSaved && (
+            <span className="text-[11px] text-muted flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" /> Loading saved…
+            </span>
+          )}
+        </div>
+        {profileCountries.length > 0 && (
+          <p className="text-[11px] text-lavender font-medium">
+            Your target countries shown first
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
-          {COUNTRIES.map(c => (
+          {orderedCountries.map(c => (
             <button key={c} onClick={() => setCountry(c)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
                 ${country === c
                   ? 'bg-lavender text-white border-lavender'
-                  : 'bg-white text-textSoft border-surfaceBorder hover:border-lavender/50'}`}>
+                  : profileCountries.includes(c)
+                    ? 'bg-lavendLight text-lavender border-lavender/30 hover:bg-lavender hover:text-white'
+                    : 'bg-white text-textSoft border-surfaceBorder hover:border-lavender/50'}`}>
               {c}
             </button>
           ))}
@@ -401,7 +482,7 @@ function ChecklistTab({ profile }) {
         <button onClick={generate} disabled={loading}
           className="btn-primary px-5 py-2.5 gap-2 disabled:opacity-60 flex-shrink-0">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-          {loading ? 'Generating personalised checklist…' : `Generate ${country} Checklist`}
+          {loading ? 'Generating personalised checklist…' : result ? `Regenerate ${country} Checklist` : `Generate ${country} Checklist`}
         </button>
       </div>
 
@@ -411,7 +492,7 @@ function ChecklistTab({ profile }) {
           <div className="w-14 h-14 bg-lavendLight rounded-2xl flex items-center justify-center mx-auto mb-4">
             <FileCheck className="w-7 h-7 text-lavender" />
           </div>
-          <p className="font-bold text-text text-lg mb-1">AI-Powered Document Checklist</p>
+          <p className="font-bold text-text text-lg mb-1">Document Checklist</p>
           <p className="text-sm text-muted max-w-sm mx-auto">
             Select a destination and click Generate to get a comprehensive,
             prioritised checklist personalised to your exact profile.
@@ -546,7 +627,8 @@ function TimelineTab({ profile }) {
 
   const [intakeMonth, setIntakeMonth] = useState('September');
   const [intakeYear,  setIntakeYear]  = useState(INTAKE_YEARS[1]);
-  const [countries,   setCountries]   = useState([]);
+  const [countries,        setCountries]        = useState([]);
+  const countriesInitRef = useRef(false); // guard: only init from profile once
 
   const [ieltsDone,  setIeltsDone]  = useState(profile?.english_test === 'IELTS' ? 'done' : 'planned');
   const [ieltsScore, setIeltsScore] = useState(profile?.english_score || '');
@@ -563,14 +645,24 @@ function TimelineTab({ profile }) {
   });
 
   useEffect(() => {
-    if (profile?.target_countries?.length) setCountries(profile.target_countries);
+    // Only seed countries from profile ONCE — after that, user controls the selection
+    if (!countriesInitRef.current && profile?.target_countries?.length) {
+      const arr = Array.isArray(profile.target_countries)
+        ? profile.target_countries
+        : [profile.target_countries];
+      setCountries(arr);
+      countriesInitRef.current = true;
+    }
     if (profile?.english_test === 'IELTS' && profile?.english_score) {
       setIeltsDone('done'); setIeltsScore(String(profile.english_score));
     }
     if (profile?.gre_score) { setGreDone('done'); setGreScore(String(profile.gre_score)); }
   }, [profile]);
 
-  const toggleCountry = c => setCountries(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
+  // Multi-select toggle — clicking a selected country deselects it
+  const toggleCountry = c => setCountries(prev =>
+    prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]
+  );
   const toggleStatus  = k => setAppStatus(p => ({ ...p, [k]: !p[k] }));
 
   const monthsUntilIntake = () => {
@@ -812,11 +904,7 @@ function TimelineTab({ profile }) {
               <p className="text-sm text-muted">{countries.join(', ')}</p>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => downloadICS(result?.months || [], intakeMonth, intakeYear)}
-                className="btn-secondary text-xs px-3 py-2 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5" /> Export to Calendar (.ics)
-              </button>
-              <button onClick={reset} className="btn-ghost text-xs px-3 py-2">
+              <button onClick={reset} className="btn-ghost text-xs px-3 py-2 flex items-center gap-1.5">
                 <RefreshCw className="w-3.5 h-3.5" /> Redo
               </button>
             </div>
@@ -834,52 +922,109 @@ function TimelineTab({ profile }) {
             </div>
           )}
 
-          {/* Calendar export info */}
-          <div className="bg-lavendLight border border-lavender/20 rounded-xl p-3 flex items-start gap-3">
-            <Calendar className="w-4 h-4 text-lavender mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-lavender/80">
-              <strong>Add to Google/Apple Calendar:</strong> Click "Export to Calendar (.ics)" → open the downloaded file → your calendar app will import all milestones automatically. Google Calendar: open calendar.google.com → Settings → Import.
-            </p>
-          </div>
+          {/* Calendar actions */}
+          {(() => {
+            const months         = result?.months || [];
+            const milestones     = months.map((m, i) => ({ ...m, idx: i })).filter(m => m.milestone);
+            const intakeMonthIdx = INTAKE_MONTHS.indexOf(intakeMonth);
+            const intakeDateStr  = intakeMonthIdx >= 0
+              ? `${intakeYear}${String(intakeMonthIdx + 1).padStart(2, '0')}01`
+              : null;
+            const intakeGCalUrl  = intakeDateStr
+              ? makeGCalURL(`🎓 University Intake — ${intakeMonth} ${intakeYear}`, intakeDateStr,
+                  `University intake! ${countries.join(', ')}`)
+              : null;
+
+            // Opens all milestone tabs synchronously (must be in click handler to bypass popup blocker)
+            const openAllMilestones = () => {
+              milestones.forEach(m => {
+                window.open(
+                  makeGCalURL(`📌 ${m.label}`, timelineDate(m.idx), m.tasks.join(' | ')),
+                  '_blank'
+                );
+              });
+              if (intakeDateStr) window.open(intakeGCalUrl, '_blank');
+            };
+
+            return (
+              <div className="bg-lavendLight border border-lavender/20 rounded-xl p-4 space-y-3">
+                <p className="text-xs font-bold text-lavender flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5" /> Add to Google Calendar
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={openAllMilestones}
+                    className="text-xs bg-lavender text-white px-4 py-2 rounded-lg hover:bg-lavender/90 transition-all font-semibold flex items-center gap-1.5 shadow-sm">
+                    <Calendar className="w-3.5 h-3.5" />
+                    Add all {milestones.length} milestones + intake to Google Calendar
+                  </button>
+                  {intakeGCalUrl && (
+                    <a href={intakeGCalUrl} target="_blank" rel="noopener noreferrer"
+                      className="text-xs bg-white border border-lavender/30 text-lavender px-3 py-2 rounded-lg hover:bg-lavendLight transition-all font-semibold flex items-center gap-1.5">
+                      <Calendar className="w-3 h-3" /> Intake date only
+                    </a>
+                  )}
+                </div>
+                <p className="text-[11px] text-lavender/70">
+                  Opens Google Calendar in new tabs — one per milestone. Allow pop-ups if your browser blocks them.
+                  Each event pre-filled with tasks for that month.
+                </p>
+              </div>
+            );
+          })()}
 
           {/* Timeline */}
           <div className="relative">
             <div className="absolute left-5 top-5 bottom-5 w-0.5 bg-surfaceBorder rounded-full" />
             <div className="space-y-4">
-              {(result?.months || []).map((month, i) => (
-                <div key={i} className="relative flex gap-4">
-                  <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center z-10 border-2 shadow-sm
-                    ${month.milestone
-                      ? 'bg-lavender border-lavender text-white'
-                      : 'bg-white border-surfaceBorder text-muted'}`}>
-                    {month.milestone ? <Trophy className="w-4 h-4" /> : <span className="text-xs font-bold">{i + 1}</span>}
-                  </div>
-                  <div className={`flex-1 card p-4 ${month.milestone ? 'border-lavender/30 bg-lavendLight/20' : ''}`}>
-                    <div className="flex items-start justify-between gap-2 mb-2 flex-wrap">
-                      <div>
-                        <span className="text-xs font-bold text-lavender uppercase tracking-wide">{month.month}</span>
-                        <p className="font-bold text-text text-sm">{month.label}</p>
+              {(result?.months || []).map((month, i) => {
+                const dateStr   = timelineDate(i);
+                const gcalUrl   = makeGCalURL(
+                  `PathPilot: ${month.label}`,
+                  dateStr,
+                  (month.tasks || []).join(' | '),
+                );
+                return (
+                  <div key={i} className="relative flex gap-4">
+                    <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center z-10 border-2 shadow-sm
+                      ${month.milestone
+                        ? 'bg-lavender border-lavender text-white'
+                        : 'bg-white border-surfaceBorder text-muted'}`}>
+                      {month.milestone ? <Trophy className="w-4 h-4" /> : <span className="text-xs font-bold">{i + 1}</span>}
+                    </div>
+                    <div className={`flex-1 card p-4 ${month.milestone ? 'border-lavender/30 bg-lavendLight/20' : ''}`}>
+                      <div className="flex items-start justify-between gap-2 mb-2 flex-wrap">
+                        <div>
+                          <span className="text-xs font-bold text-lavender uppercase tracking-wide">{month.month}</span>
+                          <p className="font-bold text-text text-sm">{month.label}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {month.milestone && (
+                            <span className="badge bg-lavender text-white text-[9px]">Milestone</span>
+                          )}
+                          <a href={gcalUrl} target="_blank" rel="noopener noreferrer"
+                            title="Add to Google Calendar"
+                            className="text-[10px] text-blue-500 hover:text-blue-700 border border-blue-200 rounded-md px-1.5 py-0.5 hover:bg-blue-50 transition-colors flex items-center gap-1">
+                            <Calendar className="w-2.5 h-2.5" /> +GCal
+                          </a>
+                        </div>
                       </div>
-                      {month.milestone && (
-                        <span className="badge bg-lavender text-white text-[9px]">Milestone</span>
+                      <ul className="space-y-1.5">
+                        {(month.tasks || []).map((task, j) => (
+                          <li key={j} className="flex items-start gap-2 text-sm text-textSoft">
+                            <ArrowRight className="w-3 h-3 mt-1 text-lavender flex-shrink-0" />
+                            {task}
+                          </li>
+                        ))}
+                      </ul>
+                      {month.country_specific && (
+                        <p className="mt-2 text-xs text-blue-600 bg-skyLight px-2.5 py-1.5 rounded-lg flex items-start gap-1.5">
+                          <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />{month.country_specific}
+                        </p>
                       )}
                     </div>
-                    <ul className="space-y-1.5">
-                      {(month.tasks || []).map((task, j) => (
-                        <li key={j} className="flex items-start gap-2 text-sm text-textSoft">
-                          <ArrowRight className="w-3 h-3 mt-1 text-lavender flex-shrink-0" />
-                          {task}
-                        </li>
-                      ))}
-                    </ul>
-                    {month.country_specific && (
-                      <p className="mt-2 text-xs text-blue-600 bg-skyLight px-2.5 py-1.5 rounded-lg flex items-start gap-1.5">
-                        <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />{month.country_specific}
-                      </p>
-                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </>
@@ -1114,18 +1259,92 @@ function ProfileTab({ profile }) {
 // ═══════════════════════════════════════════════════════════
 // SOP Builder Tab
 // ═══════════════════════════════════════════════════════════
+// Client-side university → country lookup for instant feedback (subset of backend dict)
+const UNI_COUNTRY_HINTS = {
+  "ie university": "Spain", "ie business school": "Spain",
+  "esade": "Spain", "iese": "Spain", "bocconi": "Italy",
+  "politecnico di milano": "Italy", "polimi": "Italy",
+  "hec paris": "France", "insead": "France", "sciences po": "France",
+  "sorbonne": "France", "école polytechnique": "France",
+  "tum": "Germany", "lmu munich": "Germany", "heidelberg": "Germany",
+  "rwth aachen": "Germany", "humboldt": "Germany", "whu": "Germany",
+  "tu delft": "Netherlands", "delft": "Netherlands",
+  "erasmus": "Netherlands", "leiden": "Netherlands",
+  "eth zurich": "Switzerland", "epfl": "Switzerland",
+  "st. gallen": "Switzerland", "imd lausanne": "Switzerland",
+  "oxford": "United Kingdom", "cambridge": "United Kingdom",
+  "imperial": "United Kingdom", "ucl": "United Kingdom",
+  "lse": "United Kingdom", "warwick": "United Kingdom",
+  "edinburgh": "United Kingdom", "glasgow": "United Kingdom",
+  "mit": "United States", "stanford": "United States",
+  "harvard": "United States", "caltech": "United States",
+  "carnegie mellon": "United States", "cmu": "United States",
+  "columbia": "United States", "yale": "United States",
+  "princeton": "United States", "cornell": "United States",
+  "duke": "United States", "nyu": "United States",
+  "berkeley": "United States", "ucla": "United States",
+  "georgia tech": "United States", "purdue": "United States",
+  "mcgill": "Canada", "waterloo": "Canada", "ubc": "Canada",
+  "toronto": "Canada", "mcmaster": "Canada",
+  "melbourne": "Australia", "sydney": "Australia",
+  "monash": "Australia", "anu": "Australia", "unsw": "Australia",
+  "nus": "Singapore", "ntu": "Singapore", "nanyang": "Singapore",
+  "karolinska": "Sweden", "kth": "Sweden", "lund": "Sweden",
+  "trinity college dublin": "Ireland", "ucd": "Ireland",
+  "ku leuven": "Belgium", "nova sbe": "Portugal",
+  "aalto": "Finland", "copenhagen business school": "Denmark",
+};
+
+function detectUniCountry(uniName) {
+  const key = uniName.toLowerCase().trim();
+  for (const [hint, country] of Object.entries(UNI_COUNTRY_HINTS)) {
+    if (key.includes(hint) || hint.includes(key)) return country;
+  }
+  return null;
+}
+
 function SopTab({ profile }) {
-  const [university, setUniversity] = useState('');
-  const [program, setProgram]       = useState('');
-  const [result, setResult]         = useState('');
-  const [loading, setLoading]       = useState(false);
+  const profileCountries = profile?.target_countries || [];
+  const [university, setUniversity]   = useState('');
+  const [program, setProgram]         = useState('');
+  const [country, setCountry]         = useState(profileCountries[0] || '');
+  const [detectedCountry, setDetected] = useState(null); // auto-detected from uni name
+  const [countryNote, setCountryNote] = useState('');    // mismatch warning from backend
+  const [resolvedCountry, setResolved] = useState('');   // what backend actually used
+  const [result, setResult]           = useState('');
+  const [loading, setLoading]         = useState(false);
+
+  useEffect(() => {
+    if (profileCountries.length > 0 && !country) setCountry(profileCountries[0]);
+  }, [profile?.target_countries]);
+
+  // Auto-detect country as user types university name
+  const handleUniChange = (val) => {
+    setUniversity(val);
+    if (val.length > 3) {
+      const detected = detectUniCountry(val);
+      setDetected(detected);
+      if (detected && detected !== country) {
+        // Auto-update country to the correct one
+        setCountry(detected);
+      }
+    } else {
+      setDetected(null);
+    }
+  };
 
   const generate = async () => {
     if (!university.trim() || !program.trim()) return;
-    setLoading(true);
+    setLoading(true); setCountryNote(''); setResolved('');
     try {
-      const data = await aiAPI.generateSop(profile, university, program);
+      const data = await aiAPI.generateSop(profile, university, program, country);
       setResult(data.outline || '');
+      setResolved(data.resolved_country || country);
+      setCountryNote(data.country_note || '');
+      // Update country selector to what backend resolved
+      if (data.resolved_country && data.resolved_country !== country) {
+        setCountry(data.resolved_country);
+      }
     } catch {
       setResult('SOP generation failed. Please check your API configuration.');
     } finally {
@@ -1133,7 +1352,19 @@ function SopTab({ profile }) {
     }
   };
 
-  const copy = () => navigator.clipboard.writeText(result).catch(() => {});
+  const cleanResult = result.replace(/\*\*\*/g, '').replace(/\*\*/g, '').replace(/\*/g, '');
+  const copy = () => navigator.clipboard.writeText(cleanResult).catch(() => {});
+
+  const allCountries = [...new Set([
+    ...profileCountries,
+    ...Object.values(UNI_COUNTRY_HINTS),
+    ...COUNTRIES,
+  ])].sort((a, b) => {
+    // Profile countries first
+    if (profileCountries.includes(a) && !profileCountries.includes(b)) return -1;
+    if (!profileCountries.includes(a) && profileCountries.includes(b)) return 1;
+    return a.localeCompare(b);
+  });
 
   return (
     <div className="space-y-4">
@@ -1143,21 +1374,40 @@ function SopTab({ profile }) {
           <h2 className="font-bold text-text">Statement of Purpose Builder</h2>
         </div>
         <p className="text-sm text-muted">
-          Generate a personalised, structured SOP outline tailored to your profile and the specific university/program you're applying to.
+          Country auto-detected from university name. SOP tone and structure tailored to that country's application style.
         </p>
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-semibold text-muted block mb-1">Target University</label>
-            <input value={university} onChange={e => setUniversity(e.target.value)}
-              placeholder="e.g. University of Toronto"
+            <input value={university} onChange={e => handleUniChange(e.target.value)}
+              placeholder="e.g. IE University, Oxford, MIT"
               className="input-field" />
+            {detectedCountry && (
+              <p className="text-[11px] text-teal-600 mt-1 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Detected: {detectedCountry}
+              </p>
+            )}
           </div>
           <div>
             <label className="text-xs font-semibold text-muted block mb-1">Program / Course</label>
             <input value={program} onChange={e => setProgram(e.target.value)}
-              placeholder="e.g. MSc Computer Science"
+              placeholder="e.g. MSc Data Science"
               className="input-field" />
           </div>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-muted block mb-1">Country of Study</label>
+          <select value={country} onChange={e => setCountry(e.target.value)} className="input-field text-sm py-2 pr-8">
+            <option value="">Select country…</option>
+            {allCountries.map(c => (
+              <option key={c} value={c}>{c}{profileCountries.includes(c) ? ' ★' : ''}</option>
+            ))}
+          </select>
+          {country && (
+            <p className="text-[11px] text-lavender mt-1">
+              SOP tailored to {country} application standards.
+            </p>
+          )}
         </div>
         <button onClick={generate} disabled={loading || !university.trim() || !program.trim()}
           className="btn-primary px-5 py-2.5 gap-2 w-full justify-center disabled:opacity-60">
@@ -1166,20 +1416,32 @@ function SopTab({ profile }) {
         </button>
       </div>
 
+      {countryNote && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2.5">
+          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-800">{countryNote}</p>
+        </div>
+      )}
+
       {result && (
         <div className="card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-text">Your SOP Outline — {university}</h3>
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div>
+              <h3 className="font-bold text-text">SOP Outline — {university}</h3>
+              <p className="text-xs text-muted mt-0.5">
+                {program} · {resolvedCountry || country} style
+              </p>
+            </div>
             <button onClick={copy} className="btn-ghost text-xs py-1.5 px-3 flex items-center gap-1.5">
-              <Download className="w-3.5 h-3.5" /> Copy
+              <Download className="w-3.5 h-3.5" /> Copy Plain Text
             </button>
           </div>
-          <div className="text-sm text-textSoft leading-relaxed bg-surfaceAlt rounded-xl p-5 space-y-1">
-            {renderMd(result)}
+          <div className="text-sm text-textSoft leading-relaxed bg-surfaceAlt rounded-xl p-5">
+            {renderMd(cleanResult)}
           </div>
           <p className="text-xs text-muted mt-3 flex items-center gap-1.5">
             <Info className="w-3.5 h-3.5" />
-            This is an outline / framework. Use it as a starting point and add your personal stories and specific details.
+            Framework based on your actual profile. Fill in sections marked [Add your own: ...] with your personal details.
           </p>
         </div>
       )}

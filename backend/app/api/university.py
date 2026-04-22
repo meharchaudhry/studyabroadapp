@@ -292,24 +292,26 @@ def recommend_universities(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Any:
-    # Score ALL universities — no pre-filtering by country so the engine
-    # can discover great fits the student hasn't considered.
     unis = db.query(University).all()
 
     results = []
     for uni in unis:
-        raw_score = calculate_score(current_user, uni)   # 0–100
+        try:
+            raw_score = calculate_score(current_user, uni)
+        except Exception:
+            raw_score = 5.0   # neutral fallback so one bad row never breaks the list
         d = _enrich(uni)
-        d.match_score = round(raw_score / 100.0, 3)      # store as 0–1 for frontend compat
+        d.match_score = round(raw_score / 100.0, 3)
         results.append((raw_score, uni.ranking or 9999, d))
 
-    # Primary sort: score DESC. Tiebreaker: QS ranking ASC (lower = better)
     results.sort(key=lambda x: (-x[0], x[1]))
 
-    good = [(s, r, d) for s, r, d in results if s > 8.0]
-    top  = [d for _, _, d in (good if len(good) >= limit else results)]
+    # Return top results — always fall back to ranking-sorted list when too few
+    # qualify above the quality threshold so the dashboard is never empty.
+    good = [d for s, _, d in results if s > 8.0]
+    top  = good[:limit] if len(good) >= limit else [d for _, _, d in results[:limit]]
 
-    return {"recommendations": top[:limit]}
+    return {"recommendations": top}
 
 
 @router.get("/{uni_id}/explain", response_model=ExplainResponse)

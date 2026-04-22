@@ -1,196 +1,281 @@
 import { useState } from 'react';
 import {
-  Sparkles, GraduationCap, FileCheck, TrendingUp, Briefcase,
-  Star, ChevronDown, ChevronUp, Loader2, AlertCircle, Trophy,
-  DollarSign, Clock, MapPin, ShieldCheck
+  GraduationCap, TrendingUp, Briefcase, FileCheck,
+  MapPin, Loader2, AlertCircle, Trophy, RefreshCw,
+  DollarSign, Clock, Star, ChevronDown, ChevronUp,
+  CheckCircle, XCircle, Info,
 } from 'lucide-react';
 import { decisionAPI } from '../api/decision';
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-function ScoreBadge({ score }) {
-  const pct = Math.round((score || 0) * 100);
-  const color = pct >= 75 ? 'badge-mint' : pct >= 50 ? 'badge-lavender' : 'badge-amber';
-  return <span className={`badge ${color}`}>{pct}% match</span>;
+function fmtUSD(val) {
+  if (!val && val !== 0) return '—';
+  if (val >= 1000) return `$${(val / 1000).toFixed(0)}k`;
+  return `$${Math.round(val).toLocaleString()}`;
 }
 
-function JobScoreDots({ score }) {
-  const full = Math.round(score);
+function ScoreRing({ value, size = 56 }) {
+  const pct   = Math.round((value || 0) * 100);
+  const r     = (size / 2) - 6;
+  const circ  = 2 * Math.PI * r;
+  const fill  = circ * (1 - pct / 100);
+  const color = pct >= 75 ? '#22C55E' : pct >= 50 ? '#2563EB' : '#f59e0b';
+  const cx    = size / 2;
   return (
-    <div className="flex items-center gap-1">
-      {[...Array(10)].map((_, i) => (
-        <div
-          key={i}
-          className={`w-2 h-2 rounded-full ${i < full ? 'bg-teal-400' : 'bg-surfaceBorder'}`}
-        />
-      ))}
-      <span className="text-xs text-muted ml-1">{score.toFixed(1)}/10</span>
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke="#e5e7eb" strokeWidth="5" />
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth="5"
+          strokeDasharray={circ} strokeDashoffset={fill}
+          strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
+      </svg>
+      <span className="absolute text-[11px] font-black text-text">{pct}%</span>
     </div>
   );
 }
 
-// ── Confidence bar: label + filled track + % ──────────────────────────────────
-function ConfidenceBar({ label, value, color = 'bg-lavender' }) {
+function ScoreBar({ label, value, color = 'bg-lavender' }) {
   const pct = Math.round((value || 0) * 100);
   return (
     <div>
-      <div className="flex items-center justify-between mb-0.5">
-        <span className="text-[10px] text-muted">{label}</span>
-        <span className="text-[10px] font-semibold text-textSoft">{pct}%</span>
+      <div className="flex justify-between mb-1">
+        <span className="text-xs text-muted">{label}</span>
+        <span className="text-xs font-bold text-textSoft">{pct}%</span>
       </div>
       <div className="h-1.5 bg-surfaceBorder rounded-full overflow-hidden">
-        <div
-          className={`h-full ${color} rounded-full transition-all duration-700`}
-          style={{ width: `${pct}%` }}
-        />
+        <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%`, transition: 'width 0.7s ease' }} />
       </div>
     </div>
   );
 }
 
-// ── Overall confidence ring (SVG arc) ─────────────────────────────────────────
-function ConfidenceRing({ value }) {
-  const pct  = Math.round((value || 0) * 100);
-  const r    = 28;
-  const circ = 2 * Math.PI * r;
-  const fill = circ * (1 - pct / 100);
-  const color = pct >= 80 ? '#14b8a6' : pct >= 60 ? '#7C6FF7' : '#f59e0b';
+function StatCell({ icon: Icon, iconColor, label, value, valueColor = 'text-text' }) {
   return (
-    <div className="relative w-16 h-16 flex items-center justify-center">
-      <svg width="64" height="64" className="-rotate-90">
-        <circle cx="32" cy="32" r={r} fill="none" stroke="#e5e7eb" strokeWidth="5" />
-        <circle cx="32" cy="32" r={r} fill="none" stroke={color} strokeWidth="5"
-          strokeDasharray={circ} strokeDashoffset={fill}
-          strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s ease' }} />
-      </svg>
-      <span className="absolute text-xs font-black text-text">{pct}%</span>
+    <div className="bg-surfaceAlt rounded-xl p-3">
+      <div className="flex items-center gap-1.5 mb-1">
+        <Icon className={`w-3 h-3 ${iconColor}`} />
+        <span className="text-[10px] text-muted">{label}</span>
+      </div>
+      <span className={`text-sm font-bold ${valueColor}`}>{value}</span>
     </div>
   );
 }
 
-function AgentStep({ icon: Icon, color, label, content, defaultOpen = false }) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="card overflow-hidden">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between p-4 hover:bg-surfaceAlt transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <div className={`page-icon ${color}`}><Icon className="w-4 h-4" /></div>
-          <span className="font-semibold text-sm text-text">{label}</span>
-        </div>
-        {open ? <ChevronUp className="w-4 h-4 text-muted" /> : <ChevronDown className="w-4 h-4 text-muted" />}
-      </button>
-      {open && (
-        <div className="px-4 pb-4 text-sm text-textSoft whitespace-pre-wrap leading-relaxed border-t border-surfaceBorder pt-3">
-          {content}
-        </div>
-      )}
-    </div>
-  );
-}
+// ── University Card ───────────────────────────────────────────────────────────
 
 function UniversityCard({ uni, rank }) {
-  const rankColors = ['bg-amber-400', 'bg-slate-400', 'bg-orange-400'];
-  const rankLabels = ['1st', '2nd', '3rd'];
+  const [open, setOpen] = useState(false);
 
-  const hasConf = uni.confidence_overall != null;
-  const overallConf = uni.confidence_overall || 0;
-  const confColor = overallConf >= 0.80 ? 'text-teal-600' : overallConf >= 0.60 ? 'text-lavender' : 'text-amber-500';
-  const confBg    = overallConf >= 0.80 ? 'bg-mintLight' : overallConf >= 0.60 ? 'bg-lavendLight' : 'bg-amberLight';
+  const pct     = Math.round((uni.match_score || 0) * 100);
+  const rankColors = ['from-amber-400 to-amber-500', 'from-slate-400 to-slate-500', 'from-orange-400 to-orange-500'];
+  const rankBg    = rankColors[rank] || 'from-surfaceBorder to-surfaceBorder';
+  const rankLabel = ['1st', '2nd', '3rd'][rank] || `${rank + 1}th`;
+
+  const roi      = uni.roi_5yr_pct;
+  const roiColor = roi >= 0 ? 'text-teal-600' : 'text-rose-500';
+  const roiSign  = roi >= 0 ? '+' : '';
 
   return (
-    <div className="card-hover card p-5 relative">
-      {/* Rank badge */}
-      <div className={`absolute -top-3 -left-3 w-8 h-8 ${rankColors[rank] || 'bg-surfaceBorder'} rounded-full flex items-center justify-center shadow-md`}>
-        <span className="text-white text-xs font-bold">{rankLabels[rank] || rank + 1}</span>
-      </div>
+    <div className="card overflow-hidden">
+      {/* Top gradient bar with rank */}
+      <div className={`h-1.5 bg-gradient-to-r ${rankBg}`} />
 
-      <div className="flex items-start justify-between mb-3 pl-4">
-        <div>
-          <h3 className="font-bold text-text">{uni.name}</h3>
+      <div className="p-5">
+        {/* Header row */}
+        <div className="flex items-start gap-3 mb-4">
+          <div className={`shrink-0 w-9 h-9 rounded-full bg-gradient-to-br ${rankBg} flex items-center justify-center shadow-sm`}>
+            <span className="text-white text-xs font-black">{rankLabel}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-text text-sm leading-snug">{uni.name}</h3>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <div className="flex items-center gap-1">
+                <MapPin className="w-3 h-3 text-muted" />
+                <span className="text-xs text-muted">{uni.country}</span>
+              </div>
+              {uni.ranking && (
+                <span className="badge badge-lavender">QS #{uni.ranking}</span>
+              )}
+            </div>
+          </div>
+          <ScoreRing value={uni.match_score} size={52} />
+        </div>
+
+        {/* Key stats */}
+        <div className="grid grid-cols-2 gap-2">
+          <StatCell
+            icon={DollarSign} iconColor="text-peach"
+            label="Annual Cost" value={fmtUSD(uni.total_cost_usd)}
+          />
+          <StatCell
+            icon={TrendingUp} iconColor="text-teal-500"
+            label="5-yr ROI" value={roi != null ? `${roiSign}${roi?.toFixed(1)}%` : '—'}
+            valueColor={roiColor}
+          />
+          <StatCell
+            icon={Clock} iconColor="text-lavender"
+            label="Break-even" value={uni.break_even_years != null ? `${uni.break_even_years?.toFixed(1)} yrs` : '—'}
+          />
+          <StatCell
+            icon={Briefcase} iconColor="text-amber-500"
+            label="Job Market" value={`${(uni.job_availability_score || 0).toFixed(1)}/10`}
+          />
+        </div>
+
+        {/* Visa blurb */}
+        {uni.visa_assessment && (
+          <div className="mt-3 flex gap-2 bg-amberLight/40 rounded-xl p-3">
+            <FileCheck className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-textSoft leading-relaxed">{uni.visa_assessment}</p>
+          </div>
+        )}
+
+        {/* Score breakdown (collapsible) */}
+        <button
+          onClick={() => setOpen(o => !o)}
+          className="w-full mt-3 flex items-center justify-between text-xs text-muted hover:text-lavender transition-colors"
+        >
+          <span className="font-semibold">Score breakdown</span>
+          {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </button>
+
+        {open && (
+          <div className="mt-3 space-y-2 pt-3 border-t border-surfaceBorder">
+            <ScoreBar label="Profile fit"  value={uni.confidence_profile} color="bg-lavender"  />
+            <ScoreBar label="Finance ROI"  value={uni.confidence_finance} color="bg-teal-400"  />
+            <ScoreBar label="Job market"   value={uni.confidence_jobs}    color="bg-blue-400"  />
+            <ScoreBar label="Visa ease"    value={uni.confidence_visa}    color="bg-amber-400" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Comparison Table ──────────────────────────────────────────────────────────
+
+function ComparisonTable({ universities }) {
+  if (!universities?.length) return null;
+  const headers = ['', ...universities.map(u => u.name)];
+
+  const rows = [
+    {
+      label: 'Match Score',
+      vals:  universities.map(u => `${Math.round((u.match_score || 0) * 100)}%`),
+      color: universities.map(u => {
+        const p = Math.round((u.match_score || 0) * 100);
+        return p >= 75 ? 'text-teal-600 font-bold' : p >= 50 ? 'text-lavender font-bold' : 'text-amber-500 font-semibold';
+      }),
+    },
+    {
+      label: 'Annual Cost',
+      vals:  universities.map(u => fmtUSD(u.total_cost_usd)),
+      color: universities.map(() => 'text-text'),
+    },
+    {
+      label: '5-yr ROI',
+      vals:  universities.map(u => u.roi_5yr_pct != null ? `${u.roi_5yr_pct >= 0 ? '+' : ''}${u.roi_5yr_pct?.toFixed(1)}%` : '—'),
+      color: universities.map(u => (u.roi_5yr_pct || 0) >= 0 ? 'text-teal-600' : 'text-rose-500'),
+    },
+    {
+      label: 'Break-even',
+      vals:  universities.map(u => u.break_even_years != null ? `${u.break_even_years?.toFixed(1)} yrs` : '—'),
+      color: universities.map(() => 'text-text'),
+    },
+    {
+      label: 'Job Market',
+      vals:  universities.map(u => `${(u.job_availability_score || 0).toFixed(1)}/10`),
+      color: universities.map(u => (u.job_availability_score || 0) >= 8 ? 'text-teal-600' : 'text-textSoft'),
+    },
+    {
+      label: 'QS Ranking',
+      vals:  universities.map(u => u.ranking ? `#${u.ranking}` : '—'),
+      color: universities.map(() => 'text-text'),
+    },
+  ];
+
+  return (
+    <div className="card overflow-hidden">
+      <div className="px-5 py-4 border-b border-surfaceBorder">
+        <h2 className="font-bold text-text text-base">Side-by-Side Comparison</h2>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-surfaceBorder">
+              <th className="text-left px-5 py-3 text-muted font-semibold text-xs w-32">Metric</th>
+              {universities.map((u, i) => (
+                <th key={u.name} className="text-left px-4 py-3 text-xs font-bold text-text">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-black
+                      ${i === 0 ? 'bg-amber-400' : i === 1 ? 'bg-slate-400' : 'bg-orange-400'}`}>
+                      {i + 1}
+                    </span>
+                    <span className="truncate max-w-28">{u.name.split(' ').slice(0, 3).join(' ')}</span>
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, ri) => (
+              <tr key={row.label} className={ri % 2 === 0 ? 'bg-surfaceAlt/30' : ''}>
+                <td className="px-5 py-2.5 text-xs text-muted font-medium">{row.label}</td>
+                {row.vals.map((val, vi) => (
+                  <td key={vi} className={`px-4 py-2.5 text-xs ${row.color[vi]}`}>{val}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── Top Pick Card ─────────────────────────────────────────────────────────────
+
+function TopPickCard({ uni }) {
+  if (!uni) return null;
+  const pct = Math.round((uni.match_score || 0) * 100);
+  return (
+    <div className="card p-5 border-teal-200 bg-gradient-to-br from-mintLight/60 to-white">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="page-icon bg-mintLight text-teal-600"><Star className="w-4 h-4" /></div>
+        <h2 className="font-bold text-text">Top Pick</h2>
+      </div>
+      <div className="flex items-start gap-4">
+        <ScoreRing value={uni.match_score} size={64} />
+        <div className="flex-1">
+          <h3 className="font-black text-text text-lg leading-tight">{uni.name}</h3>
           <div className="flex items-center gap-1.5 mt-1">
             <MapPin className="w-3 h-3 text-muted" />
-            <span className="text-xs text-muted">{uni.country}</span>
-            {uni.ranking && (
-              <span className="badge badge-lavender">QS #{uni.ranking}</span>
+            <span className="text-sm text-muted">{uni.country}</span>
+            {uni.ranking && <span className="badge badge-lavender">QS #{uni.ranking}</span>}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5 text-teal-500" />
+              <span className="text-xs text-textSoft">{pct}% profile match</span>
+            </div>
+            {uni.roi_5yr_pct != null && (
+              <div className="flex items-center gap-1.5">
+                <TrendingUp className={`w-3.5 h-3.5 ${(uni.roi_5yr_pct || 0) >= 0 ? 'text-teal-500' : 'text-rose-500'}`} />
+                <span className="text-xs text-textSoft">
+                  {(uni.roi_5yr_pct || 0) >= 0 ? '+' : ''}{uni.roi_5yr_pct?.toFixed(1)}% 5-yr ROI
+                </span>
+              </div>
+            )}
+            {uni.break_even_years != null && (
+              <div className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-lavender" />
+                <span className="text-xs text-textSoft">Break-even in {uni.break_even_years?.toFixed(1)} yrs</span>
+              </div>
             )}
           </div>
         </div>
-        <ScoreBadge score={uni.match_score} />
       </div>
-
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-3 mt-3">
-        <div className="bg-surfaceAlt rounded-xl p-3">
-          <div className="flex items-center gap-1.5 mb-1">
-            <DollarSign className="w-3 h-3 text-peach" />
-            <span className="text-xs text-muted">Total Cost</span>
-          </div>
-          <span className="text-sm font-bold text-text">
-            ${(uni.total_cost_usd || 0).toLocaleString()}
-          </span>
-        </div>
-
-        <div className="bg-surfaceAlt rounded-xl p-3">
-          <div className="flex items-center gap-1.5 mb-1">
-            <TrendingUp className="w-3 h-3 text-teal-500" />
-            <span className="text-xs text-muted">5-yr ROI</span>
-          </div>
-          <span className={`text-sm font-bold ${(uni.roi_5yr_pct || 0) >= 0 ? 'text-teal-600' : 'text-rose'}`}>
-            {uni.roi_5yr_pct >= 0 ? '+' : ''}{uni.roi_5yr_pct?.toFixed(1)}%
-          </span>
-        </div>
-
-        <div className="bg-surfaceAlt rounded-xl p-3">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Clock className="w-3 h-3 text-lavender" />
-            <span className="text-xs text-muted">Break-even</span>
-          </div>
-          <span className="text-sm font-bold text-text">{uni.break_even_years?.toFixed(1)} yrs</span>
-        </div>
-
-        <div className="bg-surfaceAlt rounded-xl p-3">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Briefcase className="w-3 h-3 text-amber-500" />
-            <span className="text-xs text-muted">Jobs</span>
-          </div>
-          <JobScoreDots score={uni.job_availability_score || 0} />
-        </div>
-      </div>
-
-      {/* Visa assessment */}
-      {uni.visa_assessment && (
-        <div className="mt-3 bg-lavendLight/40 rounded-xl p-3">
-          <div className="flex items-center gap-1.5 mb-1">
-            <FileCheck className="w-3 h-3 text-lavender" />
-            <span className="text-xs font-semibold text-lavender">Visa Summary</span>
-          </div>
-          <p className="text-xs text-textSoft leading-relaxed">{uni.visa_assessment}</p>
-        </div>
-      )}
-
-      {/* ── Confidence breakdown ── */}
-      {hasConf && (
-        <div className="mt-3 border-t border-surfaceBorder pt-3">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3 h-3 text-muted" />
-              <span className="text-[10px] font-semibold text-muted uppercase tracking-wide">AI Confidence</span>
-            </div>
-            <span className={`text-xs font-black ${confColor} ${confBg} px-2 py-0.5 rounded-full`}>
-              {Math.round(overallConf * 100)}% overall
-            </span>
-          </div>
-          <div className="space-y-1.5">
-            <ConfidenceBar label="Profile fit"    value={uni.confidence_profile} color="bg-lavender"   />
-            <ConfidenceBar label="Finance ROI"    value={uni.confidence_finance} color="bg-teal-400"   />
-            <ConfidenceBar label="Job market"     value={uni.confidence_jobs}    color="bg-blue-400"   />
-            <ConfidenceBar label="Visa ease"      value={uni.confidence_visa}    color="bg-amber-400"  />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -198,7 +283,7 @@ function UniversityCard({ uni, rank }) {
 // ── Cache helpers ─────────────────────────────────────────────────────────────
 
 const CACHE_KEY = 'decision_result';
-const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+const CACHE_TTL = 30 * 60 * 1000;
 
 function loadCachedResult() {
   try {
@@ -217,9 +302,9 @@ function saveCachedResult(data) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function Decision() {
-  const [data, setData]       = useState(() => loadCachedResult());
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState(null);
+  const [data, setData]           = useState(() => loadCachedResult());
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState(null);
   const [fromCache, setFromCache] = useState(() => !!loadCachedResult());
 
   const run = async (force = false) => {
@@ -238,110 +323,105 @@ export default function Decision() {
     }
   };
 
-  const pipelineConf = data?.confidence_score || 0;
-  const confLabel = pipelineConf >= 0.80 ? 'High confidence' : pipelineConf >= 0.60 ? 'Moderate confidence' : 'Low confidence';
-  const confLabelColor = pipelineConf >= 0.80 ? 'text-teal-600' : pipelineConf >= 0.60 ? 'text-lavender' : 'text-amber-500';
+  const top1 = data?.top_universities?.[0];
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-5 animate-fade-in">
 
       {/* ── Header ── */}
-      <div className="relative card overflow-hidden bg-gradient-to-br from-lavender to-[#5C4DDF] p-8 text-white border-none">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold">Decision Dashboard</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="page-header mb-0">
+          <div className="page-icon bg-mintLight text-teal-600"><Trophy className="w-5 h-5" /></div>
+          <div>
+            <h1 className="text-2xl font-black text-text">My Shortlist</h1>
+            <p className="text-muted text-sm">
+              {data
+                ? `${data.top_universities?.length || 0} universities ranked across 4 dimensions`
+                : 'Data-driven university ranking for your profile'}
+            </p>
           </div>
-          <p className="text-white/80 text-sm max-w-xl leading-relaxed mb-5">
-            Our 5-agent AI chain analyses your academic profile, visa difficulty, financial ROI,
-            and job market — then ranks your top 3 university options with per-agent confidence scores.
-          </p>
-          <div className="flex items-center gap-3 flex-wrap">
-            <button
-              onClick={() => run(true)}
-              disabled={loading}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-lavender font-bold text-sm rounded-xl shadow-md hover:bg-lavendLight transition-all disabled:opacity-60"
-            >
-              {loading
-                ? <><Loader2 className="w-4 h-4 animate-spin" /> Running 5-agent analysis…</>
-                : data
-                  ? <><Sparkles className="w-4 h-4" /> Re-run Analysis</>
-                  : <><Trophy className="w-4 h-4" /> Generate My Recommendation</>
-              }
-            </button>
-            {fromCache && !loading && (
-              <span className="text-white/60 text-xs">Loaded from cache · <button onClick={() => run(true)} className="underline hover:text-white">refresh</button></span>
-            )}
-          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {fromCache && !loading && (
+            <span className="text-xs text-muted">Cached result ·
+              <button onClick={() => run(true)} className="text-lavender underline ml-1 hover:no-underline">refresh</button>
+            </span>
+          )}
+          <button
+            onClick={() => run(true)}
+            disabled={loading}
+            className="btn-primary flex items-center gap-2 disabled:opacity-60"
+          >
+            {loading
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Analysing…</>
+              : data
+                ? <><RefreshCw className="w-4 h-4" /> Re-run</>
+                : <><Trophy className="w-4 h-4" /> Generate Shortlist</>
+            }
+          </button>
         </div>
       </div>
 
-      {/* ── Agent pipeline legend ── */}
-      <div className="grid grid-cols-5 gap-2">
-        {[
-          { icon: GraduationCap, label: 'Profile Agent',   color: 'bg-lavendLight text-lavender', weight: '35%' },
-          { icon: TrendingUp,    label: 'Finance Agent',   color: 'bg-mintLight text-teal-600',   weight: '30%' },
-          { icon: Briefcase,     label: 'Jobs Agent',      color: 'bg-skyLight text-blue-600',    weight: '20%' },
-          { icon: FileCheck,     label: 'Visa Agent',      color: 'bg-amberLight text-amber-600', weight: '15%' },
-          { icon: Sparkles,      label: 'Synthesis Agent', color: 'bg-peachLight text-peach',     weight: null  },
-        ].map(({ icon: Icon, label, color, weight }) => (
-          <div key={label} className="card p-3 flex flex-col items-center text-center gap-1.5">
-            <div className={`page-icon ${color}`}><Icon className="w-4 h-4" /></div>
-            <span className="text-[11px] font-semibold text-textSoft">{label}</span>
-            {weight && <span className="text-[10px] text-muted">{weight} weight</span>}
+      {/* ── How it works banner (shown before first run) ── */}
+      {!data && !loading && !error && (
+        <div className="card p-5 border-lavender/20 bg-lavendLight/20">
+          <p className="text-sm font-bold text-text mb-3">How your shortlist is built</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { icon: GraduationCap, label: 'Academic fit',  desc: 'CGPA, field, degree type',  color: 'bg-lavendLight text-lavender' },
+              { icon: TrendingUp,    label: 'Financial ROI', desc: 'Cost, salary, break-even',  color: 'bg-mintLight text-teal-600'   },
+              { icon: Briefcase,     label: 'Job market',    desc: 'Country grad employment',   color: 'bg-skyLight text-blue-600'    },
+              { icon: FileCheck,     label: 'Visa ease',     desc: 'Indian student requirements', color: 'bg-amberLight text-amber-600' },
+            ].map(({ icon: Icon, label, desc, color }) => (
+              <div key={label} className="flex items-start gap-2.5">
+                <div className={`page-icon shrink-0 ${color}`}><Icon className="w-4 h-4" /></div>
+                <div>
+                  <p className="text-xs font-semibold text-text">{label}</p>
+                  <p className="text-[10px] text-muted mt-0.5">{desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
       {/* ── Error ── */}
       {error && (
         <div className="card p-4 border-rose/30 bg-rose/5 flex items-center gap-3 text-rose text-sm">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <AlertCircle className="w-5 h-5 shrink-0" />
           {error}
         </div>
       )}
 
-      {/* ── Loading placeholder ── */}
+      {/* ── Loading ── */}
       {loading && (
         <div className="card p-10 flex flex-col items-center justify-center text-center gap-4">
           <Loader2 className="w-10 h-10 text-lavender animate-spin" />
           <div>
-            <p className="font-bold text-text">Running 5-agent pipeline…</p>
-            <p className="text-sm text-muted mt-1">Profile → Finance → Jobs → Visa → Synthesis</p>
+            <p className="font-bold text-text">Building your shortlist…</p>
+            <p className="text-xs text-muted mt-1">Scoring universities across academic fit, finances, jobs and visa</p>
+          </div>
+          <div className="flex gap-6 text-xs text-muted">
+            {['Academic match', 'Financial ROI', 'Job market', 'Visa assessment', 'Final ranking'].map((step, i) => (
+              <div key={step} className="flex items-center gap-1.5">
+                <Loader2 className="w-3 h-3 animate-spin text-lavender/60" style={{ animationDelay: `${i * 0.15}s` }} />
+                {step}
+              </div>
+            ))}
           </div>
         </div>
       )}
 
       {data && (
         <>
-          {/* ── Pipeline confidence banner ── */}
-          {data.confidence_score != null && (
-            <div className="card p-5 flex items-center gap-5 border-lavender/20 bg-lavendLight/10">
-              <ConfidenceRing value={data.confidence_score} />
-              <div className="flex-1">
-                <p className={`font-bold text-base ${confLabelColor}`}>{confLabel}</p>
-                <p className="text-xs text-muted mt-0.5">
-                  Weighted pipeline score across Profile (35%), Finance (30%), Jobs (20%) and Visa (15%) agents.
-                  Higher confidence means stronger signal alignment across all data sources.
-                </p>
-              </div>
-              <div className="hidden sm:flex flex-col items-end gap-0.5 text-right">
-                <span className={`text-3xl font-black ${confLabelColor}`}>
-                  {Math.round(data.confidence_score * 100)}%
-                </span>
-                <span className="text-xs text-muted">pipeline score</span>
-              </div>
-            </div>
-          )}
+          {/* Top pick highlight */}
+          {top1 && <TopPickCard uni={top1} />}
 
-          {/* ── Top 3 University Cards ── */}
+          {/* University cards */}
           {data.top_universities?.length > 0 && (
             <div>
-              <h2 className="font-bold text-text text-lg mb-4">Your Top 3 Recommendations</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+              <h2 className="font-bold text-text text-base mb-3">Your Ranked Shortlist</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {data.top_universities.map((uni, i) => (
                   <UniversityCard key={uni.name} uni={uni} rank={i} />
                 ))}
@@ -349,57 +429,32 @@ export default function Decision() {
             </div>
           )}
 
-          {/* ── Synthesis ── */}
-          {data.synthesis && (
-            <div className="card p-6 border-lavender/20 bg-lavendLight/20">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="page-icon bg-lavendLight text-lavender">
-                  <Star className="w-4 h-4" />
-                </div>
-                <h2 className="font-bold text-text">AI Synthesis — Final Recommendation</h2>
-              </div>
-              <div className="text-sm text-textSoft leading-relaxed whitespace-pre-wrap">
-                {data.synthesis}
-              </div>
-            </div>
-          )}
+          {/* Comparison table */}
+          <ComparisonTable universities={data.top_universities} />
 
-          {/* ── Agent Steps (collapsible) ── */}
-          {data.agent_steps && (
-            <div>
-              <h2 className="font-bold text-text text-lg mb-3">Agent Reasoning Steps</h2>
-              <div className="space-y-2">
-                <AgentStep
-                  icon={GraduationCap}
-                  color="bg-lavendLight text-lavender"
-                  label="Agent 1 — Profile Analysis"
-                  content={data.agent_steps.profile_analysis}
-                  defaultOpen
-                />
-                <AgentStep
-                  icon={TrendingUp}
-                  color="bg-mintLight text-teal-600"
-                  label="Agent 2 — Finance Analysis"
-                  content={data.agent_steps.finance_analysis}
-                />
-                <AgentStep
-                  icon={Briefcase}
-                  color="bg-skyLight text-blue-600"
-                  label="Agent 3 — Jobs Analysis"
-                  content={data.agent_steps.jobs_analysis}
-                />
-                <AgentStep
-                  icon={FileCheck}
-                  color="bg-amberLight text-amber-600"
-                  label="Agent 4 — Visa Assessment"
-                  content={data.agent_steps.visa_assessment}
-                />
-                <AgentStep
-                  icon={Sparkles}
-                  color="bg-peachLight text-peach"
-                  label="Agent 5 — Synthesis"
-                  content={data.agent_steps.final_synthesis}
-                />
+          {/* Summary note (replaced AI synthesis wall) */}
+          {data.synthesis && (
+            <div className="card p-5 border-surfaceBorder">
+              <div className="flex items-center gap-2 mb-3">
+                <Info className="w-4 h-4 text-muted" />
+                <h2 className="font-semibold text-textSoft text-sm">Counsellor Notes</h2>
+              </div>
+              {/* Parse bullet points from synthesis into clean chips */}
+              <div className="text-sm text-textSoft leading-relaxed">
+                {data.synthesis
+                  .split('\n')
+                  .filter(line => line.trim())
+                  .slice(0, 6)
+                  .map((line, i) => {
+                    const clean = line.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
+                    if (!clean) return null;
+                    return (
+                      <div key={i} className="flex gap-2 py-1.5 border-b border-surfaceBorder last:border-0">
+                        <span className="text-lavender shrink-0 mt-0.5">›</span>
+                        <span className="text-xs text-textSoft leading-relaxed">{clean}</span>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           )}
@@ -409,14 +464,20 @@ export default function Decision() {
       {/* ── Empty state ── */}
       {!loading && !data && !error && (
         <div className="card p-12 flex flex-col items-center justify-center text-center">
-          <div className="page-icon bg-lavendLight text-lavender mb-4">
+          <div className="page-icon bg-lavendLight text-lavender mb-4 w-14 h-14">
             <Trophy className="w-7 h-7" />
           </div>
           <h3 className="font-bold text-text mb-2">Ready when you are</h3>
-          <p className="text-sm text-muted max-w-sm">
-            Click "Generate My Recommendation" above to run the full 5-agent pipeline
-            and receive your personalised ranked shortlist with per-agent confidence scores.
+          <p className="text-sm text-muted max-w-sm leading-relaxed">
+            Click <strong>"Generate Shortlist"</strong> to get your personalised ranked university list
+            with financial ROI, job market data, and visa assessment — all in one place.
           </p>
+          <button
+            onClick={() => run(true)}
+            className="btn-primary mt-5 flex items-center gap-2"
+          >
+            <Trophy className="w-4 h-4" /> Generate My Shortlist
+          </button>
         </div>
       )}
     </div>

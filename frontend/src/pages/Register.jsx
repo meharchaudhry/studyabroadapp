@@ -262,43 +262,41 @@ export default function Register() {
 
       {/* ── Left brand panel ── */}
       <div className="hidden lg:flex lg:w-[38%] relative overflow-hidden flex-col justify-between p-12"
-        style={{ background: 'linear-gradient(135deg,#4C3BCF 0%,#7C6FF7 50%,#9B8FF7 100%)' }}>
+        style={{ background: 'linear-gradient(135deg, #1E40AF 0%, #2563EB 60%, #3B82F6 100%)' }}>
         <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full bg-white/10 blur-3xl" />
 
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/30">
-            <Globe className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/25">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3 C7 8 3 10 3 16 C7 14 10 13 12 15 C14 13 17 14 21 16 C21 10 17 8 12 3Z"
+                fill="white" fillOpacity="0.95"/>
+              <path d="M12 15 L12 21" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
           </div>
-          <span className="text-white font-bold text-xl">StudyPathway</span>
+          <span className="font-brand font-bold text-white tracking-wide" style={{ fontSize: '1.35rem' }}>udaan</span>
         </div>
 
         <div className="relative z-10 flex-1 flex flex-col justify-center">
-          <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-4">
-            Built for Indian students
-          </p>
-          <h1 className="text-3xl font-black text-white leading-tight mb-4">
-            Your AI advisor<br />for studying abroad
+          <h1 className="font-brand text-white leading-tight mb-3" style={{ fontSize: '2.4rem', fontWeight: 700 }}>
+            Your advisor<br />for studying abroad
           </h1>
-          <p className="text-white/70 text-sm mb-8 leading-relaxed">
-            Tell us your academic story — CGPA, test scores, field of study, budget in ₹.
-            Our AI matches you with universities where you'll actually get in.
+          <p className="text-white/75 text-sm mb-7 leading-relaxed">
+            Tell us your academic profile and goals. We match you with the right universities, guide your visa, and show you the financial picture.
           </p>
-          {[
-            "Matches calibrated for Indian transcripts (10-pt CGPA)",
-            "GRE / GMAT / IELTS / TOEFL scoring",
-            "Budget in INR — no USD confusion",
-            "Visa guidance + financial ROI in ₹",
-            "Career goal × country job market matching",
-            "5-agent AI decision dashboard",
-          ].map(f => (
-            <div key={f} className="flex items-center gap-3 mb-2.5">
-              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                <Check className="w-3 h-3 text-white" />
+          <div className="space-y-3">
+            {[
+              "600+ universities matched to your GPA and field of study",
+              "Visa documents, timelines and requirements by country",
+              "ROI calculator — tuition cost vs. graduate salaries",
+              "Shortlist builder with side-by-side comparison",
+            ].map(f => (
+              <div key={f} className="flex items-start gap-2.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-white/60 flex-shrink-0 mt-2" />
+                <span className="text-white/80 text-sm leading-relaxed">{f}</span>
               </div>
-              <span className="text-white/85 text-sm">{f}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Step tracker */}
@@ -337,7 +335,7 @@ export default function Register() {
             <div className="w-8 h-8 bg-lavender rounded-lg flex items-center justify-center">
               <Globe className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-text">StudyPathway</span>
+            <span className="font-bold text-text">PathPilot</span>
           </div>
           <div className="lg:hidden flex gap-1.5 mb-5">
             {STEPS.map(s => (

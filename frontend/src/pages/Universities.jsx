@@ -14,36 +14,49 @@ const SUBJECTS = [
   "Economics","Data Science","Finance","Architecture","Psychology","Physics",
   "Environmental","Public Health","Education","Social Science",
 ];
-const USD_TO_INR = 83;
-function fmtINR(usd) {
-  if (!usd && usd !== 0) return '—';
-  const inr = Math.round(usd * USD_TO_INR);
+// All tuition/living_cost values in DB are stored in INR — display directly
+function fmtINR(inr) {
+  if (!inr && inr !== 0) return '—';
   if (inr >= 10000000) return `₹${(inr / 10000000).toFixed(1)} Cr`;
-  return `₹${(inr / 100000).toFixed(1)} L`;
+  if (inr >= 100000)   return `₹${(inr / 100000).toFixed(1)} L`;
+  return `₹${Math.round(inr / 1000)}k`;
 }
 
 const BUDGET_OPTIONS = [
-  { label: 'Under ₹16.6 L/yr', value: 20000 },
-  { label: 'Under ₹29 L/yr', value: 35000 },
-  { label: 'Under ₹41.5 L/yr', value: 50000 },
-  { label: 'Any',        value: '' },
+  { label: 'Under ₹20 L/yr',  value: 2000000 },
+  { label: 'Under ₹35 L/yr',  value: 3500000 },
+  { label: 'Under ₹50 L/yr',  value: 5000000 },
+  { label: 'Any',              value: '' },
 ];
 
 export default function Universities() {
-  const [mode, setMode]         = useState('browse');
+  const [mode, setMode]             = useState('browse');
   const [universities, setUniversities] = useState([]);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState('');
-  const [search, setSearch]     = useState('');
-  const [country, setCountry]   = useState('');
-  const [subject, setSubject]   = useState('');
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState('');
+  const [search, setSearch]         = useState('');
+  const [country, setCountry]       = useState('');
+  const [subject, setSubject]       = useState('');
   const [maxTuition, setMaxTuition] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [page, setPage]         = useState(0);
-  const [total, setTotal]       = useState(0);
+  const [page, setPage]             = useState(0);
+  const [total, setTotal]           = useState(0);
+  // Match scores keyed by university id — fetched once for browse mode overlay
+  const [matchScores, setMatchScores] = useState({});
   const PER_PAGE = 18;
 
   const activeFilters = [country, subject, maxTuition].filter(Boolean).length;
+
+  // Fetch top-100 recommendations once to overlay match % on browse cards
+  useEffect(() => {
+    universitiesAPI.getRecommendations(100)
+      .then(res => {
+        const map = {};
+        (res.recommendations || []).forEach(r => { if (r.id) map[r.id] = r.match_score; });
+        setMatchScores(map);
+      })
+      .catch(() => {}); // silently fail if not logged in
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -215,7 +228,12 @@ export default function Universities() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {universities.map((uni, i) => (
-              <UniCard key={uni.id} uni={uni} rank={mode === 'matches' ? i + 1 : null} />
+              <UniCard
+                key={uni.id}
+                uni={uni}
+                rank={mode === 'matches' ? i + 1 : null}
+                browseMatchScore={mode === 'browse' ? matchScores[uni.id] : null}
+              />
             ))}
           </div>
           {mode === 'browse' && total > PER_PAGE && (
@@ -245,52 +263,58 @@ export default function Universities() {
   );
 }
 
-function UniCard({ uni, rank }) {
-  const img = getUniversityImage(uni);
-  const flag = getCountryFlag(uni.country);
-  const pct = uni.match_score ? Math.round(uni.match_score * 100) : null;
+function UniCard({ uni, rank, browseMatchScore }) {
+  const img   = getUniversityImage(uni);
+  const flag  = getCountryFlag(uni.country);
+  // AI Matches mode: use uni.match_score; browse mode: use overlay from recommendations fetch
+  const rawScore   = uni.match_score ?? browseMatchScore ?? null;
+  const pct        = rawScore !== null ? Math.round(rawScore * 100) : null;
   const rankColors = ['bg-amber-400', 'bg-slate-400', 'bg-orange-400'];
+  const scoreColor = pct >= 75 ? 'bg-teal-500' : pct >= 50 ? 'bg-lavender' : pct >= 30 ? 'bg-amber-400' : 'bg-slate-400';
 
   return (
     <Link to={`/universities/${uni.id}`} className="group block">
       <div className="card-hover card overflow-hidden flex flex-col">
-        <div className="relative h-44 bg-surfaceAlt overflow-hidden">
+        <div className="relative h-48 bg-surfaceAlt overflow-hidden">
           <img src={img} alt={uni.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            onError={e => { e.target.style.display = 'none'; }} />
+            onError={e => {
+              // On error, replace with a gradient placeholder
+              e.target.style.display = 'none';
+              e.target.parentElement.classList.add('bg-gradient-to-br', 'from-lavendLight', 'to-mintLight');
+            }} />
 
           {/* Rank / QS badges */}
           <div className="absolute top-3 left-3 flex gap-1.5">
             {uni.ranking && (
-              <span className="badge bg-white/85 backdrop-blur-sm text-lavender border border-lavender/20">
+              <span className="badge bg-white/90 backdrop-blur-sm text-lavender border border-lavender/20 shadow-sm">
                 QS #{uni.ranking}
               </span>
             )}
             {rank && rank <= 3 && (
-              <span className={`badge ${rankColors[rank - 1]} text-white`}>#{rank}</span>
+              <span className={`badge ${rankColors[rank - 1]} text-white shadow-sm`}>#{rank}</span>
             )}
           </div>
 
           {/* Match score ring */}
           {pct !== null && (
             <div className="absolute top-3 right-3">
-              <div className={`w-12 h-12 rounded-full flex flex-col items-center justify-center border-2 border-white shadow-md
-                ${pct >= 75 ? 'bg-teal-500 text-white' : pct >= 50 ? 'bg-lavender text-white' : pct >= 25 ? 'bg-amber-400 text-white' : 'bg-slate-400 text-white'}`}>
-                <span className="text-[11px] font-black leading-none">{pct}</span>
-                <span className="text-[8px] opacity-80">/100</span>
+              <div className={`w-11 h-11 rounded-full flex flex-col items-center justify-center border-2 border-white shadow-md ${scoreColor} text-white`}>
+                <span className="text-[10px] font-black leading-none">{pct}%</span>
+                <span className="text-[7px] opacity-80">match</span>
               </div>
             </div>
           )}
 
           {/* Country + subject overlay */}
-          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-8">
+          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/75 to-transparent p-3 pt-10">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-sm">{flag}</span>
-              <span className="text-white/90 text-xs font-medium">{uni.country}</span>
+              <span className="text-white/90 text-xs font-semibold">{uni.country}</span>
               {uni.subject && (
                 <div className="ml-auto flex gap-1 flex-wrap justify-end">
                   {uni.subject.split('|').slice(0, 2).map(s => (
-                    <span key={s} className="text-white/80 text-[9px] bg-white/20 px-1.5 py-0.5 rounded-full">
+                    <span key={s} className="text-white/85 text-[9px] bg-white/25 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
                       {s.trim()}
                     </span>
                   ))}

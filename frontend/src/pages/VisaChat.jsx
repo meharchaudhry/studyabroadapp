@@ -72,10 +72,19 @@ function makeSessionId(c) {
   return `visa-${c}-${Date.now()}`;
 }
 
+function stripInlineSources(text) {
+  return text
+    .replace(/\(Source:\s*[^)]+\)/gi, '')
+    .replace(/\[Source:\s*[^\]]+\]/gi, '')
+    .replace(/According to [a-z0-9_\-]+\.(md|txt|pdf),?\s*/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 // Markdown-lite renderer with table support
 function renderAnswer(text) {
   if (!text) return null;
-  const str = typeof text === 'string' ? text : JSON.stringify(text);
+  const str = typeof text === 'string' ? stripInlineSources(text) : JSON.stringify(text);
   const lines = str.split('\n');
   const elements = [];
   let tableBuffer = [];
@@ -203,9 +212,9 @@ export default function VisaChat() {
           <FileCheck className="w-5 h-5 text-lavender" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-text">Visa & Study Abroad AI</h1>
+          <h1 className="text-2xl font-bold text-text">Visa Assistant</h1>
           <p className="text-muted text-sm mt-0.5">
-            Hybrid RAG · 104 knowledge docs · Visas · Jobs · Housing · Scholarships · Gemini 2.5 Flash
+            Visa requirements · Jobs · Housing · Scholarships
           </p>
         </div>
       </div>
@@ -260,8 +269,8 @@ export default function VisaChat() {
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-teal-400 rounded-full border-2 border-white" />
             </div>
             <div>
-              <p className="text-sm font-bold text-text">StudyPathway Visa AI</p>
-              <p className="text-[11px] text-muted">{country} · Hybrid RAG · Gemini 2.5 Flash</p>
+              <p className="text-sm font-bold text-text">PathPilot Visa Assistant</p>
+              <p className="text-[11px] text-muted">{country} · Visa guidance</p>
             </div>
           </div>
           <button onClick={() => changeCountry(country)} title="New conversation"

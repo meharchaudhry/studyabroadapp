@@ -104,10 +104,14 @@ export default function OTPVerify() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center gap-2 mb-10 justify-center">
-          <div className="w-9 h-9 bg-lavender rounded-xl flex items-center justify-center">
-            <Globe className="w-4.5 h-4.5 text-white w-[18px] h-[18px]" />
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ background: 'linear-gradient(135deg, #1E40AF, #3B82F6)' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3 C7 8 3 10 3 16 C7 14 10 13 12 15 C14 13 17 14 21 16 C21 10 17 8 12 3Z" fill="white" fillOpacity="0.95"/>
+              <path d="M12 15 L12 21" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
           </div>
-          <span className="font-bold text-text text-lg">StudyPathway</span>
+          <span className="font-brand font-bold text-text" style={{ fontSize: '1.2rem' }}>udaan</span>
         </div>
 
         <div className="card p-8 animate-scale-in">

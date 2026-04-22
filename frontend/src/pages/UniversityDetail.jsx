@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { universitiesAPI } from '../api/universities';
+import { getUniversityImage } from '../utils/universityImages';
 import {
   ArrowLeft, MapPin, Star, BookOpen, ExternalLink, Award, GraduationCap,
   Calendar, CheckCircle2, TrendingUp, Briefcase, DollarSign, Info,
@@ -20,18 +21,27 @@ const FLAG_MAP = {
   USA: '🇺🇸', UK: '🇬🇧',
 };
 
-const USD_TO_INR = 83;
+const INR_TO_USD = 1 / 83;
 
-function fmtINR(usd) {
-  if (!usd && usd !== 0) return '—';
-  const inr = Math.round(usd * USD_TO_INR);
+// All tuition/living_cost in DB are stored in INR — format directly
+function fmtINR(inr) {
+  if (!inr && inr !== 0) return '—';
   if (inr >= 10000000) return `₹${(inr / 10000000).toFixed(1)} Cr`;
-  return `₹${(inr / 100000).toFixed(1)} L`;
+  if (inr >= 100000)   return `₹${(inr / 100000).toFixed(1)} L`;
+  return `₹${Math.round(inr / 1000)}k`;
 }
 
-function fmtUSD(n) {
-  if (!n && n !== 0) return '—';
-  return `$${Math.round(n).toLocaleString()}`;
+// Convert stored INR → approximate USD for the sub-label
+function fmtUSD(inr) {
+  if (!inr && inr !== 0) return '';
+  const usd = Math.round(inr * INR_TO_USD / 100) * 100; // round to nearest $100
+  return `~$${usd.toLocaleString()}`;
+}
+
+// Grad salary is stored in USD
+function fmtSalaryUSD(usd) {
+  if (!usd && usd !== 0) return '—';
+  return `$${Math.round(usd).toLocaleString()} /yr`;
 }
 
 function FactorBar({ label, value, hint, color = 'bg-lavender' }) {
@@ -118,13 +128,12 @@ export default function UniversityDetail() {
       {/* Hero */}
       <div className="card overflow-hidden mb-6 border-none shadow-card">
         <div className="h-64 bg-lavendLight relative">
-          {uni.image_url ? (
-            <img src={uni.image_url} alt={uni.name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-lavender/20 to-skyLight">
-              <GraduationCap className="w-20 h-20 text-lavender/40" />
-            </div>
-          )}
+          <img
+            src={getUniversityImage(uni)}
+            alt={uni.name}
+            className="w-full h-full object-cover"
+            onError={e => { e.target.style.display = 'none'; }}
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-text/80 via-text/20 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-8">
             <h1 className="text-3xl font-bold text-white mb-2">{uni.name}</h1>
@@ -249,7 +258,7 @@ export default function UniversityDetail() {
               <Req label="IELTS" val={uni.ielts ? `${uni.ielts}+` : '6.5+'} />
               <Req label="TOEFL" val={uni.toefl ? `${uni.toefl}+` : '90+'} />
               <Req label="GRE / GMAT" val={uni.gre_required ? 'Required' : 'Optional'} accent={uni.gre_required} />
-              <Req label="Course Duration" val={`${uni.course_duration || 2} year${(uni.course_duration || 2) === 1 ? '' : 's'}`} />
+              <Req label="Course Duration" val={`${uni.course_duration || 2} year${Number(uni.course_duration || 2) === 1 ? '' : 's'}`} />
               {uni.intake_months?.length > 0 && (
                 <Req label="Intakes" val={uni.intake_months.join(', ')} />
               )}
@@ -300,7 +309,7 @@ export default function UniversityDetail() {
           <div className="card p-5 space-y-3">
             <h2 className="font-bold text-text text-sm">Country Highlights</h2>
             {uni.grad_salary_usd && (
-              <StatRow icon={DollarSign} label="Avg grad salary" val={`${fmtINR(uni.grad_salary_usd)}/yr`} color="text-teal-600" />
+              <StatRow icon={DollarSign} label="Avg grad salary" val={fmtSalaryUSD(uni.grad_salary_usd)} color="text-teal-600" />
             )}
             {uni.job_market_score && (
               <StatRow icon={Briefcase} label="Job market score" val={`${uni.job_market_score}/10`} color="text-lavender" />
@@ -309,11 +318,9 @@ export default function UniversityDetail() {
 
           {/* CTA */}
           <div className="space-y-3">
-            {uni.website && (
-              <a href={uni.website} target="_blank" rel="noreferrer" className="btn-primary w-full shadow-cardHov">
-                Visit Official Website <ExternalLink className="w-4 h-4" />
-              </a>
-            )}
+            <a href={uni.website} target="_blank" rel="noreferrer" className="btn-primary w-full shadow-cardHov flex items-center justify-center gap-2">
+              Visit Official Website <ExternalLink className="w-4 h-4" />
+            </a>
             <button onClick={loadExplanation} className="btn-secondary w-full">
               {explain ? 'View Match Details' : 'Why this for me?'}
             </button>

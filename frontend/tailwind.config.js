@@ -7,7 +7,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans:  ['Inter', 'system-ui', 'sans-serif'],
+        brand: ['"Cormorant Garamond"', 'Georgia', 'serif'],
       },
       colors: {
         lavender:    'var(--color-lavender)',
@@ -30,19 +31,19 @@ export default {
         textSoft:    'var(--color-text-soft)',
       },
       boxShadow: {
-        card:    '0 2px 20px rgba(124, 111, 247, 0.08)',
-        cardHov: '0 8px 32px rgba(124, 111, 247, 0.18)',
-        soft:    '0 1px 8px rgba(0,0,0,0.06)',
+        card:    '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
+        cardHov: '0 4px 16px rgba(37, 99, 235, 0.10)',
+        soft:    '0 1px 4px rgba(0,0,0,0.05)',
       },
       animation: {
-        'fade-in':  'fadeIn 0.4s ease-out',
-        'slide-up': 'slideUp 0.45s ease-out',
-        'scale-in': 'scaleIn 0.3s ease-out',
+        'fade-in':  'fadeIn 0.35s ease-out',
+        'slide-up': 'slideUp 0.4s ease-out',
+        'scale-in': 'scaleIn 0.25s ease-out',
       },
       keyframes: {
         fadeIn:  { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-        slideUp: { '0%': { opacity: '0', transform: 'translateY(16px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
-        scaleIn: { '0%': { opacity: '0', transform: 'scale(0.96)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
+        slideUp: { '0%': { opacity: '0', transform: 'translateY(12px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+        scaleIn: { '0%': { opacity: '0', transform: 'scale(0.97)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
       },
       borderRadius: {
         '2xl': '1rem',

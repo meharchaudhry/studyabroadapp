@@ -230,7 +230,7 @@ const BUDGET_TIERS = [
 const TYPE_STYLES = {
   rooms:      'bg-teal-50  text-teal-700  border-teal-200',
   apartments: 'bg-blue-50  text-blue-700  border-blue-200',
-  student:    'bg-purple-50 text-purple-700 border-purple-200',
+  student:    'bg-lavendLight text-lavender border-lavendMid',
 };
 
 const fmtInr = (n) => n ? '₹' + Math.round(n).toLocaleString('en-IN') : '₹0';

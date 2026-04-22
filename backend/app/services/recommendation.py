@@ -1,10 +1,10 @@
 """
-Recommendation Engine v4 — Personalised University Matching
+Recommendation Engine v5 — Personalised University Matching
 ============================================================
 Every student gets a unique ranked list. Two students with different
 profiles will see completely different universities at the top.
 
-Scoring is out of 100 points across 11 factors:
+Scoring is out of 100 points across 13 factors:
 
   1. Subject / field match          28 pts  ← biggest differentiator
   2. Budget eligibility             18 pts  ← hard cutoff at 2× budget
@@ -12,11 +12,13 @@ Scoring is out of 100 points across 11 factors:
   4. Ranking preference alignment    8 pts  ← respects user's own preference
   5. Country preference              8 pts  ← target countries get full score
   6. English language eligibility    5 pts
-  7. Career outcome alignment        8 pts  ← NEW: career_goal × country job market
-  8. Study environment fit           5 pts  ← NEW: study_priority × uni type
-  9. Safety / match / reach tier     3 pts  ← NEW: CGPA buffer above requirement
- 10. Profile-specific bonus          up to 3 pts  (MBA work-exp, PhD research, etc.)
- 11. Scholarship / post-work bonus   up to 2 pts
+  7. Career outcome alignment        8 pts  ← career_goal × country job market
+  8. Study environment / priority    5 pts  ← study_priority × uni type
+  9. Safety / match / reach tier     3 pts  ← CGPA buffer above requirement
+ 10. Profile-specific bonus        up to 3 pts  (MBA work-exp, PhD research, GRE/GMAT)
+ 11. Scholarship / post-work bonus up to 2 pts
+ 12. Intake preference bonus       up to 2 pts  ← intake_months match
+ 13. Living preference bonus       up to 2 pts  ← urban / suburban / rural fit
 
 Hard exclusion rules (score clamped to ≤ 8):
   • Total cost > 2× user's annual budget
@@ -24,10 +26,13 @@ Hard exclusion rules (score clamped to ≤ 8):
   • Ranking requirement is "Top 50" but uni is ranked > 200
 
 Degree-type routing:
-  • MBA  → business schools scored higher; GMAT counts
+  • MBA  → business schools scored higher; GMAT counts; work-exp important
   • PhD  → research output (top ranking) weighted more; tuition less
   • MS/Masters → balanced STEM/subject focus
   • Bachelors → more permissive eligibility
+
+Optional fields: all optional profile fields are used when present and
+gracefully skipped when absent — the score is normalised accordingly.
 """
 
 from typing import Optional
@@ -116,6 +121,12 @@ CAREER_COUNTRIES: dict[str, list[str]] = {
     "entrepreneurship": ["united states", "united kingdom", "singapore", "canada", "germany"],
     "healthcare": ["united states", "united kingdom", "canada", "australia", "germany"],
     "government": ["united kingdom", "canada", "germany", "netherlands", "france"],
+    "consulting": ["united states", "united kingdom", "germany", "switzerland", "singapore"],
+    "data science": ["united states", "canada", "united kingdom", "germany", "singapore"],
+    "research": ["united states", "united kingdom", "germany", "switzerland", "netherlands"],
+    "product management": ["united states", "canada", "united kingdom", "germany", "singapore"],
+    "design": ["united states", "united kingdom", "germany", "netherlands", "singapore"],
+    "marketing": ["united states", "united kingdom", "canada", "australia", "singapore"],
 }
 
 PRIORITY_HUB_COUNTRIES: dict[str, list[str]] = {
@@ -123,6 +134,28 @@ PRIORITY_HUB_COUNTRIES: dict[str, list[str]] = {
     "startup ecosystem": ["united states", "united kingdom", "singapore", "canada", "germany"],
     "networking": ["united states", "united kingdom", "canada", "singapore", "switzerland"],
 }
+
+# Intake preference → which months count as matching
+INTAKE_SEASON_MAP: dict[str, list[str]] = {
+    "fall":    ["august", "september", "october"],
+    "spring":  ["january", "february", "march"],
+    "winter":  ["january", "december"],
+    "summer":  ["may", "june", "july"],
+    "january": ["january"],
+    "september": ["september"],
+}
+
+# Countries strongly associated with urban living environments
+URBAN_COUNTRIES: set[str] = {"singapore", "united arab emirates", "uae", "hong kong"}
+# Urban keywords in university/city names
+URBAN_CITY_KEYWORDS = [
+    "london", "new york", "singapore", "dubai", "paris", "berlin",
+    "tokyo", "chicago", "boston", "amsterdam", "sydney", "melbourne",
+    "toronto", "montreal", "zurich", "vienna", "seoul", "shanghai",
+    "munich", "frankfurt", "edinburgh", "manchester", "barcelona", "rome",
+]
+# Countries with generally quieter / suburban campuses
+SUBURBAN_RURAL_COUNTRIES: set[str] = {"new zealand", "norway", "finland", "denmark", "ireland"}
 
 
 def normalize_country(value: Optional[str]) -> str:
@@ -282,6 +315,38 @@ def _is_stem(user: User) -> bool:
                 "mechanical", "civil", "chemical", "biotech", "science"]
     return any(k in field for k in stem_kws)
 
+def _is_research_oriented(user: User) -> bool:
+    study_p = (getattr(user, "study_priority", "") or "").lower()
+    career  = (getattr(user, "career_goal", "") or "").lower()
+    return "research" in study_p or "research" in career or "academia" in career
+
+def _infer_city_type(uni_name: str, uni_country: str) -> str:
+    """Returns 'urban', 'suburban', or 'unknown'."""
+    name_lo    = uni_name.lower()
+    country_lo = uni_country.lower()
+
+    if country_lo in URBAN_COUNTRIES:
+        return "urban"
+    if any(city in name_lo for city in URBAN_CITY_KEYWORDS):
+        return "urban"
+    if country_lo in SUBURBAN_RURAL_COUNTRIES:
+        return "suburban"
+    # Large English-speaking cities likely to have urban unis
+    urban_country_cities = {
+        "united kingdom": ["london", "manchester", "birmingham", "edinburgh", "bristol"],
+        "united states":  ["new york", "boston", "chicago", "san francisco", "los angeles"],
+        "canada":         ["toronto", "montreal", "vancouver"],
+        "australia":      ["sydney", "melbourne", "brisbane"],
+        "germany":        ["berlin", "munich", "frankfurt", "hamburg"],
+        "france":         ["paris", "lyon"],
+        "netherlands":    ["amsterdam", "rotterdam"],
+    }
+    for country, cities in urban_country_cities.items():
+        if country in country_lo:
+            if any(city in name_lo for city in cities):
+                return "urban"
+    return "unknown"
+
 
 # ── Core scoring ───────────────────────────────────────────────────────────────
 
@@ -295,23 +360,31 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
     total    = 0.0
     capped   = False   # hard exclusion flag
 
-    field    = getattr(user, "field_of_study", None)
-    cgpa     = getattr(user, "cgpa", None)
-    ielts    = getattr(user, "english_score", None)
-    toefl    = getattr(user, "toefl_score", None)
-    gre      = getattr(user, "gre_score", None)
-    gmat     = getattr(user, "gmat_score", None)
-    work_exp = getattr(user, "work_experience_years", None) or 0
-    pref_deg = getattr(user, "preferred_degree", None)
-    rank_pref = getattr(user, "ranking_preference", None)
-    target   = [c.lower().strip() for c in (getattr(user, "target_countries", None) or [])]
-    work_abroad = getattr(user, "work_abroad_interest", False)
-    scholarship = getattr(user, "scholarship_interest", False)
+    # ── Extract all user profile fields ───────────────────────────────────────
+    field          = getattr(user, "field_of_study", None)
+    cgpa           = getattr(user, "cgpa", None)
+    ielts          = getattr(user, "english_score", None)
+    toefl          = getattr(user, "toefl_score", None)
+    gre            = getattr(user, "gre_score", None)
+    gmat           = getattr(user, "gmat_score", None)
+    work_exp       = getattr(user, "work_experience_years", None) or 0
+    pref_deg       = getattr(user, "preferred_degree", None)
+    rank_pref      = getattr(user, "ranking_preference", None)
+    target         = [c.lower().strip() for c in (getattr(user, "target_countries", None) or [])]
+    work_abroad    = getattr(user, "work_abroad_interest", False)
+    scholarship    = getattr(user, "scholarship_interest", False)
     career_goal    = (getattr(user, "career_goal", None) or "").lower().strip()
     study_priority = (getattr(user, "study_priority", None) or "").lower().strip()
     pref_env       = (getattr(user, "preferred_environment", None) or "").lower().strip()
+    living_pref    = (getattr(user, "living_preference", None) or "").lower().strip()
+    intake_pref    = (getattr(user, "intake_preference", None) or "").lower().strip()
+    learning_style = (getattr(user, "learning_style", None) or "").lower().strip()
 
     budget_usd = _get_budget_usd(user)
+
+    uni_country_lo = (uni.country or "").lower().strip()
+    uni_name       = uni.name or ""
+    rank           = uni.qs_subject_ranking or uni.ranking
 
     # ── 1. Subject match (28 pts) ──────────────────────────────────────────────
     sub_pct = _subject_score(field or "", uni.subject or "")
@@ -334,14 +407,17 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
         reasons["field"] = "Add your field of study for subject matching."
     elif sub_pct >= 0.9:
         first_subj = (uni.subject or "").split("|")[0].strip()
-        reasons["field"] = f"Excellent match — {uni.name} offers {first_subj} which directly aligns with your {field} background."
+        reasons["field"] = f"Excellent match — {uni_name} offers {first_subj} which directly aligns with your {field} background."
     elif sub_pct >= 0.6:
         reasons["field"] = f"Good overlap between your {field} background and this university's programmes."
     else:
         reasons["field"] = f"Limited subject overlap with your {field} focus — check the full programme catalogue."
 
     # ── 2. Budget fit (18 pts) — hard cutoff at 2× budget ─────────────────────
-    total_cost = (uni.tuition or 0) + (uni.living_cost or 0)
+    # DB stores costs in INR; convert to USD for comparison with budget_usd
+    INR_TO_USD = 1 / 83.0
+    total_cost_inr = (uni.tuition or 0) + (uni.living_cost or 0)
+    total_cost = total_cost_inr * INR_TO_USD  # now in USD
 
     if budget_usd and total_cost > 0:
         ratio = total_cost / budget_usd
@@ -349,26 +425,32 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
         if ratio > 2.0:
             # HARD EXCLUSION — more than double the budget
             capped = True
+            cost_lakhs = round(total_cost_inr / 100000)
+            budget_lakhs = round(budget_usd * 83 / 100000)
             reasons["budget"] = (
-                f"Cost ${total_cost:,.0f}/yr is more than double your budget of ${budget_usd:,.0f}/yr. "
-                "Not recommended unless you have external funding."
+                f"₹{cost_lakhs}L/yr cost is more than double your ₹{budget_lakhs}L/yr budget. "
+                "Not recommended unless you have a scholarship or external funding."
             )
             total += 0
         elif ratio <= 1.0:
-            # Affordable — FLAT score so cheap unis don't beat elite ones
             total += 18
-            saved = int(budget_usd - total_cost)
-            reasons["budget"] = f"Fits budget — ${total_cost:,.0f}/yr within your ${budget_usd:,.0f}/yr. ${saved:,} to spare."
+            cost_lakhs   = round(total_cost_inr / 100000)
+            budget_lakhs = round(budget_usd * 83 / 100000)
+            saved_lakhs  = round((budget_usd - total_cost) * 83 / 100000)
+            reasons["budget"] = f"Fits budget — ₹{cost_lakhs}L/yr within your ₹{budget_lakhs}L/yr. ₹{saved_lakhs}L to spare."
         elif ratio <= 1.20:
             total += 10
-            over = int(total_cost - budget_usd)
-            reasons["budget"] = f"${over:,}/yr over budget — a part-time job or scholarship could bridge this."
+            over_lakhs = round((total_cost - budget_usd) * 83 / 100000)
+            reasons["budget"] = f"₹{over_lakhs}L/yr over budget — a part-time job or scholarship could bridge this."
         elif ratio <= 1.50:
+            cost_lakhs = round(total_cost_inr / 100000)
             total += 5
-            reasons["budget"] = f"${total_cost:,.0f}/yr is 20-50% above your budget. Consider a student loan."
+            reasons["budget"] = f"₹{cost_lakhs}L/yr is 20–50% above your budget. A student loan may be needed."
         else:
+            cost_lakhs   = round(total_cost_inr / 100000)
+            budget_lakhs = round(budget_usd * 83 / 100000)
             total += 1
-            reasons["budget"] = f"${total_cost:,.0f}/yr significantly exceeds your ${budget_usd:,.0f}/yr budget."
+            reasons["budget"] = f"₹{cost_lakhs}L/yr significantly exceeds your ₹{budget_lakhs}L/yr budget."
     elif not total_cost:
         total += 9
         reasons["budget"] = "Cost data unavailable — verify fees on the university website."
@@ -421,7 +503,6 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
         reasons["cgpa"] = "Add your CGPA for academic eligibility scoring."
 
     # ── 4. Ranking preference alignment (8 pts) ───────────────────────────────
-    rank    = uni.qs_subject_ranking or uni.ranking
     max_rank = _ranking_preference_max(rank_pref)
 
     if rank_pref == "Any" or not rank_pref:
@@ -440,12 +521,10 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
             reasons["ranking"] = "No global ranking listed — research programme-specific reputation."
     else:
         if rank and max_rank and rank <= max_rank:
-            # Perfect alignment — user wants Top 50 and it is Top 50
             pts = 8 if rank <= (max_rank * 0.6) else 6
             total += pts
             reasons["ranking"] = f"QS #{rank} — fits your '{rank_pref}' preference perfectly."
         elif rank and max_rank and rank <= max_rank * 2:
-            # Slightly outside — partial score
             total += 3
             reasons["ranking"] = f"QS #{rank} is slightly outside your '{rank_pref}' preference but still a strong institution."
         elif not rank:
@@ -458,7 +537,6 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
             reasons["ranking"] = f"QS #{rank} does not meet your '{rank_pref}' preference."
 
     # ── 5. Country preference (8 pts) ─────────────────────────────────────────
-    uni_country_lo = (uni.country or "").lower().strip()
     in_target = (
         uni_country_lo in target
         or any(t in uni_country_lo or uni_country_lo in t for t in target)
@@ -478,16 +556,15 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
     req_ielts = uni.ielts
     req_toefl = uni.toefl
 
-    eng_ok = False
     eng_pts = 0
 
     if ielts and req_ielts:
         gap_ielts = ielts - req_ielts
         if gap_ielts >= 0.5:
-            eng_pts = 5; eng_ok = True
+            eng_pts = 5
             reasons["ielts"] = f"IELTS {ielts:.1f} comfortably meets the {req_ielts:.1f} requirement."
         elif gap_ielts >= 0:
-            eng_pts = 4; eng_ok = True
+            eng_pts = 4
             reasons["ielts"] = f"IELTS {ielts:.1f} meets the {req_ielts:.1f} minimum."
         elif gap_ielts >= -0.5:
             eng_pts = 2
@@ -497,10 +574,10 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
     elif toefl and req_toefl:
         gap = toefl - req_toefl
         if gap >= 5:
-            eng_pts = 5; eng_ok = True
+            eng_pts = 5
             reasons["ielts"] = f"TOEFL {toefl} comfortably meets the {req_toefl} requirement."
         elif gap >= 0:
-            eng_pts = 4; eng_ok = True
+            eng_pts = 4
             reasons["ielts"] = f"TOEFL {toefl} meets the {req_toefl} minimum."
         else:
             reasons["ielts"] = f"TOEFL {toefl} is below the {req_toefl} requirement."
@@ -519,14 +596,17 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
     # ── 7. Profile-specific bonus (up to 3 pts) ────────────────────────────────
     bonus = 0.0
 
-    # MBA: work experience matters
-    if _is_mba(user) and work_exp >= 2:
+    # MBA: work experience matters — minimum 2 yrs expected, 5+ strong
+    if _is_mba(user):
         if work_exp >= 5:
             bonus += 2
-            reasons["bonus"] = f"Strong profile for MBA — {work_exp:.0f} years of professional experience."
+            reasons["bonus"] = f"Strong MBA profile — {work_exp:.0f} years of professional experience."
         elif work_exp >= 2:
             bonus += 1
-            reasons["bonus"] = f"{work_exp:.0f} years work experience is a positive for MBA applications."
+            reasons["bonus"] = f"{work_exp:.0f} years work experience strengthens your MBA application."
+        elif work_exp >= 1:
+            bonus += 0.5
+            reasons["bonus"] = f"Some work experience helps — most MBA programmes prefer 2+ years."
 
     # PhD: high-ranking unis score better (research quality)
     if _is_phd(user):
@@ -536,24 +616,34 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
         elif rank and rank <= 100:
             bonus += 1
             reasons["bonus"] = "Strong research output — suitable for doctoral study."
+        # Work experience is also positive for PhD
+        if work_exp >= 2:
+            bonus = min(3.0, bonus + 0.5)
 
-    # GRE bonus for STEM programmes
-    if gre and gre >= 320 and _is_stem(user):
-        bonus += 1
+    # Non-MBA work experience: industry-relevant programmes appreciate it
+    if not _is_mba(user) and not _is_phd(user) and work_exp >= 2:
+        bonus = min(3.0, bonus + 0.5)
         if "bonus" not in reasons:
-            reasons["bonus"] = f"GRE {gre} is excellent for STEM admission."
+            reasons["bonus"] = f"{work_exp:.0f} years of work experience adds strength to your Masters application."
+
+    # GRE: if university requires GRE, check if student has it
+    gre_req = getattr(uni, "gre_required", False)
+    if gre_req and gre and gre >= 310 and _is_stem(user):
+        bonus = min(3.0, bonus + 1)
+        reasons.setdefault("bonus", f"GRE {gre} meets this university's requirement — strong STEM application.")
+    elif gre and gre >= 320 and _is_stem(user):
+        bonus = min(3.0, bonus + 1)
+        reasons.setdefault("bonus", f"GRE {gre} is excellent — well above average for STEM programmes.")
 
     # GMAT bonus for MBA
     if gmat and gmat >= 650 and _is_mba(user):
-        bonus += 1
-        if "bonus" not in reasons:
-            reasons["bonus"] = f"GMAT {gmat} is competitive for MBA programmes."
+        bonus = min(3.0, bonus + 1)
+        reasons.setdefault("bonus", f"GMAT {gmat} is competitive for MBA programmes at this institution.")
 
     total += min(3.0, bonus)
 
     # ── 7b. Ranking tiebreaker bonus (up to 5 pts extra) ─────────────────────
     # Within the same profile, better-ranked universities should appear higher.
-    # This differentiates e.g. Oxford (rank 3) from Bath (rank 179) for the same student.
     if rank:
         if rank <= 10:
             total += 5.0
@@ -565,12 +655,11 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
             total += 2.0
         elif rank <= 200:
             total += 1.0
-        # 200+ gets 0 tiebreaker
 
     # Elite-school bonus: only for students who can actually get in
     if cgpa and cgpa >= 8.5 and rank and rank <= 20:
-        total += 2.0   # high-CGPA students see truly elite schools at the top
-        reasons.setdefault("bonus", "Your CGPA {:.1f} makes you a strong candidate for this elite institution.".format(cgpa))
+        total += 2.0
+        reasons.setdefault("bonus", f"Your CGPA {cgpa:.1f} makes you a strong candidate for this elite institution.")
 
     # ── 8. Scholarship / post-study work bonus (up to 2 pts) ──────────────────
     ext_bonus = 0.0
@@ -592,7 +681,15 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
 
     # ── 9. Career outcome alignment (up to 8 pts) ─────────────────────────────
     if career_goal:
+        # Try exact match first, then partial
         preferred_countries = CAREER_COUNTRIES.get(career_goal, [])
+        if not preferred_countries:
+            # Partial keyword match
+            for cg_key, cg_countries in CAREER_COUNTRIES.items():
+                if cg_key in career_goal or career_goal in cg_key:
+                    preferred_countries = cg_countries
+                    break
+
         if uni_country_lo in preferred_countries:
             total += 8
             reasons["career"] = (
@@ -600,7 +697,6 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
                 "and graduate hiring in this field."
             )
         elif preferred_countries:
-            # Partial if career goal is set but country isn't ideal
             total += 3
             top_picks = [c.title() for c in preferred_countries[:3]]
             reasons["career"] = (
@@ -614,10 +710,13 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
         total += 4
         reasons["career"] = "Add a career goal to see country-level job market alignment."
 
-    # ── 10. Study environment fit (up to 5 pts) ───────────────────────────────
+    # ── 10. Study environment fit (up to 5 pts) ────────────────────────────────
     env_pts = 0
 
-    if study_priority == "research":
+    # Use preferred_environment if set (overrides study_priority for environment scoring)
+    effective_env = study_priority or pref_env
+
+    if effective_env == "research" or _is_research_oriented(user):
         if rank and rank <= 50:
             env_pts = 5
             reasons["environment"] = f"QS #{rank} — world-class research environment, ideal for your research focus."
@@ -627,21 +726,21 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
         else:
             env_pts = 1
             reasons["environment"] = "Research priority best served at a top-100 university — explore funding options."
-    elif study_priority in ("internships", "startup ecosystem"):
-        hub_countries = PRIORITY_HUB_COUNTRIES.get(study_priority, [])
+    elif effective_env in ("internships", "startup ecosystem"):
+        hub_countries = PRIORITY_HUB_COUNTRIES.get(effective_env, [])
         if uni_country_lo in hub_countries:
             env_pts = 5
             reasons["environment"] = (
-                f"{uni.country} is a major hub for {study_priority.replace('_', ' ')} — "
+                f"{uni.country} is a major hub for {effective_env.replace('_', ' ')} — "
                 "strong industry networks and career opportunities."
             )
         else:
             env_pts = 2
             reasons["environment"] = (
-                f"For {study_priority.replace('_', ' ')}, countries like USA, UK, Germany, and Singapore "
+                f"For {effective_env.replace('_', ' ')}, countries like USA, UK, Germany, and Singapore "
                 "have denser ecosystems — but great opportunities exist globally."
             )
-    elif study_priority == "networking":
+    elif effective_env == "networking":
         hub_countries = PRIORITY_HUB_COUNTRIES.get("networking", [])
         if _is_mba(user) and uni_country_lo in hub_countries:
             env_pts = 5
@@ -651,7 +750,7 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
             reasons["environment"] = f"{uni.country} offers strong professional networking opportunities."
         else:
             env_pts = 2
-    elif study_priority == "coursework":
+    elif effective_env == "coursework":
         env_pts = 3
         reasons["environment"] = "Coursework focus — programme structure matters more than country; check the curriculum."
     else:
@@ -664,17 +763,68 @@ def _score_with_reasons(user: User, uni: University) -> tuple[float, dict]:
         buffer = cgpa - req_cgpa
         if buffer >= 1.5:
             total += 3
-            if "environment" not in reasons or env_pts == 0:
-                reasons["tier"] = f"Safety school — your CGPA is {buffer:.1f} pts above the minimum. High admission confidence."
-            else:
-                reasons["tier"] = f"Safety pick — CGPA buffer of {buffer:.1f} pts gives you a strong application."
+            reasons["tier"] = f"Safety pick — your CGPA is {buffer:.1f} pts above the minimum. High admission confidence."
         elif buffer >= 0.5:
             total += 2
             reasons["tier"] = f"Strong match — your CGPA is {buffer:.1f} pts above the {req_cgpa:.1f} minimum."
         elif buffer >= 0:
             total += 1
             reasons["tier"] = f"Match — CGPA meets the requirement; differentiate with your SOP and test scores."
-        # Below requirement: 0 pts (already penalised in factor 3)
+
+    # ── 12. Intake preference bonus (up to 2 pts) ─────────────────────────────
+    if intake_pref:
+        intake_months_raw = getattr(uni, "intake_months", None) or []
+        if intake_months_raw:
+            pref_months = INTAKE_SEASON_MAP.get(intake_pref, [intake_pref])
+            uni_months_lo = [m.lower() for m in intake_months_raw]
+            # Check if any preferred month appears in uni's intake list
+            match = any(
+                any(pm in um for pm in pref_months)
+                for um in uni_months_lo
+            )
+            if match:
+                total += 2
+                months_str = ", ".join(intake_months_raw[:3])
+                reasons["intake"] = f"Intake match — {uni_name} admits in {months_str}, aligning with your {intake_pref.title()} preference."
+            else:
+                months_str = ", ".join(intake_months_raw[:3])
+                reasons["intake"] = f"Intake note: {uni_name} typically admits in {months_str} — may not align with your {intake_pref.title()} preference."
+        else:
+            # No intake data — give partial point
+            total += 1
+            reasons["intake"] = f"Intake timing not confirmed — check if {intake_pref.title()} entry is available."
+
+    # ── 13. Living preference bonus (up to 2 pts) ─────────────────────────────
+    if living_pref:
+        city_type = _infer_city_type(uni_name, uni.country or "")
+
+        if living_pref in ("urban", "city"):
+            if city_type == "urban":
+                total += 2
+                reasons["living"] = f"City campus — matches your preference for an urban, vibrant environment."
+            elif city_type == "suburban":
+                total += 0.5
+                reasons["living"] = f"Quieter campus setting — may not fully match your urban preference."
+        elif living_pref in ("suburban", "quiet", "small town"):
+            if city_type == "suburban":
+                total += 2
+                reasons["living"] = f"Campus in a quieter setting — aligns with your preference."
+            elif city_type == "urban":
+                total += 0.5
+                reasons["living"] = f"City-based campus — may be busier than your preferred environment."
+            else:
+                total += 1
+                reasons["living"] = f"Campus environment in {uni.country} — verify specific location before applying."
+        elif living_pref in ("rural", "countryside"):
+            if city_type == "suburban":
+                total += 1.5
+                reasons["living"] = f"More relaxed setting — reasonably aligned with your rural preference."
+            elif city_type == "urban":
+                total += 0
+                reasons["living"] = f"City-based campus — likely busier than your preferred rural environment."
+            else:
+                total += 1
+                reasons["living"] = f"Verify campus location for rural/quiet environment preference."
 
     # ── Apply hard exclusion cap ───────────────────────────────────────────────
     if capped:
@@ -729,7 +879,7 @@ def _build_summary(score: float, reasons: dict) -> str:
             "comfortably", "well under", "Fits budget", "Strong fit", "Excellent",
             "in your target", "directly aligns", "Great geographic", "excellent post",
             "top destination", "world-class research", "major hub", "Safety pick",
-            "Strong match",
+            "Strong match", "Intake match", "City campus",
         ])
     ]
     snippet = positives[0] if positives else "Review the factor breakdown above for details."

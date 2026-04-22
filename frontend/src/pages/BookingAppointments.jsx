@@ -45,7 +45,7 @@ export default function BookingAppointments() {
     const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
 BEGIN:VEVENT
-SUMMARY:StudyPathway: ${activeTopic.name}
+SUMMARY:PathPilot: ${activeTopic.name}
 DTSTART;TZID=Asia/Kolkata:${dtStart}
 DTEND;TZID=Asia/Kolkata:${dtEnd}
 DESCRIPTION:Official Mock Appointment for University & Visa Consultation
@@ -84,7 +84,7 @@ END:VCALENDAR`;
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <a 
               href={generateICS()} 
-              download={`StudyPathway_${activeTopic.id}_Appointment.ics`}
+              download={`PathPilot_${activeTopic.id}_Appointment.ics`}
               className="btn-primary flex items-center gap-2 shadow-soft w-full sm:w-auto"
             >
               <Download className="w-4 h-4"/> Add to Google Calendar (.ics)
