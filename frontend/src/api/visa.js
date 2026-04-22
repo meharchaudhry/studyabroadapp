@@ -17,6 +17,16 @@ export const visaAPI = {
     });
     return res.data;
   },
+  getSavedChecklist: async (country, checklistType = 'official') => {
+    const res = await apiClient.get('/visa/saved-checklist', {
+      params: { country, checklist_type: checklistType },
+    });
+    return res.data;
+  },
+  saveChecklist: async (payload) => {
+    const res = await apiClient.put('/visa/saved-checklist', payload);
+    return res.data;
+  },
   clearMemory: async (sessionId) => {
     const res = await apiClient.delete(`/visa/session/${sessionId}`);
     return res.data;

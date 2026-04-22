@@ -7,7 +7,9 @@ import {
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const LOCATIONS = [
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+const DEFAULT_LOCATIONS = [
   "London", "New York", "Berlin", "Toronto", "Sydney",
   "Singapore", "Dublin", "Amsterdam", "Paris", "Dubai",
   "Los Angeles", "Tokyo", "Melbourne", "Edinburgh", "Munich",
@@ -250,8 +252,11 @@ function JobPortalsPanel() {
 // ── Main Jobs page ────────────────────────────────────────────────────────────
 
 export default function Jobs() {
+  const [locations, setLocations] = useState(DEFAULT_LOCATIONS);
+  const [sources, setSources]     = useState([]);
   const [location, setLocation]   = useState('London');
   const [jobType, setJobType]     = useState('all');
+  const [source, setSource]       = useState('all');
   const [field, setField]         = useState('All fields');
   const [keywords, setKeywords]   = useState('');
   const [jobs, setJobs]           = useState([]);
@@ -259,6 +264,11 @@ export default function Jobs() {
   const [searched, setSearched]   = useState(false);
   const [error, setError]         = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage]           = useState(1);
+  const [total, setTotal]         = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const PAGE_SIZE                 = 12;
+  const [searchNonce, setSearchNonce] = useState(0);
 
   const buildKeywords = () => {
     const parts = [keywords];
@@ -269,18 +279,47 @@ export default function Jobs() {
   const search = async () => {
     setLoading(true); setError(''); setSearched(true);
     try {
-      const res = await jobsAPI.searchJobs(location, jobType, buildKeywords());
+      const res = await jobsAPI.searchJobs(location, jobType, buildKeywords(), source === 'all' ? '' : source, page, PAGE_SIZE);
       setJobs(res.jobs || []);
+      setTotal(res.total || 0);
+      setTotalPages(res.total_pages || 0);
+      if (typeof res.page === 'number' && res.page !== page) {
+        setPage(res.page);
+      }
     } catch { setError('Failed to fetch jobs. Please try again.'); }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { search(); }, []);
+  useEffect(() => {
+    jobsAPI.getFilters()
+      .then((res) => {
+        const fromApi = Array.isArray(res?.locations) ? res.locations.filter(Boolean) : [];
+        const sourceList = Array.isArray(res?.sources) ? res.sources.filter(Boolean) : [];
+        if (fromApi.length) {
+          setLocations(fromApi);
+          if (!fromApi.includes(location)) {
+            setLocation(fromApi[0]);
+          }
+        }
+        setSources(sourceList);
+      })
+      .catch(() => {});
+    search();
+  }, []);
+
+  useEffect(() => {
+    if (!searched) return;
+    search();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, searchNonce]);
+
+  const triggerSearch = () => {
+    setPage(1);
+    setSearchNonce(n => n + 1);
+  };
 
   const salaryInfo = CITY_SALARY[location];
-  const filteredJobs = jobs.filter(j =>
-    jobType === 'all' || j.job_type === jobType || (jobType === 'remote' && j.remote)
-  );
+  const filteredJobs = jobs;
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -332,7 +371,7 @@ export default function Jobs() {
               placeholder="Keywords: python, marketing, finance…"
               value={keywords}
               onChange={e => setKeywords(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && search()}
+              onKeyDown={e => e.key === 'Enter' && triggerSearch()}
             />
           </div>
           <div className="relative w-44">
@@ -340,12 +379,12 @@ export default function Jobs() {
             <select
               className="input-field pl-10 w-full appearance-none"
               value={location}
-              onChange={e => setLocation(e.target.value)}
+              onChange={e => { setLocation(e.target.value); setPage(1); setSearchNonce(n => n + 1); }}
             >
-              {LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
+              {locations.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
-          <button onClick={search} className="btn-primary px-6">
+          <button onClick={triggerSearch} className="btn-primary px-6">
             <Search className="w-4 h-4" /> Search
           </button>
           <button
@@ -362,7 +401,7 @@ export default function Jobs() {
               <p className="text-xs font-semibold text-muted mb-2">Field of Study</p>
               <div className="flex gap-2 flex-wrap">
                 {FIELDS.map(f => (
-                  <button key={f} onClick={() => setField(f)}
+                  <button key={f} onClick={() => { setField(f); setPage(1); setSearchNonce(n => n + 1); }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
                       ${field === f ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-textSoft border-surfaceBorder hover:border-blue-300'}`}>
                     {f}
@@ -370,12 +409,36 @@ export default function Jobs() {
                 ))}
               </div>
             </div>
+            {sources.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-muted mb-2">Source</p>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => { setSource('all'); setPage(1); setSearchNonce(n => n + 1); }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
+                      ${source === 'all' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-textSoft border-surfaceBorder hover:border-blue-300'}`}
+                  >
+                    All Sources
+                  </button>
+                  {sources.map(s => (
+                    <button
+                      key={s}
+                      onClick={() => { setSource(s); setPage(1); setSearchNonce(n => n + 1); }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
+                        ${source === s ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-textSoft border-surfaceBorder hover:border-blue-300'}`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         <div className="flex gap-2 flex-wrap">
           {JOB_TYPES.map(t => (
-            <button key={t.value} onClick={() => setJobType(t.value)}
+            <button key={t.value} onClick={() => { setJobType(t.value); setPage(1); setSearchNonce(n => n + 1); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
                 ${jobType === t.value ? 'bg-lavender text-white border-lavender' : 'bg-white text-textSoft border-surfaceBorder hover:border-lavender/50'}`}>
               {t.label}
@@ -395,12 +458,35 @@ export default function Jobs() {
       ) : filteredJobs.length > 0 ? (
         <div className="space-y-3">
           <p className="text-sm text-muted font-medium">
-            <strong>{filteredJobs.length}</strong> jobs found near <strong>{location}</strong>
+            Showing <strong>{Math.min((page - 1) * PAGE_SIZE + 1, total || filteredJobs.length)}</strong>
+            -<strong>{Math.min(page * PAGE_SIZE, total || filteredJobs.length)}</strong>
+            of <strong>{total || filteredJobs.length}</strong> jobs near <strong>{location}</strong>
             {field !== 'All fields' && <> · {field}</>}
           </p>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
             {filteredJobs.map((job, i) => <JobCard key={job.id || i} job={job} locationSalary={salaryInfo} />)}
           </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <button
+                className="px-4 py-2 rounded-xl border border-surfaceBorder text-sm text-textSoft font-medium disabled:opacity-40"
+                disabled={page <= 1 || loading}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+              >
+                Previous
+              </button>
+              <span className="text-sm text-muted font-medium">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                className="px-4 py-2 rounded-xl border border-surfaceBorder text-sm text-textSoft font-medium disabled:opacity-40"
+                disabled={page >= totalPages || loading}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       ) : searched ? (
         <div className="card p-12 text-center">

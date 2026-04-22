@@ -33,72 +33,34 @@ Degree-type routing:
 from app.models.user import User
 from app.models.university import University
 
-# ── Country metadata ──────────────────────────────────────────────────────────
 
-GRAD_SALARY_USD: dict[str, int] = {
-    "United States": 78000, "United Kingdom": 54000, "Canada": 62000,
-    "Australia": 64000, "Germany": 58000, "France": 50000,
-    "Netherlands": 55000, "Ireland": 62000, "New Zealand": 56000,
-    "Singapore": 68000, "Japan": 46000, "Sweden": 54000,
-    "Norway": 64000, "Denmark": 60000, "Finland": 52000,
-    "UAE": 68000, "Portugal": 40000, "Italy": 42000,
-    "Spain": 44000, "South Korea": 50000, "Switzerland": 82000,
-    "Belgium": 52000, "Poland": 36000,
-    # Legacy aliases
-    "UK": 54000, "USA": 78000, "US": 78000,
-}
-
-JOB_SCORE: dict[str, float] = {
-    "United States": 9.0, "United Kingdom": 8.5, "Canada": 8.5,
-    "Australia": 8.0, "Germany": 8.0, "France": 7.0,
-    "Netherlands": 7.5, "Ireland": 8.0, "New Zealand": 7.5,
-    "Singapore": 8.5, "Japan": 7.0, "Sweden": 7.5,
-    "Norway": 7.5, "Denmark": 7.5, "Finland": 7.0,
-    "UAE": 8.0, "Portugal": 6.5, "Italy": 6.5, "Spain": 6.5,
-    "South Korea": 7.0, "Switzerland": 7.5, "Belgium": 7.0,
-    "Poland": 6.5,
-    "UK": 8.5, "USA": 9.0, "US": 9.0,
-}
-
-# ── Career goal → countries with strong job markets for that goal ─────────────
-
-CAREER_COUNTRIES: dict[str, list[str]] = {
-    "tech industry":    ["united states", "canada", "germany", "netherlands", "singapore", "ireland", "uk", "united kingdom", "sweden", "australia"],
-    "finance":          ["united kingdom", "uk", "singapore", "united states", "usa", "us", "uae", "switzerland", "ireland"],
-    "academia":         ["germany", "netherlands", "sweden", "finland", "norway", "denmark", "united states", "usa", "us", "united kingdom", "uk"],
-    "entrepreneurship": ["united states", "usa", "us", "united kingdom", "uk", "germany", "singapore", "netherlands", "ireland", "uae"],
-    "healthcare":       ["canada", "australia", "germany", "netherlands", "united kingdom", "uk", "new zealand", "norway"],
-    "government":       ["france", "belgium", "netherlands", "germany", "norway", "sweden"],
-    "ngo":              ["france", "belgium", "netherlands", "germany", "norway", "sweden", "united kingdom", "uk"],
-}
-
-# study_priority → countries / conditions considered strong for it
-PRIORITY_HUB_COUNTRIES: dict[str, list[str]] = {
-    "internships":       ["united states", "usa", "us", "united kingdom", "uk", "germany", "netherlands", "singapore", "ireland"],
-    "startup ecosystem": ["united states", "usa", "us", "united kingdom", "uk", "germany", "netherlands", "singapore", "uae"],
-    "networking":        ["united states", "usa", "us", "united kingdom", "uk", "singapore", "uae"],
-}
-
-# Post-study work visa quality (for work_abroad_interest scoring)
-POST_STUDY_WORK: dict[str, float] = {
-    "United Kingdom": 0.9,   # Graduate Route visa — 2 yrs
-    "Canada":         1.0,   # PGWP — up to 3 yrs, PR pathway
-    "Australia":      0.95,  # Grad visa — 2-6 yrs
-    "Ireland":        0.85,  # Stay Back — 2 yrs
-    "Germany":        0.80,  # 18 month job-search
-    "Netherlands":    0.75,
-    "France":         0.70,
-    "United States":  0.60,  # OPT 1-3 yrs but limited H1B
-    "Singapore":      0.65,
-    "New Zealand":    0.80,
-    "Sweden":         0.65,
-    "Switzerland":    0.50,
-    "UAE":            0.55,
-}
+def normalize_country(value: Optional[str]) -> str:
+    if not value:
+        return ""
+    aliases = {
+        "uk": "united kingdom",
+        "u.k.": "united kingdom",
+        "usa": "united states",
+        "us": "united states",
+        "u.s.": "united states",
+    }
+    key = value.strip().lower()
+    return aliases.get(key, key)
 
 
-# ── Field → subject keywords (appears in pipe-sep subject column) ─────────────
+def resolve_budget_usd(user: User) -> Optional[float]:
+    """Return user budget in USD from either budget or budget_inr fields."""
+    budget_usd = getattr(user, "budget", None)
+    if budget_usd:
+        return float(budget_usd)
 
+    budget_inr = getattr(user, "budget_inr", None)
+    if budget_inr:
+        return float(budget_inr) / 83.0
+
+    return None
+
+# ── Field → keywords that appear in pipe-separated university subject string ──
 FIELD_KEYWORDS: dict[str, list[str]] = {
     "computer science":            ["Computer Science","Computing","Software","Informatics","Data Science","Machine Learning","AI","Cybersecurity"],
     "data science / ai":           ["Data Science","Machine Learning","AI","Statistics","Analytics","Computer Science","Informatics"],

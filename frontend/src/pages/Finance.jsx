@@ -1,36 +1,44 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { Calculator, ArrowRight, TrendingUp, Clock, DollarSign, AlertTriangle, CheckCircle, Info, ChevronDown } from 'lucide-react';
+import { universitiesAPI } from '../api/universities';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 // ── Reference Data ────────────────────────────────────────────────────────────
 
-const COUNTRY_PRESETS = {
-  USA:         { tuition: 45000, living: 20000, salary: 78000, currency: 'USD', symbol: '$' },
-  UK:          { tuition: 28000, living: 15000, salary: 54000, currency: 'GBP', symbol: '£' },
-  Canada:      { tuition: 25000, living: 16000, salary: 62000, currency: 'CAD', symbol: 'C$' },
-  Australia:   { tuition: 32000, living: 18000, salary: 64000, currency: 'AUD', symbol: 'A$' },
-  Germany:     { tuition: 1000,  living: 12000, salary: 58000, currency: 'EUR', symbol: '€' },
-  Netherlands: { tuition: 16000, living: 14000, salary: 55000, currency: 'EUR', symbol: '€' },
-  Singapore:   { tuition: 30000, living: 18000, salary: 68000, currency: 'SGD', symbol: 'S$' },
-  Ireland:     { tuition: 22000, living: 16000, salary: 62000, currency: 'EUR', symbol: '€' },
+const DEFAULT_BENCHMARK = {
+  country: 'United States',
+  university_count: 0,
+  avg_tuition: 45000,
+  avg_living_cost: 20000,
+  avg_salary_usd: 78000,
+  job_market_score: 9.0,
 };
 
-const FIELD_SALARY_MULTIPLIERS = {
-  'Computer Science':  1.25,
-  'Engineering':       1.15,
-  'Data Science':      1.30,
-  'Finance':           1.20,
-  'Business':          1.05,
-  'Medicine':          1.40,
-  'Law':               1.15,
-  'Economics':         1.10,
-  'Architecture':      1.00,
-  'Arts':              0.85,
-  'Education':         0.90,
-  'Other':             1.00,
+const COUNTRY_SYMBOLS = {
+  'United States': '$',
+  'United Kingdom': '£',
+  Canada: 'C$',
+  Australia: 'A$',
+  Germany: '€',
+  France: '€',
+  Netherlands: '€',
+  Ireland: '€',
+  Singapore: 'S$',
+  Japan: '¥',
+  Sweden: 'kr',
+  Norway: 'kr',
+  Denmark: 'kr',
+  Finland: '€',
+  UAE: 'AED',
+  'New Zealand': 'NZ$',
+  Portugal: '€',
+  Italy: '€',
+  Spain: '€',
+  'South Korea': '₩',
+  Switzerland: 'CHF',
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -52,29 +60,57 @@ function computeRisk(breakEven, roi, totalCost, budget) {
 }
 
 const fmt = (n, sym = '$') => `${sym}${Math.round(n).toLocaleString()}`;
-const fmtK = (n, sym = '$') => `${sym}${(n / 1000).toFixed(0)}k`;
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function Finance() {
-  const [country, setCountry]   = useState('USA');
-  const [field, setField]       = useState('Computer Science');
-  const [tuition, setTuition]   = useState(45000);
-  const [living, setLiving]     = useState(20000);
-  const [loan, setLoan]         = useState(20000);
+  const [countries, setCountries] = useState([]);
+  const [benchmarks, setBenchmarks] = useState([]);
+  const [country, setCountry]   = useState('');
+  const [selected, setSelected] = useState(null);
+  const [tuition, setTuition]   = useState(0);
+  const [living, setLiving]     = useState(0);
+  const [loan, setLoan]         = useState(0);
   const [yearsStudy, setYears]  = useState(2);
   const [budget, setBudget]     = useState(0);
   const [results, setResults]   = useState(null);
   const [showDetails, setShowDetails] = useState(false);
 
-  const preset = COUNTRY_PRESETS[country] || COUNTRY_PRESETS.USA;
-  const sym = preset.symbol;
+  useEffect(() => {
+    universitiesAPI.getFinanceBenchmarks()
+      .then((res) => {
+        const bench = Array.isArray(res?.benchmarks) ? res.benchmarks : [];
+        const countryList = Array.isArray(res?.countries) ? res.countries : [];
+        setBenchmarks(bench);
+        setCountries(countryList);
 
-  const applyPreset = (c) => {
-    setCountry(c);
-    const p = COUNTRY_PRESETS[c];
-    if (p) { setTuition(p.tuition); setLiving(p.living); }
-  };
+        const initial = bench[0] || DEFAULT_BENCHMARK;
+        setCountry(initial.country);
+        setSelected(initial);
+        setTuition(Math.round(initial.avg_tuition || 0));
+        setLiving(Math.round(initial.avg_living_cost || 0));
+        setLoan(Math.round((initial.avg_tuition || 0) * 0.5));
+      })
+      .catch(() => {
+        setCountries([DEFAULT_BENCHMARK.country]);
+        setBenchmarks([DEFAULT_BENCHMARK]);
+        setCountry(DEFAULT_BENCHMARK.country);
+        setSelected(DEFAULT_BENCHMARK);
+        setTuition(DEFAULT_BENCHMARK.avg_tuition);
+        setLiving(DEFAULT_BENCHMARK.avg_living_cost);
+        setLoan(Math.round(DEFAULT_BENCHMARK.avg_tuition * 0.5));
+      });
+  }, []);
+
+  useEffect(() => {
+    const next = benchmarks.find(b => b.country === country) || DEFAULT_BENCHMARK;
+    setSelected(next);
+    setTuition(Math.round(next.avg_tuition || 0));
+    setLiving(Math.round(next.avg_living_cost || 0));
+    setLoan(Math.round((next.avg_tuition || 0) * 0.5));
+  }, [country, benchmarks]);
+
+  const sym = COUNTRY_SYMBOLS[country] || '$';
 
   const calculate = (e) => {
     e.preventDefault();
@@ -85,9 +121,7 @@ export default function Finance() {
     const loanInterest   = loanAmt * 0.18 * yearsStudy; // ~18% p.a. Indian education loan
     const trueCost       = totalCost + loanInterest;
 
-    const baseSalary     = preset.salary;
-    const multiplier     = FIELD_SALARY_MULTIPLIERS[field] || 1.0;
-    const grossSalary    = baseSalary * multiplier;
+    const grossSalary    = selected?.avg_salary_usd || DEFAULT_BENCHMARK.avg_salary_usd;
     const netSalary      = grossSalary * 0.75;             // ~25% tax
     const annualRepay    = netSalary * 0.30;               // 30% toward repayment
     const breakEven      = trueCost / annualRepay;
@@ -102,6 +136,8 @@ export default function Finance() {
       breakEven: breakEven.toFixed(1),
       roi5yr:    roi5yr.toFixed(1),
       roi10yr:   roi10yr.toFixed(1),
+      universityCount: selected?.university_count || 0,
+      jobMarketScore: selected?.job_market_score || 0,
       risk,
       yearlyBreakdown: Array.from({ length: Math.min(10, Math.ceil(breakEven) + 2) }, (_, yr) => ({
         year: yr + 1,
@@ -130,30 +166,16 @@ export default function Finance() {
         <div className="lg:col-span-2 card p-6 space-y-5">
           <h2 className="font-bold text-text">Configure Your Scenario</h2>
 
-          {/* Country preset */}
+          {/* Country benchmark */}
           <div>
             <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-2">Destination Country</label>
-            <div className="grid grid-cols-4 gap-1.5">
-              {Object.keys(COUNTRY_PRESETS).map(c => (
-                <button key={c} onClick={() => applyPreset(c)}
-                  className={`text-xs py-1.5 px-1 rounded-lg border font-medium transition-all
-                    ${country === c ? 'bg-lavender text-white border-lavender' : 'border-surfaceBorder text-textSoft hover:border-lavender/50'}`}>
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Field of study */}
-          <div>
-            <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-2">Field of Study</label>
-            <select className="input-field" value={field} onChange={e => setField(e.target.value)}>
-              {Object.keys(FIELD_SALARY_MULTIPLIERS).map(f => (
-                <option key={f} value={f}>{f}</option>
+            <select className="input-field" value={country} onChange={e => setCountry(e.target.value)}>
+              {(countries.length ? countries : [DEFAULT_BENCHMARK.country]).map(c => (
+                <option key={c} value={c}>{c}</option>
               ))}
             </select>
             <p className="text-xs text-muted mt-1">
-              Salary multiplier: <span className="font-semibold text-lavender">{FIELD_SALARY_MULTIPLIERS[field]}×</span> base for {country}
+              Uses average tuition and living costs from the universities dataset for the selected country.
             </p>
           </div>
 
@@ -198,9 +220,11 @@ export default function Finance() {
 
           {/* Benchmark note */}
           <div className="bg-surfaceAlt rounded-xl p-3 text-xs text-muted">
-            <p className="font-semibold text-textSoft mb-1">📊 Salary benchmarks</p>
-            <p>Base salary for {country}: <span className="font-bold text-text">{fmt(preset.salary, sym)}/yr</span></p>
-            <p>With {field} premium: <span className="font-bold text-lavender">{fmt(preset.salary * (FIELD_SALARY_MULTIPLIERS[field]||1), sym)}/yr gross</span></p>
+            <p className="font-semibold text-textSoft mb-1">📊 Country benchmarks</p>
+            <p>{country}: <span className="font-bold text-text">{selected?.university_count || 0} universities</span> in dataset</p>
+            <p>Avg tuition: <span className="font-bold text-lavender">{fmt(Math.round(selected?.avg_tuition || 0), sym)}/yr</span></p>
+            <p>Avg living: <span className="font-bold text-lavender">{fmt(Math.round(selected?.avg_living_cost || 0), sym)}/yr</span></p>
+            <p>Salary benchmark: <span className="font-bold text-lavender">{fmt(selected?.avg_salary_usd || DEFAULT_BENCHMARK.avg_salary_usd, '$')}/yr</span></p>
           </div>
         </div>
 
@@ -238,6 +262,18 @@ export default function Finance() {
                   </div>
                   <div className="text-xs text-muted mt-0.5">10-yr ROI</div>
                 </div>
+              </div>
+
+              <div className="card p-4 flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-muted">Country data used</p>
+                  <p className="text-sm text-textSoft">
+                    {selected?.university_count || 0} universities · avg salary {fmt(selected?.avg_salary_usd || DEFAULT_BENCHMARK.avg_salary_usd, '$')}/yr · job market score {selected?.job_market_score?.toFixed(1) || 'N/A'}/10
+                  </p>
+                </div>
+                <p className="text-xs text-muted max-w-sm">
+                  Calculations use actual university tuition and living-cost averages for the selected country. You can still override tuition, living, and loan values.
+                </p>
               </div>
 
               {/* Cost breakdown doughnut */}
@@ -343,7 +379,7 @@ export default function Finance() {
               </div>
               <p className="font-bold text-text mb-1">Configure &amp; Calculate</p>
               <p className="text-sm text-muted max-w-xs">
-                Select a country, your field, enter costs, and get a full ROI analysis with risk score and 10-year projection.
+                Select a country, enter or adjust costs, and get a full ROI analysis with risk score and 10-year projection.
               </p>
             </div>
           )}

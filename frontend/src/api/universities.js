@@ -1,6 +1,14 @@
 import apiClient from './client';
 
 export const universitiesAPI = {
+  getCountries: async () => {
+    const res = await apiClient.get('/universities/countries');
+    return res.data;
+  },
+  getFinanceBenchmarks: async () => {
+    const res = await apiClient.get('/universities/finance/benchmarks');
+    return res.data;
+  },
   getRecommendations: async (limit = 15) => {
     const res = await apiClient.get('/universities/recommendations', { params: { limit } });
     return res.data;

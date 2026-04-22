@@ -8,12 +8,15 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.security import verify_password, get_password_hash, create_access_token
 from app.core.config import settings
 from app.models.user import User
-from app.schemas.user import UserCreate, UserResponse, Token
+from app.models.user_degree import Degree
+from app.models.test_score import TestScore
+from app.schemas.user import UserCreate, UserResponse, UserUpdate, Token
 from app.api.deps import get_current_user
 
 router = APIRouter()
@@ -75,6 +78,67 @@ class OTPVerifyResponse(BaseModel):
     access_token: str
     token_type: str
 
+
+def sync_degrees(user: User, degrees_payload) -> None:
+    user.degrees.clear()
+    for degree in degrees_payload or []:
+        user.degrees.append(
+            Degree(
+                degree_level=degree.degree_level,
+                specialization=degree.specialization,
+                cgpa=degree.cgpa,
+                institution=degree.institution,
+                year_graduated=degree.year_graduated,
+            )
+        )
+
+
+def sync_tests(user: User, tests_payload) -> None:
+    user.tests.clear()
+    for test in tests_payload or []:
+        user.tests.append(
+            TestScore(
+                test_name=test.test_name,
+                score=test.score,
+                test_date=test.test_date,
+            )
+        )
+
+
+def apply_profile_payload(user: User, payload: UserUpdate) -> None:
+    updates = payload.dict(exclude_unset=True)
+
+    password = updates.pop("password", None)
+    if password:
+        user.hashed_password = get_password_hash(password)
+
+    degrees = updates.pop("degrees", None)
+    tests = updates.pop("tests", None)
+
+    preferred_intake = updates.pop("preferred_intake", None)
+    intake_preference = updates.pop("intake_preference", None)
+    if intake_preference is not None:
+        user.intake_preference = intake_preference
+    elif preferred_intake is not None:
+        user.intake_preference = preferred_intake
+
+    budget_inr = updates.pop("budget_inr", None)
+    budget = updates.pop("budget", None)
+    if budget_inr is not None:
+        user.budget_inr = budget_inr
+        if budget is None:
+            user.budget = int(budget_inr / 83) if budget_inr else None
+    if budget is not None:
+        user.budget = budget
+
+    for field_name, value in updates.items():
+        setattr(user, field_name, value)
+
+    if degrees is not None:
+        sync_degrees(user, degrees)
+    if tests is not None:
+        sync_tests(user, tests)
+
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
 @router.post("/register", response_model=dict, status_code=status.HTTP_201_CREATED)
@@ -119,6 +183,8 @@ def register(user_in: UserCreate, background_tasks: BackgroundTasks, db: Session
         existing.hashed_password = get_password_hash(user_in.password)
         for k, v in profile_fields.items():
             setattr(existing, k, v)
+        sync_degrees(existing, user_in.degrees)
+        sync_tests(existing, user_in.tests)
         existing.otp = otp
         existing.otp_expires_at = expires
         db.commit()
@@ -135,6 +201,9 @@ def register(user_in: UserCreate, background_tasks: BackgroundTasks, db: Session
         db.add(user)
         db.commit()
         db.refresh(user)
+        sync_degrees(user, user_in.degrees)
+        sync_tests(user, user_in.tests)
+        db.commit()
 
     background_tasks.add_task(send_otp_email, user.email, otp)
     response: dict = {"email": user.email, "message": "OTP sent to your email. Please verify to activate your account."}
@@ -198,5 +267,41 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
 
 
 @router.get("/me", response_model=UserResponse)
-def get_user_me(current_user: User = Depends(get_current_user)) -> Any:
-    return current_user
+def get_user_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Any:
+    user = (
+        db.query(User)
+        .options(selectinload(User.degrees), selectinload(User.tests))
+        .filter(User.id == current_user.id)
+        .first()
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    return user
+
+
+@router.patch("/me", response_model=UserResponse)
+def update_user_me(
+    user_in: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Any:
+    user = (
+        db.query(User)
+        .options(selectinload(User.degrees), selectinload(User.tests))
+        .filter(User.id == current_user.id)
+        .first()
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    apply_profile_payload(user, user_in)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return (
+        db.query(User)
+        .options(selectinload(User.degrees), selectinload(User.tests))
+        .filter(User.id == user.id)
+        .first()
+    )

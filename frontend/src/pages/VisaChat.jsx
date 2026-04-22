@@ -8,12 +8,6 @@ import {
   Gauge, ExternalLink, Sparkles, RefreshCw, Zap, CheckCircle2, Loader2,
 } from 'lucide-react';
 
-const COUNTRIES = [
-  'USA','UK','Canada','Australia','Germany','France','Netherlands',
-  'Ireland','Singapore','Japan','Sweden','Norway','Denmark','Finland',
-  'New Zealand','UAE','Portugal','Italy','Spain','South Korea','Switzerland',
-];
-
 const SUGGESTED_QUESTIONS = {
   UK:          ['What is the 28-day rule for funds?', 'How many hours can I work on a UK student visa?', 'What is the Immigration Health Surcharge?'],
   USA:         ['What is OPT and STEM OPT extension?', 'How do I get an I-20 form?', 'What financial proof do I need for an F-1 visa?'],
@@ -65,6 +59,7 @@ function renderAnswer(text) {
 }
 
 export default function VisaChat() {
+  const [countries, setCountries]     = useState([]);
   const [country, setCountry]         = useState('UK');
   const [sessionId, setSessionId]     = useState(() => makeSessionId('UK'));
   const [checklist, setChecklist]     = useState(null);
@@ -86,6 +81,16 @@ export default function VisaChat() {
 
   useEffect(() => {
     authAPI.getProfile().then(setUserProfile).catch(() => {});
+    visaAPI.getCountries()
+      .then((res) => {
+        const fetched = Array.isArray(res?.countries) ? res.countries : [];
+        if (!fetched.length) return;
+        setCountries(fetched);
+        if (!fetched.includes(country)) {
+          setCountry(fetched[0]);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const suggestions = SUGGESTED_QUESTIONS[country] || SUGGESTED_QUESTIONS.default;
@@ -93,6 +98,8 @@ export default function VisaChat() {
   const fetchChecklist = async (c = country) => {
     setLisLoading(true);
     setChecked({});
+    setAiChecklist(null);
+    setAiChecked({});
     const sid = makeSessionId(c);
     setSessionId(sid);
     setMessages([{
@@ -105,6 +112,24 @@ export default function VisaChat() {
       if (data.checklist?.length) {
         setExpandedCats({ [data.checklist[0].category]: true });
       }
+
+      try {
+        const saved = await visaAPI.getSavedChecklist(c, 'official');
+        setChecked(saved?.checked || {});
+      } catch {
+        setChecked({});
+      }
+
+      try {
+        const savedAi = await visaAPI.getSavedChecklist(c, 'ai');
+        if (savedAi?.items?.length) {
+          setAiChecklist({ checklist: savedAi.items });
+          setAiChecked(savedAi.checked || {});
+        }
+      } catch {
+        setAiChecklist(null);
+        setAiChecked({});
+      }
     } catch {
       setChecklist(null);
     } finally {
@@ -115,7 +140,34 @@ export default function VisaChat() {
   useEffect(() => { fetchChecklist(country); }, [country]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
-  const toggleCheck = (id) => setChecked(prev => ({ ...prev, [id]: !prev[id] }));
+  const saveOfficialChecklist = async (nextChecked, activeChecklist = checklist, activeCountry = country) => {
+    if (!activeChecklist?.checklist?.length) return;
+    try {
+      await visaAPI.saveChecklist({
+        country: activeCountry,
+        checklist_type: 'official',
+        title: activeChecklist.visa_type,
+        metadata: {
+          official_link: activeChecklist.official_link,
+          processing_time: activeChecklist.processing_time,
+          visa_fee_inr: activeChecklist.visa_fee_inr,
+          source_doc: activeChecklist.source_doc,
+        },
+        items: activeChecklist.checklist,
+        checked: nextChecked,
+      });
+    } catch {
+      // Keep UI responsive even if save fails.
+    }
+  };
+
+  const toggleCheck = (id) => {
+    setChecked(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      saveOfficialChecklist(next);
+      return next;
+    });
+  };
   const toggleCat   = (cat) => setExpandedCats(prev => ({ ...prev, [cat]: !prev[cat] }));
 
   const sendMessage = async (q = input.trim()) => {
@@ -149,6 +201,14 @@ export default function VisaChat() {
     try {
       const data = await aiAPI.generateChecklist(country, userProfile);
       setAiChecklist(data);
+      await visaAPI.saveChecklist({
+        country,
+        checklist_type: 'ai',
+        title: `AI Personalised Checklist (${country})`,
+        metadata: { source: 'ai-generate-checklist' },
+        items: data?.checklist || [],
+        checked: {},
+      });
     } catch {
       setAiChecklist({ error: true });
     } finally {
@@ -156,7 +216,22 @@ export default function VisaChat() {
     }
   };
 
-  const toggleAiCheck = (id) => setAiChecked(prev => ({ ...prev, [id]: !prev[id] }));
+  const toggleAiCheck = (id) => {
+    setAiChecked(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      if (aiChecklist?.checklist?.length) {
+        visaAPI.saveChecklist({
+          country,
+          checklist_type: 'ai',
+          title: `AI Personalised Checklist (${country})`,
+          metadata: { source: 'ai-generate-checklist' },
+          items: aiChecklist.checklist,
+          checked: next,
+        }).catch(() => {});
+      }
+      return next;
+    });
+  };
 
   const grouped = (checklist?.checklist || []).reduce((acc, item) => {
     (acc[item.category] = acc[item.category] || []).push(item);
@@ -182,7 +257,7 @@ export default function VisaChat() {
       {/* Country selector */}
       <div className="card p-4 flex flex-wrap gap-2 items-center">
         <span className="text-xs font-bold text-muted uppercase tracking-wide mr-1">Country:</span>
-        {COUNTRIES.map(c => (
+        {(countries.length ? countries : [country]).map(c => (
           <button key={c} onClick={() => setCountry(c)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
               country === c
@@ -236,6 +311,32 @@ export default function VisaChat() {
                     className="btn-ghost mt-3 text-xs py-1.5">
                     <ExternalLink className="w-3.5 h-3.5" /> Official Visa Website
                   </a>
+                )}
+                {(checklist.overview_summary || checklist.overview_points?.length) && (
+                  <div className="mt-4 p-3 rounded-lg bg-skyLight/40 border border-blue-100">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-blue-700 mb-1">Overview</p>
+                    {checklist.overview_summary && (
+                      <p className="text-xs text-textSoft leading-relaxed">{checklist.overview_summary}</p>
+                    )}
+                    {checklist.overview_points?.length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {checklist.overview_points.map((point, idx) => (
+                          <li key={idx} className="text-xs text-textSoft leading-relaxed flex gap-2">
+                            <span className="text-blue-600">•</span>
+                            <span>{point}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+                {checklist.official_guidance && (
+                  <details className="mt-3 rounded-lg border border-surfaceBorder bg-surfaceAlt/60 p-2">
+                    <summary className="text-xs font-medium text-textSoft cursor-pointer">Read source excerpt</summary>
+                    <div className="mt-2 text-xs text-muted leading-relaxed whitespace-pre-line">
+                      {checklist.official_guidance}
+                    </div>
+                  </details>
                 )}
               </div>
 
@@ -375,7 +476,7 @@ export default function VisaChat() {
                   {msg.sources?.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-surfaceBorder/50 flex flex-wrap gap-1">
                       <span className="text-[10px] text-muted">Sources:</span>
-                      {[...new Map(msg.sources.map(s => [s.doc, s])).values()].slice(0, 4).map((s, j) => (
+                      {[...new Map(msg.sources.map(s => [s.doc, s])).values(.map(s => (typeof s === 'string' ? s : s.doc)).filter(Boolean))].slice(0, 4).map((s, j) => (
                         <span key={j} className="badge badge-lavender text-[10px]">{s.doc}</span>
                       ))}
                     </div>

@@ -10,6 +10,22 @@ import {
 const FALLBACK_COUNTRIES = ['USA','UK','Germany','France','Netherlands','Australia','Singapore','Hong Kong','Spain','Switzerland','Finland'];
 const DEGREE_LEVELS = ['High School', 'Diploma', 'Bachelors', 'Masters', 'PhD'];
 const TEST_NAMES = ['IELTS', 'TOEFL', 'PTE', 'Duolingo', 'GRE', 'GMAT', 'SAT', 'ACT'];
+const CURRENT_DEGREES = [
+  'B.Tech / B.E.', 'B.Sc', 'BCA', 'B.Com', 'BBA / BBM',
+  'BA', 'MBBS / BDS', 'LLB', 'B.Arch', 'Other'
+];
+const FIELDS_OF_STUDY = [
+  'Computer Science', 'Data Science / AI', 'Electrical Engineering',
+  'Mechanical Engineering', 'Civil Engineering', 'Chemical Engineering',
+  'Business / MBA', 'Finance / Economics', 'Marketing',
+  'Medicine / Public Health', 'Law', 'Architecture / Design',
+  'Physics / Mathematics', 'Biotechnology', 'Psychology'
+];
+const TARGET_DEGREES = ['Masters', 'MBA', 'PhD', 'Bachelors', 'Diploma', 'Other'];
+const ENGLISH_TESTS = ['IELTS', 'TOEFL', 'PTE', 'Duolingo', 'Not yet taken'];
+const INTAKE_OPTIONS = ['Fall', 'Spring', 'Winter'];
+const RANKING_OPTIONS = ['Top 50', 'Top 100', 'Top 200', 'Any'];
+const LIVING_OPTIONS = ['Urban', 'Campus', 'Flexible'];
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState('personal'); // 'personal', 'strategy', or 'security'
@@ -21,9 +37,25 @@ export default function Profile() {
 
   const [form, setForm] = useState({
     email: '',
+    full_name: '',
+    current_degree: '',
+    home_university: '',
+    field_of_study: '',
+    cgpa: '',
+    graduation_year: '',
+    english_test: '',
+    english_score: '',
+    toefl_score: '',
+    gre_score: '',
+    gmat_score: '',
     budget: '',
+    budget_inr: '',
     work_experience_years: '',
-    preferred_intake: '',
+    preferred_degree: '',
+    intake_preference: '',
+    ranking_preference: '',
+    work_abroad_interest: false,
+    scholarship_interest: false,
     target_countries: [],
     degrees: [],
     tests: [],
@@ -45,9 +77,25 @@ export default function Profile() {
       const data = await authAPI.getProfile();
       setForm({
         email: data.email || '',
-        budget: data.budget || '',
-        work_experience_years: data.work_experience_years || '',
-        preferred_intake: data.preferred_intake || '',
+        full_name: data.full_name || '',
+        current_degree: data.current_degree || '',
+        home_university: data.home_university || '',
+        field_of_study: data.field_of_study || '',
+        cgpa: data.cgpa ?? '',
+        graduation_year: data.graduation_year ?? '',
+        english_test: data.english_test || '',
+        english_score: data.english_score ?? '',
+        toefl_score: data.toefl_score ?? '',
+        gre_score: data.gre_score ?? '',
+        gmat_score: data.gmat_score ?? '',
+        budget: data.budget ?? '',
+        budget_inr: data.budget_inr ?? '',
+        work_experience_years: data.work_experience_years ?? '',
+        preferred_degree: data.preferred_degree || '',
+        intake_preference: data.intake_preference || data.preferred_intake || '',
+        ranking_preference: data.ranking_preference || '',
+        work_abroad_interest: Boolean(data.work_abroad_interest),
+        scholarship_interest: Boolean(data.scholarship_interest),
         target_countries: data.target_countries || [],
         degrees: data.degrees || [],
         tests: data.tests || [],
@@ -87,13 +135,41 @@ export default function Profile() {
     setError('');
     setSuccess('');
     try {
+      const budgetInr = form.budget_inr ? parseInt(form.budget_inr, 10) : null;
       await authAPI.updateProfile({
-        ...form,
-        budget: parseInt(form.budget, 10) || null,
-        work_experience_years: parseInt(form.work_experience_years, 10) || 0,
-        // Ensure numbers are numbers in the nested arrays
-        degrees: form.degrees.map(d => ({ ...d, cgpa: parseFloat(d.cgpa) || 0 })),
-        tests: form.tests.map(t => ({ ...t, score: parseFloat(t.score) || 0 }))
+        full_name: form.full_name || null,
+        current_degree: form.current_degree || null,
+        home_university: form.home_university || null,
+        field_of_study: form.field_of_study || null,
+        cgpa: form.cgpa !== '' ? parseFloat(form.cgpa) : null,
+        graduation_year: form.graduation_year !== '' ? parseInt(form.graduation_year, 10) : null,
+        english_test: form.english_test || null,
+        english_score: form.english_score !== '' ? parseFloat(form.english_score) : null,
+        toefl_score: form.toefl_score !== '' ? parseInt(form.toefl_score, 10) : null,
+        gre_score: form.gre_score !== '' ? parseInt(form.gre_score, 10) : null,
+        gmat_score: form.gmat_score !== '' ? parseInt(form.gmat_score, 10) : null,
+        work_experience_years: form.work_experience_years !== '' ? parseFloat(form.work_experience_years) : null,
+        preferred_degree: form.preferred_degree || null,
+        intake_preference: form.intake_preference || null,
+        ranking_preference: form.ranking_preference || null,
+        work_abroad_interest: form.work_abroad_interest,
+        budget_inr: budgetInr,
+        budget: budgetInr ? Math.round(budgetInr / 83) : (form.budget ? parseInt(form.budget, 10) : null),
+        scholarship_interest: form.scholarship_interest,
+        target_countries: form.target_countries,
+        career_goal: form.career_goal || null,
+        preferred_environment: form.preferred_environment || null,
+        study_priority: form.study_priority || null,
+        learning_style: form.learning_style || null,
+        living_preference: form.living_preference || null,
+        degrees: form.degrees.map(d => ({
+          ...d,
+          cgpa: d.cgpa !== '' ? parseFloat(d.cgpa) : null
+        })),
+        tests: form.tests.map(t => ({
+          ...t,
+          score: t.score !== '' ? parseFloat(t.score) : null
+        }))
       });
       setSuccess('Portfolio updated successfully!');
     } catch (err) {
@@ -209,6 +285,77 @@ export default function Profile() {
 
             {activeTab === 'personal' && (
               <form onSubmit={handleUpdateProfile} className="space-y-10 flex-1">
+                {/* ── Section: Profile Basics ── */}
+                <section className="space-y-6">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-lavender" />
+                    <h3 className="text-sm font-bold text-text uppercase tracking-widest">Profile Basics</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">Full Name</label>
+                      <input type="text" value={form.full_name} onChange={e=>setForm({...form, full_name: e.target.value})} className="input-field" placeholder="Your full name" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">Current Degree</label>
+                      <select value={form.current_degree} onChange={e=>setForm({...form, current_degree: e.target.value})} className="input-field">
+                        <option value="">Select degree</option>
+                        {CURRENT_DEGREES.map(item => <option key={item} value={item}>{item}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">Field of Study</label>
+                      <select value={form.field_of_study} onChange={e=>setForm({...form, field_of_study: e.target.value})} className="input-field">
+                        <option value="">Select field</option>
+                        {FIELDS_OF_STUDY.map(item => <option key={item} value={item}>{item}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">Home University</label>
+                      <input type="text" value={form.home_university} onChange={e=>setForm({...form, home_university: e.target.value})} className="input-field" placeholder="Institution name" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">CGPA</label>
+                      <input type="number" step="0.01" value={form.cgpa} onChange={e=>setForm({...form, cgpa: e.target.value})} className="input-field" placeholder="e.g. 8.6" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">Graduation Year</label>
+                      <input type="number" value={form.graduation_year} onChange={e=>setForm({...form, graduation_year: e.target.value})} className="input-field" placeholder="2026" />
+                    </div>
+                  </div>
+                </section>
+
+                <section className="border-t border-surfaceBorder pt-10 space-y-6">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-4 h-4 text-lavender" />
+                    <h3 className="text-sm font-bold text-text uppercase tracking-widest">English and Test Scores</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">English Test</label>
+                      <select value={form.english_test} onChange={e=>setForm({...form, english_test: e.target.value})} className="input-field">
+                        <option value="">Select test</option>
+                        {ENGLISH_TESTS.map(item => <option key={item} value={item}>{item}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">English Score</label>
+                      <input type="number" step="0.01" value={form.english_score} onChange={e=>setForm({...form, english_score: e.target.value})} className="input-field" placeholder="7.5" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">TOEFL Score</label>
+                      <input type="number" value={form.toefl_score} onChange={e=>setForm({...form, toefl_score: e.target.value})} className="input-field" placeholder="105" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">GRE Score</label>
+                      <input type="number" value={form.gre_score} onChange={e=>setForm({...form, gre_score: e.target.value})} className="input-field" placeholder="320" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">GMAT Score</label>
+                      <input type="number" value={form.gmat_score} onChange={e=>setForm({...form, gmat_score: e.target.value})} className="input-field" placeholder="650" />
+                    </div>
+                  </div>
+                </section>
                 
                 {/* ── Section: Degrees ── */}
                 <section>
@@ -291,23 +438,46 @@ export default function Profile() {
                   </div>
                 </section>
 
-                {/* ── Section: Experience & Core ── */}
+                {/* ── Section: Goals & Financials ── */}
                 <section className="border-t border-surfaceBorder pt-10">
                   <h3 className="text-xs font-bold text-muted uppercase tracking-widest flex items-center gap-2 mb-6">
-                    <DollarSign className="w-4 h-4 text-lavender"/> Financials & Experience
+                    <DollarSign className="w-4 h-4 text-lavender"/> Goals & Financials
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">Target Degree</label>
+                      <select value={form.preferred_degree} onChange={e=>setForm({...form, preferred_degree: e.target.value})} className="input-field">
+                        <option value="">Select target degree</option>
+                        {TARGET_DEGREES.map(item => <option key={item} value={item}>{item}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">Target Intake</label>
+                      <select value={form.intake_preference} onChange={e=>setForm({...form, intake_preference: e.target.value})} className="input-field">
+                        <option value="">Select intake</option>
+                        {INTAKE_OPTIONS.map(item => <option key={item} value={item}>{item}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">Ranking Preference</label>
+                      <select value={form.ranking_preference} onChange={e=>setForm({...form, ranking_preference: e.target.value})} className="input-field">
+                        <option value="">Select preference</option>
+                        {RANKING_OPTIONS.map(item => <option key={item} value={item}>{item}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">Budget in INR</label>
+                      <input type="number" value={form.budget_inr} onChange={e=>setForm({...form, budget_inr: e.target.value})} className="input-field" placeholder="5000000" />
+                    </div>
                     <div>
                       <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">Current Work Exp (Yrs)</label>
                       <input type="number" value={form.work_experience_years} onChange={e=>setForm({...form, work_experience_years: e.target.value})} className="input-field"/>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">Yearly Budget (₹)</label>
-                      <input type="number" value={form.budget} onChange={e=>setForm({...form, budget: e.target.value})} className="input-field" placeholder="5,000,000"/>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">Target Intake</label>
-                      <input type="text" value={form.preferred_intake} onChange={e=>setForm({...form, preferred_intake: e.target.value})} className="input-field" placeholder="Fall 2025"/>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-1.5 ml-1">Scholarship Interest</label>
+                      <button type="button" onClick={()=>setForm({...form, scholarship_interest: !form.scholarship_interest})} className={`w-full py-3 rounded-xl border text-xs font-bold transition-all ${form.scholarship_interest ? 'bg-mint text-white border-mint shadow-md' : 'bg-white border-surfaceBorder hover:border-mint text-textSoft'}`}>
+                        {form.scholarship_interest ? 'Scholarship support desired' : 'No scholarship preference selected'}
+                      </button>
                     </div>
                   </div>
                 </section>
@@ -377,6 +547,26 @@ export default function Profile() {
                           </button>
                         ))}
                       </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase mb-3 ml-1 tracking-widest">Living Preference</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {LIVING_OPTIONS.map(option => (
+                          <button key={option} type="button" onClick={()=>setForm({...form, living_preference: option})}
+                            className={`py-3 rounded-xl border text-[10px] font-bold transition-all ${form.living_preference===option?'bg-peach text-white border-peach shadow-md':'bg-white border-surfaceBorder hover:border-peach text-textSoft'}`}>
+                            {option}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between rounded-xl border border-surfaceBorder bg-white px-4 py-3">
+                      <div>
+                        <p className="text-[10px] font-bold text-muted uppercase tracking-widest">Work Abroad Interest</p>
+                        <p className="text-xs text-textSoft">Use this to bias recommendations toward post-study work pathways.</p>
+                      </div>
+                      <button type="button" onClick={()=>setForm({...form, work_abroad_interest: !form.work_abroad_interest})} className={`px-4 py-2 rounded-lg text-[10px] font-bold border transition-all ${form.work_abroad_interest ? 'bg-peach text-white border-peach shadow-md' : 'bg-surfaceAlt border-surfaceBorder text-textSoft hover:border-peach'}`}>
+                        {form.work_abroad_interest ? 'Enabled' : 'Disabled'}
+                      </button>
                     </div>
                   </div>
                 </div>

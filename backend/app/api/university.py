@@ -1,7 +1,8 @@
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import or_, func
 from pydantic import BaseModel
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
@@ -76,46 +77,167 @@ class ExplainResponse(BaseModel):
     summary: str
     reasons: dict
     financial: dict
+    summary: str
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-def _enrich(u: University) -> UniDetail:
-    d = UniDetail.model_validate(u)
-    d.grad_salary_usd  = GRAD_SALARY_USD.get(u.country)
-    d.job_market_score = JOB_SCORE.get(u.country)
-    return d
-
-
-# ── Subject expansion: map UI label → keywords that appear in pipe-sep subject field
-SUBJECT_KEYWORDS: dict[str, list[str]] = {
-    "Computer Science": ["Computer Science", "Computing", "Software", "Informatics", "CS"],
-    "Engineering":      ["Engineering", "Mechanical", "Electrical", "Civil", "Chemical", "Aerospace", "Biomedical Engineering"],
-    "Data Science":     ["Data Science", "Data Analytics", "Machine Learning", "AI", "Statistics", "Big Data"],
-    "Business":         ["Business", "Management", "MBA", "Commerce", "Administration", "Strategy"],
-    "Finance":          ["Finance", "Accounting", "Banking", "Financial"],
-    "Economics":        ["Economics", "Econometrics", "Political Economy", "Economic"],
-    "Medicine":         ["Medicine", "Medical", "Health Sciences", "Pharmacy", "Nursing", "Biomedical"],
-    "Law":              ["Law", "Legal", "Jurisprudence", "International Law"],
-    "Arts":             ["Arts", "Humanities", "Liberal Arts", "Design", "Media", "Journalism", "History", "Philosophy", "Literature"],
-    "Architecture":     ["Architecture", "Urban Planning", "Built Environment"],
-    "Psychology":       ["Psychology", "Cognitive", "Neuroscience", "Behavioural"],
-    "Physics":          ["Physics", "Mathematics", "Applied Mathematics", "Maths", "Mathematical"],
-    "Environmental":    ["Environmental", "Sustainability", "Climate", "Ecology", "Earth Science"],
-    "Public Health":    ["Public Health", "Epidemiology", "Global Health", "Health Policy"],
-    "Education":        ["Education", "Teaching", "Pedagogy"],
-    "Social Science":   ["Social Science", "Sociology", "Anthropology", "Political Science", "International Relations", "Geography"],
-}
+class FinanceBenchmark(BaseModel):
+    country: str
+    university_count: int
+    avg_tuition: Optional[float] = None
+    avg_living_cost: Optional[float] = None
+    avg_total_cost: Optional[float] = None
+    avg_salary_usd: Optional[int] = None
+    job_market_score: Optional[float] = None
 
 
-def _subject_filter(query, subject_str: str):
-    """Apply ILIKE filters across the pipe-separated subject column."""
-    keywords = SUBJECT_KEYWORDS.get(subject_str, [subject_str])
-    conditions = [University.subject.ilike(f"%{kw}%") for kw in keywords]
-    return query.filter(or_(*conditions))
+class FinanceBenchmarkResponse(BaseModel):
+    countries: List[str]
+    benchmarks: List[FinanceBenchmark]
 
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
+def _subject_filter(query, subject: str):
+    value = (subject or "").strip()
+    if not value:
+        return query
+    return query.filter(
+        or_(
+            University.subject.ilike(f"%{value}%"),
+            University.subject.ilike(f"%{value.replace(' ', '%')}%"),
+        )
+    )
+
+
+def _enrich(uni: University) -> UniDetail:
+    return UniDetail(
+        id=uni.id,
+        name=uni.name,
+        country=uni.country,
+        ranking=uni.ranking,
+        qs_subject_ranking=uni.qs_subject_ranking,
+        subject=uni.subject,
+        tuition=uni.tuition,
+        living_cost=uni.living_cost,
+        image_url=uni.image_url,
+        website=uni.website,
+        description=getattr(uni, "description", None),
+        acceptance_rate=getattr(uni, "acceptance_rate", None),
+        requirements_cgpa=uni.requirements_cgpa,
+        ielts=uni.ielts,
+        toefl=uni.toefl,
+        gre_required=uni.gre_required,
+        scholarships=getattr(uni, "scholarships", None),
+        course_duration=getattr(uni, "course_duration", None),
+        intake_months=getattr(uni, "intake_months", None),
+    )
+
+
+@router.get("/countries")
+def get_university_countries(db: Session = Depends(get_db)):
+    try:
+        rows = (
+            db.query(University.country)
+            .filter(University.country.isnot(None))
+            .distinct()
+            .all()
+        )
+        countries = sorted([r[0] for r in rows if r and r[0]])
+        return {"countries": countries}
+    except SQLAlchemyError:
+        # Fallback: allow automation workflows to continue from local dataset when DB is down.
+        csv_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "data",
+            "universities.csv",
+        )
+        countries = set()
+        try:
+            with open(csv_path, newline="", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    c = (row.get("country") or "").strip()
+                    if c:
+                        countries.add(c)
+        except Exception:
+            return {"countries": []}
+
+        return {"countries": sorted(countries)}
+
+
+@router.get("/finance/benchmarks", response_model=FinanceBenchmarkResponse)
+def get_finance_benchmarks(db: Session = Depends(get_db)) -> Any:
+    try:
+        rows = (
+            db.query(
+                University.country.label("country"),
+                func.count(University.id).label("university_count"),
+                func.avg(University.tuition).label("avg_tuition"),
+                func.avg(University.living_cost).label("avg_living_cost"),
+            )
+            .filter(University.country.isnot(None))
+            .group_by(University.country)
+            .order_by(University.country)
+            .all()
+        )
+
+        benchmarks = []
+        countries = []
+        for row in rows:
+            country = row.country
+            countries.append(country)
+            benchmarks.append(
+                FinanceBenchmark(
+                    country=country,
+                    university_count=int(row.university_count or 0),
+                    avg_tuition=float(row.avg_tuition) if row.avg_tuition is not None else None,
+                    avg_living_cost=float(row.avg_living_cost) if row.avg_living_cost is not None else None,
+                    avg_total_cost=(float(row.avg_tuition) + float(row.avg_living_cost)) if row.avg_tuition is not None and row.avg_living_cost is not None else None,
+                    avg_salary_usd=GRAD_SALARY_USD.get(country),
+                    job_market_score=JOB_SCORE.get(country),
+                )
+            )
+
+        return {"countries": countries, "benchmarks": benchmarks}
+    except SQLAlchemyError:
+        csv_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "data",
+            "universities.csv",
+        )
+        aggregates: dict[str, dict[str, float]] = {}
+        try:
+            with open(csv_path, newline="", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    country = (row.get("country") or "").strip()
+                    if not country:
+                        continue
+                    bucket = aggregates.setdefault(country, {"count": 0, "tuition": 0.0, "living": 0.0})
+                    bucket["count"] += 1
+                    bucket["tuition"] += float(row.get("tuition") or 0)
+                    bucket["living"] += float(row.get("living_cost") or 0)
+        except Exception:
+            return {"countries": [], "benchmarks": []}
+
+        countries = sorted(aggregates.keys())
+        benchmarks = []
+        for country in countries:
+            bucket = aggregates[country]
+            count = int(bucket["count"])
+            avg_tuition = (bucket["tuition"] / count) if count else None
+            avg_living = (bucket["living"] / count) if count else None
+            benchmarks.append(
+                FinanceBenchmark(
+                    country=country,
+                    university_count=count,
+                    avg_tuition=avg_tuition,
+                    avg_living_cost=avg_living,
+                    avg_total_cost=(avg_tuition + avg_living) if avg_tuition is not None and avg_living is not None else None,
+                    avg_salary_usd=GRAD_SALARY_USD.get(country),
+                    job_market_score=JOB_SCORE.get(country),
+                )
+            )
+
+        return {"countries": countries, "benchmarks": benchmarks}
 
 @router.get("", response_model=UniListResponse)
 def list_universities(

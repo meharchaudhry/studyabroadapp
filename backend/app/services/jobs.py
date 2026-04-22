@@ -1,319 +1,221 @@
-"""
-Jobs Service — Multi-source live fetching
-==========================================
-Sources (all free, no auth required):
-
-  Arbeitnow   arbeitnow.com/api/job-board-api        EU jobs, 100/call
-  Remotive    remotive.com/api/remote-jobs            Remote worldwide, searchable
-  RemoteOK    remoteok.com/api                        Remote + salary ranges
-  The Muse    themuse.com/api/public/jobs             497 k jobs, location-filtered
-
-Routing strategy:
-  EU cities       → Arbeitnow (post-filtered) + Remotive + RemoteOK
-  US / CA cities  → Muse (location filter) + Remotive + RemoteOK
-  APAC / other    → Remotive + RemoteOK + Muse (Flexible/Remote)
-
-All results normalised to a single schema.  In-memory cache (30 min).
-"""
-
-import asyncio
-import logging
-import re
-import time
-from typing import Optional
-
-import httpx
-
-logger = logging.getLogger(__name__)
-
-# ── In-memory cache ───────────────────────────────────────────────────────────
-_CACHE: dict = {}
-CACHE_TTL = 1800  # 30 minutes
-
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "application/json, text/html;q=0.9",
-}
+import requests
+import json
+import csv
+import os
+from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
+from app.models.job import Job, Cache
+from app.core.config import settings
 
 
-# ── Location routing tables ───────────────────────────────────────────────────
+async def _fetch_all(location: str, keywords: str, job_type: str = "all", source: str | None = None):
+    """Fetch job listings from local dataset and optionally live Adzuna fallback."""
+    desired_type = (job_type or "all").strip().lower()
+    desired_source = (source or "").strip().lower()
+    keyword_tokens = [t for t in (keywords or "").lower().split() if t]
+    location_token = (location or "").strip().lower()
 
-# Cities that Arbeitnow covers well (EU-only board)
-# Value = list of strings to match inside Arbeitnow location field
-ARBEITNOW_FILTER: dict = {
-    "London":      ["london", "uk", "england", "united kingdom"],
-    "Edinburgh":   ["edinburgh", "scotland", "uk", "united kingdom"],
-    "Manchester":  ["manchester", "uk", "england", "united kingdom"],
-    "Dublin":      ["dublin", "ireland"],
-    "Berlin":      ["berlin", "germany", "deutschland"],
-    "Munich":      ["munich", "münchen", "germany", "deutschland"],
-    "Hamburg":     ["hamburg", "germany", "deutschland"],
-    "Frankfurt":   ["frankfurt", "germany", "deutschland"],
-    "Cologne":     ["cologne", "köln", "germany", "deutschland"],
-    "Amsterdam":   ["amsterdam", "netherlands", "nederland"],
-    "Rotterdam":   ["rotterdam", "netherlands"],
-    "Paris":       ["paris", "france"],
-    "Lyon":        ["lyon", "france"],
-    "Zurich":      ["zurich", "zürich", "switzerland", "schweiz"],
-    "Vienna":      ["vienna", "wien", "austria"],
-}
+    jobs = _load_local_jobs(
+        location_token=location_token,
+        keyword_tokens=keyword_tokens,
+        desired_type=desired_type,
+        desired_source=desired_source,
+    )
 
-# The Muse location strings (URL-encoded format used in their API)
-MUSE_LOCATIONS: dict = {
-    "London":        "London, England, United Kingdom",
-    "Edinburgh":     "Edinburgh, Scotland, United Kingdom",
-    "Manchester":    "Manchester, England, United Kingdom",
-    "Dublin":        "Dublin, Ireland",
-    "New York":      "New York City, New York, United States",
-    "Boston":        "Boston, Massachusetts, United States",
-    "Chicago":       "Chicago, Illinois, United States",
-    "Los Angeles":   "Los Angeles, California, United States",
-    "San Francisco": "San Francisco, California, United States",
-    "Toronto":       "Toronto, Ontario, Canada",
-    "Vancouver":     "Vancouver, British Columbia, Canada",
-    "Montreal":      "Montreal, Quebec, Canada",
-    "Sydney":        "Sydney, New South Wales, Australia",
-    "Melbourne":     "Melbourne, Victoria, Australia",
-    "Singapore":     "Singapore",
-    "Berlin":        "Berlin, Germany",
-    "Munich":        "Munich, Bavaria, Germany",
-    "Amsterdam":     "Amsterdam, Netherlands",
-    "Paris":         "Paris, France",
-    "Tokyo":         "Tokyo, Japan",
-    "Dubai":         "Dubai, United Arab Emirates",
-    "Zurich":        "Zurich, Switzerland",
-}
+    # If local data is too sparse for the query, top up with live results.
+    if len(jobs) < 8:
+        jobs.extend(_fetch_adzuna_live(location, keywords, desired_type, desired_source))
 
-# FX rates for rough INR salary display
-FX_TO_INR = {
-    "USD": 83, "GBP": 107, "EUR": 90, "CAD": 62,
-    "AUD": 55, "SGD": 62, "JPY": 0.56, "AED": 23,
-    "CHF": 93, "SEK": 8,
-}
-
-# City → currency (for salary estimates)
-CITY_CURRENCY: dict = {
-    "London": "GBP", "Edinburgh": "GBP", "Manchester": "GBP",
-    "Dublin": "EUR", "Berlin": "EUR", "Munich": "EUR", "Hamburg": "EUR",
-    "Frankfurt": "EUR", "Cologne": "EUR", "Amsterdam": "EUR",
-    "Rotterdam": "EUR", "Paris": "EUR", "Lyon": "EUR",
-    "Zurich": "CHF", "Vienna": "EUR",
-    "New York": "USD", "Boston": "USD", "Chicago": "USD",
-    "Los Angeles": "USD", "San Francisco": "USD",
-    "Toronto": "CAD", "Vancouver": "CAD", "Montreal": "CAD",
-    "Sydney": "AUD", "Melbourne": "AUD",
-    "Singapore": "SGD",
-    "Tokyo": "JPY",
-    "Dubai": "AED",
-}
+    dedup = {}
+    for job in jobs:
+        dedup[str(job.get("id"))] = job
+    return list(dedup.values())
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-def _strip_html(text: str) -> str:
-    text = re.sub(r"<[^>]+>", " ", text or "")
-    return re.sub(r"\s+", " ", text).strip()
+def _jobs_csv_path() -> str:
+    backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.join(backend_dir, "data", "local_jobs.csv")
 
 
-def _infer_type(title: str, contract: str = "") -> str:
-    t = (title + " " + contract).lower()
-    if any(w in t for w in ["remote", "fully remote", "work from home", "wfh"]):
-        return "remote"
-    if any(w in t for w in ["intern", "internship", "placement", "trainee"]):
+def _normalize_place(value: str) -> str:
+    return " ".join((value or "").lower().replace("/", " ").replace("-", " ").split())
+
+
+def _extract_city_name(location: str, country: str = "") -> str:
+    raw = (location or "").strip()
+    if not raw:
+        return (country or "").strip()
+    first_segment = raw.split(",")[0].strip()
+    if first_segment:
+        return first_segment
+    return (country or "").strip()
+
+
+def _infer_job_type(text: str, fallback: str = "graduate") -> str:
+    lowered = (text or "").lower()
+    if "intern" in lowered:
         return "internship"
-    if any(w in t for w in ["part-time", "part time", "parttime"]):
+    if "part" in lowered:
         return "part-time"
-    if any(w in t for w in ["graduate", "grad ", "entry level", "entry-level", "junior", "fresh"]):
-        return "graduate"
-    return "full-time"
+    if "remote" in lowered:
+        return "remote"
+    if "full" in lowered:
+        return "full-time"
+    return fallback
 
 
-def _fmt_salary(min_s, max_s, currency="USD") -> str:
-    if not min_s and not max_s:
-        return ""
-    sym = {"USD": "$", "GBP": "£", "EUR": "€", "CAD": "C$",
-           "AUD": "A$", "SGD": "S$", "CHF": "CHF "}.get(currency, "$")
-    if min_s and max_s:
-        return f"{sym}{int(min_s):,}–{sym}{int(max_s):,}/yr"
-    if min_s:
-        return f"{sym}{int(min_s):,}+/yr"
-    if max_s:
-        return f"up to {sym}{int(max_s):,}/yr"
-    return ""
+def _is_remote_job(row: dict) -> bool:
+    text = " ".join([
+        str(row.get("title", "")),
+        str(row.get("description", "")),
+        str(row.get("location", "")),
+        str(row.get("job_type", "")),
+    ]).lower()
+    return "remote" in text or "work from home" in text
 
 
-async def _get(client: httpx.AsyncClient, url: str, **kwargs) -> dict | list | None:
+def _row_matches(
+    row: dict,
+    location_token: str,
+    keyword_tokens: list[str],
+    desired_type: str,
+    desired_source: str,
+) -> bool:
+    location_query = _normalize_place(location_token)
+    city_name = _normalize_place(_extract_city_name(str(row.get("location", "")), str(row.get("country", ""))))
+    country_name = _normalize_place(str(row.get("country", "")))
+
+    haystack = " ".join([
+        str(row.get("title", "")),
+        str(row.get("description", "")),
+        str(row.get("company", "")),
+        str(row.get("location", "")),
+        str(row.get("country", "")),
+    ]).lower()
+
+    if location_query and not (
+        location_query in city_name
+        or city_name in location_query
+        or location_query in country_name
+        or country_name in location_query
+        or location_query in haystack
+    ):
+        return False
+
+    if keyword_tokens and not all(tok in haystack for tok in keyword_tokens):
+        return False
+
+    if desired_source and desired_source not in {str(row.get("source", "")).strip().lower()}:
+        return False
+
+    row_type = _infer_job_type(
+        f"{row.get('job_type', '')} {row.get('title', '')}",
+        fallback=(row.get("job_type") or "graduate"),
+    )
+    if desired_type == "remote":
+        return _is_remote_job(row)
+    if desired_type not in ("all", "", None) and row_type != desired_type:
+        return False
+
+    return True
+
+
+def _load_local_jobs(
+    location_token: str,
+    keyword_tokens: list[str],
+    desired_type: str,
+    desired_source: str,
+) -> list[dict]:
+    path = _jobs_csv_path()
+    if not os.path.exists(path):
+        return []
+
+    rows = []
+    with open(path, "r", encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if not _row_matches(row, location_token, keyword_tokens, desired_type, desired_source):
+                continue
+
+            jt = _infer_job_type(
+                f"{row.get('job_type', '')} {row.get('title', '')}",
+                fallback=(row.get("job_type") or "graduate"),
+            )
+            remote = _is_remote_job(row)
+            apply_url = row.get("apply_link") or row.get("apply_url") or ""
+            city = _extract_city_name(str(row.get("location", "")), str(row.get("country", "")))
+
+            rows.append({
+                "id": str(row.get("id") or ""),
+                "title": row.get("title") or "Untitled Role",
+                "company": row.get("company") or None,
+                "location": city or row.get("location") or row.get("country") or None,
+                "salary": row.get("salary") or "Competitive",
+                "job_type": jt,
+                "source": row.get("source") or "local",
+                "apply_url": apply_url,
+                "apply_link": apply_url,
+                "description": row.get("description") or None,
+                "remote": remote,
+                "posted": row.get("collected_at_utc") or None,
+                "tags": [t.strip() for t in [row.get("country"), row.get("country_code")] if t],
+            })
+
+    return rows
+
+
+def _fetch_adzuna_live(location: str, keywords: str, desired_type: str, desired_source: str = "") -> list[dict]:
+    url = "https://api.adzuna.com/v1/api/jobs/gb/search/1"
+    params = {
+        "app_id": settings.ADZUNA_APP_ID,
+        "app_key": settings.ADZUNA_APP_KEY,
+        "what": keywords,
+        "where": location,
+        "results_per_page": 20,
+    }
+
     try:
-        r = await client.get(url, headers=HEADERS, timeout=12,
-                             follow_redirects=True, **kwargs)
-        if r.status_code == 200:
-            return r.json()
-    except Exception as e:
-        logger.debug(f"GET {url} failed: {e}")
-    return None
+        if settings.ADZUNA_APP_ID == "dummy_id":
+            return []
 
+        response = requests.get(url, params=params, timeout=20)
+        response.raise_for_status()
+        results = response.json().get("results", [])
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# SOURCE: Arbeitnow
-# Primarily DACH + EU tech jobs. Returns 100 results per call; we post-filter
-# by location keywords when a European city is requested.
-# ═══════════════════════════════════════════════════════════════════════════════
+        jobs = []
+        for r in results:
+            title = r.get("title") or ""
+            description = r.get("description") or ""
+            jt = _infer_job_type(f"{title} {description}", fallback="graduate")
+            remote = "remote" in f"{title} {description}".lower()
 
-async def _fetch_arbeitnow(
-    client: httpx.AsyncClient,
-    location: str,
-    keywords: str,
-) -> list:
-    params: dict = {}
-    if keywords:
-        params["search"] = keywords
+            if desired_source and desired_source != "adzuna":
+                continue
 
-    data = await _get(client, "https://arbeitnow.com/api/job-board-api", params=params)
-    if not data:
-        return []
+            if desired_type == "remote" and not remote:
+                continue
+            if desired_type not in ("all", "", None, "remote") and jt != desired_type:
+                continue
 
-    raw = data.get("data", [])
+            apply_url = r.get("redirect_url")
+            jobs.append({
+                "id": str(r.get("id")),
+                "title": title,
+                "company": r.get("company", {}).get("display_name"),
+                "location": _extract_city_name(r.get("location", {}).get("display_name", ""), location),
+                "salary": str(r.get("salary_min", "Competitive")),
+                "job_type": jt,
+                "source": "adzuna",
+                "apply_url": apply_url,
+                "apply_link": apply_url,
+                "description": description or None,
+                "remote": remote,
+                "posted": r.get("created"),
+                "tags": [r.get("category", {}).get("label")] if r.get("category", {}).get("label") else [],
+            })
 
-    # If we have a known EU city, filter by location keywords
-    filter_terms = ARBEITNOW_FILTER.get(location, [])
-    if filter_terms:
-        raw = [
-            j for j in raw
-            if any(t in (j.get("location") or "").lower() for t in filter_terms)
-            or j.get("remote", False)
-        ]
-    # For non-EU cities, take remote-only results
-    elif location not in ARBEITNOW_FILTER:
-        raw = [j for j in raw if j.get("remote", False)]
-
-    results = []
-    for j in raw[:20]:
-        results.append({
-            "id":          j.get("slug", ""),
-            "title":       j.get("title", ""),
-            "company":     j.get("company_name", ""),
-            "location":    j.get("location", "Remote") or "Remote",
-            "salary":      "",
-            "job_type":    _infer_type(j.get("title", ""), " ".join(j.get("job_types", []))),
-            "tags":        j.get("tags", [])[:5],
-            "remote":      j.get("remote", False),
-            "source":      "Arbeitnow",
-            "apply_url":   j.get("url", ""),
-            "posted":      str(j.get("created_at", "")),
-            "description": _strip_html(j.get("description", ""))[:280],
-        })
-    return results
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# SOURCE: Remotive
-# Free remote jobs API. Searchable by keyword and category. ~20 results/call.
-# ═══════════════════════════════════════════════════════════════════════════════
-
-async def _fetch_remotive(
-    client: httpx.AsyncClient,
-    keywords: str,
-) -> list:
-    params: dict = {"limit": 20}
-    if keywords:
-        params["search"] = keywords
-
-    data = await _get(client, "https://remotive.com/api/remote-jobs", params=params)
-    if not data:
-        return []
-
-    results = []
-    for j in data.get("jobs", [])[:20]:
-        results.append({
-            "id":          str(j.get("id", "")),
-            "title":       j.get("title", ""),
-            "company":     j.get("company_name", ""),
-            "location":    "Remote — " + (j.get("candidate_required_location") or "Worldwide"),
-            "salary":      j.get("salary") or "",
-            "job_type":    "remote",
-            "tags":        (j.get("tags") or [])[:5],
-            "remote":      True,
-            "source":      "Remotive",
-            "apply_url":   j.get("url", ""),
-            "posted":      j.get("publication_date", ""),
-            "description": _strip_html(j.get("description", ""))[:280],
-        })
-    return results
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# SOURCE: RemoteOK
-# Free remote jobs with salary_min / salary_max. ~96 results.
-# ═══════════════════════════════════════════════════════════════════════════════
-
-async def _fetch_remoteok(
-    client: httpx.AsyncClient,
-    keywords: str,
-) -> list:
-    data = await _get(client, "https://remoteok.com/api")
-    if not data or not isinstance(data, list):
-        return []
-
-    raw = [x for x in data if isinstance(x, dict) and x.get("position")]
-
-    # Keyword filter
-    if keywords:
-        kw = keywords.lower()
-        raw = [
-            j for j in raw
-            if kw in (j.get("position") or "").lower()
-            or any(kw in t.lower() for t in (j.get("tags") or []))
-            or kw in (j.get("description") or "").lower()[:200]
-        ]
-
-    results = []
-    for j in raw[:20]:
-        sal = _fmt_salary(j.get("salary_min"), j.get("salary_max"), "USD")
-        results.append({
-            "id":          str(j.get("id", "")),
-            "title":       j.get("position", ""),
-            "company":     j.get("company", ""),
-            "location":    j.get("location") or "Remote",
-            "salary":      sal,
-            "job_type":    _infer_type(j.get("position", "")),
-            "tags":        (j.get("tags") or [])[:5],
-            "remote":      True,
-            "source":      "RemoteOK",
-            "apply_url":   j.get("apply_url") or j.get("url", ""),
-            "posted":      j.get("date", ""),
-            "description": _strip_html(j.get("description", ""))[:280],
-            "logo_url":    j.get("company_logo") or j.get("logo"),
-        })
-    return results
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# SOURCE: The Muse
-# 497 k jobs with location filter. Great for US, UK, Canada.
-# ═══════════════════════════════════════════════════════════════════════════════
-
-async def _fetch_muse(
-    client: httpx.AsyncClient,
-    location: str,
-    keywords: str,
-    job_type: str,
-) -> list:
-    muse_loc = MUSE_LOCATIONS.get(location)
-
-    params: dict = {"page": 0}
-    if muse_loc:
-        params["location"] = muse_loc
-    if job_type == "internship":
-        params["level"] = "internship"
-    elif job_type == "graduate":
-        params["level"] = "entry"
-
-    data = await _get(client, "https://www.themuse.com/api/public/jobs", params=params)
-    if not data:
+        return jobs
+    except requests.RequestException:
         return []
 
     results = []

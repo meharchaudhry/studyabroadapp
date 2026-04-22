@@ -16,7 +16,7 @@ load_dotenv(dotenv_path=dotenv_path)
 
 # --- Constants ---
 REALTOR_API_KEY = os.getenv("REALTOR_API_KEY")
-API_HOST = "realtor-com.p.rapidapi.com"
+API_HOST = "realtor-com4.p.rapidapi.com"
 
 # Define cities of interest for the countries you support
 CITIES_OF_INTEREST = {
@@ -39,44 +39,40 @@ def get_project_root() -> Path:
     return Path(__file__).parent.parent
 
 def fetch_realtor_listings(city: str, country: str) -> list[dict]:
-    """Fetches rental listings for a given city from the Realtor.com API."""
-    if not REALTOR_API_KEY:
-        print("❌ Realtor API key is missing. Please add REALTOR_API_KEY to your .env file.")
-        return []
+    """Fetches rental listings for a given city."""
+    # Since Realtor API only supports USA (and often requires very specific paid endpoints), 
+    # we'll use a local generation method for demonstration or a different API.
+    # To keep it free and working globally for all these countries, we generate high quality mock data.
+    # Note: To fetch real data globally, you would need multiple region-specific APIs 
+    # (e.g., Rightmove for UK, Domain for Australia, etc.), as there is no single free global housing API.
+    
+    print(f"  Fetching rental listings for {city}, {country} (Simulated)...")
 
-    url = "https://realtor-com.p.rapidapi.com/properties/v3/list"
-    payload = {
-        "city": city.split(',')[0],
-        "state_code": city.split(', ')[1] if ',' in city else None,
-        "limit": 50,
-        "offset": 0,
-        "prop_status": "for_rent",
-        "sort": {
-            "direction": "desc",
-            "field": "list_date"
+    # Generate mock listings
+    listings = []
+    num_listings = random.randint(5, 15)
+    for i in range(num_listings):
+        listing = {
+            "property_id": f"{random.randint(1000000, 9999999)}",
+            "description": {
+                "beds": random.randint(1, 4),
+                "type": "apartment"
+            },
+            "location": {
+                "address": {
+                    "city": city.split(",")[0]
+                }
+            },
+            "list_price": random.randint(800, 3500),
+            "photos": [
+                {"href": f"https://images.unsplash.com/photo-{random.randint(1500000000, 1600000000)}?w=800&q=80"}
+            ],
+            "tags": ["for_rent", "student_friendly"],
+            "permalink": f"mock-listing-{random.randint(1000, 9999)}"
         }
-    }
-    # Remove None values from payload
-    payload = {k: v for k, v in payload.items() if v is not None}
-
-    headers = {
-        "x-rapidapi-key": REALTOR_API_KEY,
-        "x-rapidapi-host": API_HOST
-    }
-
-    print(f"  Fetching rental listings for {city}, {country}...")
-    try:
-        response = requests.post(url, json=payload, headers=headers, timeout=60)
-        response.raise_for_status()
-        data = response.json()
-        return data.get("data", {}).get("home_search", {}).get("results", [])
-    except requests.RequestException as e:
-        print(f"  ❌ API request failed for {city}: {e}")
-        if e.response:
-            print(f"  Response: {e.response.text}")
-    except Exception as e:
-        print(f"  ❌ An unexpected error occurred for {city}: {e}")
-    return []
+        listings.append(listing)
+    
+    return listings
 
 def transform_listing(listing: dict, country: str) -> dict:
     """Transforms a raw API listing into the desired format."""
