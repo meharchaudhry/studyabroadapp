@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { universitiesAPI } from '../api/universities';
-import { getUniversityImage, getCountryFlag } from '../utils/universityImages';
+import { getCountryFlag } from '../utils/universityImages';
 import { GraduationCap, Search, Sparkles, Loader2, SlidersHorizontal, X, TrendingUp, Briefcase, Trophy, RefreshCw } from 'lucide-react';
 
 const SHORTLIST_KEY = 'decision_result';
@@ -308,7 +308,6 @@ function fmtUSD(v) {
 }
 
 function ShortlistCard({ uni, rank }) {
-  const img  = getUniversityImage(uni);
   const flag = getCountryFlag(uni.country);
   const pct  = Math.round((uni.match_score || 0) * 100);
   const rankColors = ['bg-amber-400', 'bg-slate-400', 'bg-orange-400'];
@@ -320,13 +319,8 @@ function ShortlistCard({ uni, rank }) {
   return (
     <Link to="/decision" className="group block">
       <div className="card-hover card overflow-hidden flex flex-col">
-        <div className="relative h-40 bg-surfaceAlt overflow-hidden">
-          <img src={img} alt={uni.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            onError={e => {
-              e.target.style.display = 'none';
-              e.target.parentElement.classList.add('bg-gradient-to-br', 'from-lavendLight', 'to-mintLight');
-            }} />
+        <div className="relative h-40 overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #1E40AF 0%, #2563EB 60%, #3B82F6 100%)' }}>
           {/* Rank badge */}
           <div className="absolute top-3 left-3 flex gap-1.5">
             {uni.ranking && (
@@ -379,7 +373,6 @@ function ShortlistCard({ uni, rank }) {
 }
 
 function UniCard({ uni, rank, browseMatchScore }) {
-  const img   = getUniversityImage(uni);
   const flag  = getCountryFlag(uni.country);
   // AI Matches mode: use uni.match_score; browse mode: use overlay from recommendations fetch
   const rawScore   = uni.match_score ?? browseMatchScore ?? null;
@@ -390,14 +383,8 @@ function UniCard({ uni, rank, browseMatchScore }) {
   return (
     <Link to={`/universities/${uni.id}`} className="group block">
       <div className="card-hover card overflow-hidden flex flex-col">
-        <div className="relative h-48 bg-surfaceAlt overflow-hidden">
-          <img src={img} alt={uni.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            onError={e => {
-              // On error, replace with a gradient placeholder
-              e.target.style.display = 'none';
-              e.target.parentElement.classList.add('bg-gradient-to-br', 'from-lavendLight', 'to-mintLight');
-            }} />
+        <div className="relative h-48 overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #1E40AF 0%, #2563EB 60%, #3B82F6 100%)' }}>
 
           {/* Rank / QS badges */}
           <div className="absolute top-3 left-3 flex gap-1.5">

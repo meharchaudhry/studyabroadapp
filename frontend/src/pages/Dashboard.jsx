@@ -7,7 +7,7 @@ import {
 import { Link } from 'react-router-dom';
 import { authAPI } from '../api/auth';
 import { universitiesAPI } from '../api/universities';
-import { getUniversityImage, getCountryFlag } from '../utils/universityImages';
+import { getCountryFlag } from '../utils/universityImages';
 
 const CHECKLIST = [
   { id: 'profile',  label: 'Complete your profile',       href: '/profile'     },
@@ -138,7 +138,6 @@ export default function Dashboard() {
           {topUnis.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {topUnis.map((uni, i) => {
-                const img  = getUniversityImage(uni);
                 const flag = getCountryFlag(uni.country);
                 const pct  = uni.match_score ? Math.round(uni.match_score * 100) : null;
                 const rankColors = ['bg-amber-400', 'bg-slate-400', 'bg-orange-400'];
@@ -146,21 +145,19 @@ export default function Dashboard() {
                 return (
                   <Link key={uni.name || uni.id} to={linkTo} className="group">
                     <div className="card-hover card overflow-hidden">
-                      <div className="relative h-28 overflow-hidden bg-surfaceAlt">
-                        <img src={img} alt={uni.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={e => e.target.style.display = 'none'} />
+                      <div className="relative h-28 overflow-hidden"
+                        style={{ background: 'linear-gradient(135deg, #1E40AF 0%, #2563EB 60%, #3B82F6 100%)' }}>
                         <div className="absolute top-2 left-2">
                           <span className={`badge ${rankColors[i]} text-white text-[9px]`}>#{i + 1}</span>
                         </div>
                         {pct && (
                           <div className="absolute top-2 right-2">
-                            <div className="w-8 h-8 rounded-full text-[10px] font-bold flex items-center justify-center bg-blue-600 text-white border-2 border-white">
+                            <div className="w-8 h-8 rounded-full text-[10px] font-bold flex items-center justify-center bg-white/20 backdrop-blur-sm text-white border-2 border-white/40">
                               {pct}%
                             </div>
                           </div>
                         )}
-                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                        <div className="absolute bottom-0 inset-x-0 p-2">
                           <span className="text-white/90 text-[10px]">{flag} {uni.country}</span>
                         </div>
                       </div>

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { universitiesAPI } from '../api/universities';
-import { getUniversityImage } from '../utils/universityImages';
 import {
   ArrowLeft, MapPin, Star, BookOpen, ExternalLink, Award, GraduationCap,
   Calendar, CheckCircle2, TrendingUp, Briefcase, DollarSign, Info,
@@ -127,14 +126,9 @@ export default function UniversityDetail() {
 
       {/* Hero */}
       <div className="card overflow-hidden mb-6 border-none shadow-card">
-        <div className="h-64 bg-lavendLight relative">
-          <img
-            src={getUniversityImage(uni)}
-            alt={uni.name}
-            className="w-full h-full object-cover"
-            onError={e => { e.target.style.display = 'none'; }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-text/80 via-text/20 to-transparent" />
+        <div className="h-64 relative"
+          style={{ background: 'linear-gradient(135deg, #1E40AF 0%, #2563EB 60%, #3B82F6 100%)' }}>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-8">
             <h1 className="text-3xl font-bold text-white mb-2">{uni.name}</h1>
             <div className="flex flex-wrap items-center gap-4 text-white/90 text-sm font-medium">
