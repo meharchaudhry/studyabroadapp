@@ -1,22 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { authAPI } from '../api/auth';
-import { Globe, RefreshCw, CheckCircle, Mail, KeyRound, AlertCircle } from 'lucide-react';
+import { RefreshCw, CheckCircle, KeyRound } from 'lucide-react';
 
 export default function OTPVerify() {
   const navigate = useNavigate();
   const location  = useLocation();
 
-  // email and optional dev OTP passed from Register page via navigation state
-  const email  = location.state?.email  || '';
-  const devOtp = location.state?.devOtp || null;
+  // email passed from Register page via navigation state
+  const email = location.state?.email || '';
 
   const [digits, setDigits] = useState(['', '', '', '', '', '']);
-  const [loading, setLoading]   = useState(false);
+  const [loading, setLoading]     = useState(false);
   const [resending, setResending] = useState(false);
-  const [error, setError]   = useState('');
-  const [success, setSuccess] = useState(false);
-  const [devOtpVisible, setDevOtpVisible] = useState(false);
+  const [error, setError]         = useState('');
+  const [success, setSuccess]     = useState(false);
   const inputRefs = useRef([]);
 
   useEffect(() => {
@@ -68,13 +66,9 @@ export default function OTPVerify() {
     setResending(true);
     setError('');
     try {
-      const res = await authAPI.sendOTP(email);
-      if (res.dev_otp) {
-        // Update dev OTP if a new one was issued
-        location.state.devOtp = res.dev_otp;
-      }
+      await authAPI.sendOTP(email);
     } catch {
-      setError('Failed to resend OTP.');
+      setError('Failed to resend OTP. Please try again.');
     } finally {
       setResending(false);
     }
@@ -126,27 +120,6 @@ export default function OTPVerify() {
             We sent a 6-digit code to<br />
             <span className="font-semibold text-text">{email || 'your email'}</span>
           </p>
-
-          {/* Dev mode banner */}
-          {devOtp && (
-            <div className="mb-5 p-3.5 rounded-xl bg-amberLight border border-amber/30">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-                  <span className="text-xs font-semibold text-amber-700">Dev mode — no email configured</span>
-                </div>
-                <button onClick={() => setDevOtpVisible(v => !v)}
-                  className="text-xs text-amber-600 font-medium hover:underline">
-                  {devOtpVisible ? 'Hide' : 'Show OTP'}
-                </button>
-              </div>
-              {devOtpVisible && (
-                <div className="mt-2 text-center">
-                  <span className="text-2xl font-black tracking-[0.3em] text-amber-700 font-mono">{devOtp}</span>
-                </div>
-              )}
-            </div>
-          )}
 
           {error && (
             <div className="mb-4 p-3 rounded-xl bg-rose/8 border border-rose/25 text-rose text-sm font-medium text-center">

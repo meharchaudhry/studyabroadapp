@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authAPI } from '../api/auth';
 import {
-  Globe, Eye, EyeOff, ArrowRight, ArrowLeft,
-  GraduationCap, Check, User, BookOpen, Plane, ClipboardList, IndianRupee, Briefcase
+  Eye, EyeOff, ArrowRight, ArrowLeft,
+  GraduationCap, User, BookOpen, Plane, ClipboardList, IndianRupee, Briefcase
 } from 'lucide-react';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -332,10 +332,14 @@ export default function Register() {
 
           {/* Mobile logo + progress */}
           <div className="lg:hidden flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-lavender rounded-lg flex items-center justify-center">
-              <Globe className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #1E40AF, #3B82F6)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M12 3 C7 8 3 10 3 16 C7 14 10 13 12 15 C14 13 17 14 21 16 C21 10 17 8 12 3Z" fill="white" fillOpacity="0.95"/>
+                <path d="M12 15 L12 21" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
             </div>
-            <span className="font-bold text-text">PathPilot</span>
+            <span className="font-brand font-bold text-text" style={{ fontSize: '1.1rem' }}>udaan</span>
           </div>
           <div className="lg:hidden flex gap-1.5 mb-5">
             {STEPS.map(s => (

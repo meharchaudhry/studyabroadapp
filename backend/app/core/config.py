@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 465
-    EMAILS_FROM_NAME: str = "StudyPathway"
+    EMAILS_FROM_NAME: str = "udaan"
 
     # ── n8n ───────────────────────────────────────────────────────────────────
     N8N_WEBHOOK_TOKEN: str = ""

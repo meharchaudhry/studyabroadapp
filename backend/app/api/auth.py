@@ -1,4 +1,3 @@
-import os
 import random
 import re
 import string
@@ -30,11 +29,13 @@ def generate_otp(length: int = 6) -> str:
 
 def send_otp_email(email: str, otp: str):
     """
-    Send OTP via SMTP if credentials are available, otherwise log to console.
-    Set SMTP_USER and SMTP_PASSWORD env vars (Gmail App Password) to enable real emails.
+    Send OTP via SMTP using credentials from pydantic settings.
+    Configure SMTP_USER and SMTP_PASSWORD in your .env file (Gmail App Password recommended).
     """
-    email_user = os.getenv("SMTP_USER")
-    email_pass = os.getenv("SMTP_PASSWORD")
+    email_user = settings.SMTP_USER
+    email_pass = settings.SMTP_PASSWORD
+    smtp_host  = settings.SMTP_HOST
+    smtp_port  = settings.SMTP_PORT
 
     if email_user and email_pass:
         import smtplib
@@ -42,30 +43,31 @@ def send_otp_email(email: str, otp: str):
         from email.mime.multipart import MIMEMultipart
 
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = "Your StudyPathway Verification Code"
-        msg["From"] = email_user
-        msg["To"] = email
+        msg["Subject"] = "Your udaan Verification Code"
+        msg["From"]    = f"udaan <{email_user}>"
+        msg["To"]      = email
 
         html = f"""
         <html><body style="font-family:Inter,sans-serif;background:#f7f8fc;padding:40px;">
           <div style="max-width:480px;margin:auto;background:#fff;border-radius:16px;padding:40px;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-            <h2 style="color:#7C6FF7;margin-bottom:8px;">StudyPathway</h2>
-            <p style="color:#5A6275;">Your verification code is:</p>
-            <div style="font-size:48px;font-weight:700;letter-spacing:12px;color:#1A1D2E;text-align:center;margin:24px 0;">{otp}</div>
-            <p style="color:#8B95A8;font-size:13px;">This code expires in 10 minutes. Do not share it.</p>
+            <h2 style="color:#1E40AF;margin-bottom:4px;font-size:24px;">udaan</h2>
+            <p style="color:#6B7280;font-size:13px;margin-top:0;">the study abroad app for indian students</p>
+            <p style="color:#374151;margin-top:24px;">Your verification code is:</p>
+            <div style="font-size:48px;font-weight:700;letter-spacing:12px;color:#1A1D2E;text-align:center;margin:24px 0;font-family:monospace;">{otp}</div>
+            <p style="color:#9CA3AF;font-size:13px;">This code expires in 10 minutes. Do not share it with anyone.</p>
           </div>
         </body></html>
         """
         msg.attach(MIMEText(html, "html"))
         try:
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
                 server.login(email_user, email_pass)
                 server.sendmail(email_user, email, msg.as_string())
             print(f"✅ OTP email sent to {email}")
         except Exception as e:
             print(f"⚠️  Email send failed: {e} — OTP for {email}: {otp}")
     else:
-        print(f"📧 [MOCK EMAIL] OTP for {email}: {otp}  (set EMAIL_USER + EMAIL_PASSWORD to send real emails)")
+        print(f"📧 [NO SMTP] OTP for {email}: {otp}  (set SMTP_USER + SMTP_PASSWORD in .env to send real emails)")
 
 # ── Schemas ────────────────────────────────────────────────────────────────────
 
