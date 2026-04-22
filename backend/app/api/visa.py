@@ -423,11 +423,10 @@ def visa_query(request: VisaQueryRequest) -> Any:
     RAG-powered visa Q&A with hybrid search, cross-encoder re-ranking,
     and per-session conversation memory (last 6 exchanges).
     """
-    specific_query = f"Regarding {request.country} student visa for Indian students: {request.query}"
     try:
         chain = get_visa_assistant_chain()
         result = chain.invoke({
-            "input":      specific_query,
+            "input":      request.query,   # raw query — country is passed separately
             "country":    request.country,
             "session_id": request.session_id or "default",
         })
