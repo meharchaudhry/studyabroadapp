@@ -1,9 +1,6 @@
-import csv
-import os
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import or_
 from pydantic import BaseModel
 from app.api.deps import get_current_user, get_db
@@ -76,77 +73,49 @@ class RecommendationResponse(BaseModel):
 
 class ExplainResponse(BaseModel):
     match_score: float
+    summary: str
     reasons: dict
     financial: dict
-    summary: str
 
 
-def _subject_filter(query, subject: str):
-    value = (subject or "").strip()
-    if not value:
-        return query
-    return query.filter(
-        or_(
-            University.subject.ilike(f"%{value}%"),
-            University.subject.ilike(f"%{value.replace(' ', '%')}%"),
-        )
-    )
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _enrich(u: University) -> UniDetail:
+    d = UniDetail.model_validate(u)
+    d.grad_salary_usd  = GRAD_SALARY_USD.get(u.country)
+    d.job_market_score = JOB_SCORE.get(u.country)
+    return d
 
 
-def _enrich(uni: University) -> UniDetail:
-    return UniDetail(
-        id=uni.id,
-        name=uni.name,
-        country=uni.country,
-        ranking=uni.ranking,
-        qs_subject_ranking=uni.qs_subject_ranking,
-        subject=uni.subject,
-        tuition=uni.tuition,
-        living_cost=uni.living_cost,
-        image_url=uni.image_url,
-        website=uni.website,
-        description=getattr(uni, "description", None),
-        acceptance_rate=getattr(uni, "acceptance_rate", None),
-        requirements_cgpa=uni.requirements_cgpa,
-        ielts=uni.ielts,
-        toefl=uni.toefl,
-        gre_required=uni.gre_required,
-        scholarships=getattr(uni, "scholarships", None),
-        course_duration=getattr(uni, "course_duration", None),
-        intake_months=getattr(uni, "intake_months", None),
-    )
+# ── Subject expansion: map UI label → keywords that appear in pipe-sep subject field
+SUBJECT_KEYWORDS: dict[str, list[str]] = {
+    "Computer Science": ["Computer Science", "Computing", "Software", "Informatics", "CS"],
+    "Engineering":      ["Engineering", "Mechanical", "Electrical", "Civil", "Chemical", "Aerospace", "Biomedical Engineering"],
+    "Data Science":     ["Data Science", "Data Analytics", "Machine Learning", "AI", "Statistics", "Big Data"],
+    "Business":         ["Business", "Management", "MBA", "Commerce", "Administration", "Strategy"],
+    "Finance":          ["Finance", "Accounting", "Banking", "Financial"],
+    "Economics":        ["Economics", "Econometrics", "Political Economy", "Economic"],
+    "Medicine":         ["Medicine", "Medical", "Health Sciences", "Pharmacy", "Nursing", "Biomedical"],
+    "Law":              ["Law", "Legal", "Jurisprudence", "International Law"],
+    "Arts":             ["Arts", "Humanities", "Liberal Arts", "Design", "Media", "Journalism", "History", "Philosophy", "Literature"],
+    "Architecture":     ["Architecture", "Urban Planning", "Built Environment"],
+    "Psychology":       ["Psychology", "Cognitive", "Neuroscience", "Behavioural"],
+    "Physics":          ["Physics", "Mathematics", "Applied Mathematics", "Maths", "Mathematical"],
+    "Environmental":    ["Environmental", "Sustainability", "Climate", "Ecology", "Earth Science"],
+    "Public Health":    ["Public Health", "Epidemiology", "Global Health", "Health Policy"],
+    "Education":        ["Education", "Teaching", "Pedagogy"],
+    "Social Science":   ["Social Science", "Sociology", "Anthropology", "Political Science", "International Relations", "Geography"],
+}
 
 
-@router.get("/countries")
-def get_university_countries(db: Session = Depends(get_db)):
-    try:
-        rows = (
-            db.query(University.country)
-            .filter(University.country.isnot(None))
-            .distinct()
-            .all()
-        )
-        countries = sorted([r[0] for r in rows if r and r[0]])
-        return {"countries": countries}
-    except SQLAlchemyError:
-        # Fallback: allow automation workflows to continue from local dataset when DB is down.
-        csv_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-            "data",
-            "universities.csv",
-        )
-        countries = set()
-        try:
-            with open(csv_path, newline="", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    c = (row.get("country") or "").strip()
-                    if c:
-                        countries.add(c)
-        except Exception:
-            return {"countries": []}
+def _subject_filter(query, subject_str: str):
+    """Apply ILIKE filters across the pipe-separated subject column."""
+    keywords = SUBJECT_KEYWORDS.get(subject_str, [subject_str])
+    conditions = [University.subject.ilike(f"%{kw}%") for kw in keywords]
+    return query.filter(or_(*conditions))
 
-        return {"countries": sorted(countries)}
+
+# ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.get("", response_model=UniListResponse)
 def list_universities(
@@ -199,27 +168,24 @@ def recommend_universities(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Any:
-    # If user has target countries, prioritise those; otherwise use full DB
-    if current_user.target_countries:
-        normalised = [_normalise_country(c) for c in current_user.target_countries]
-        unis = db.query(University).filter(
-            or_(*[University.country.ilike(n) for n in normalised])
-        ).all()
-        # If the target-country filter returns too few, fall back to full DB
-        if len(unis) < 20:
-            unis = db.query(University).all()
-    else:
-        unis = db.query(University).all()
+    # Score ALL universities — no pre-filtering by country so the engine
+    # can discover great fits the student hasn't considered.
+    unis = db.query(University).all()
 
     results = []
     for uni in unis:
-        score = calculate_score(current_user, uni)
+        raw_score = calculate_score(current_user, uni)   # 0–100
         d = _enrich(uni)
-        d.match_score = score
-        results.append(d)
+        d.match_score = round(raw_score / 100.0, 3)      # store as 0–1 for frontend compat
+        results.append((raw_score, uni.ranking or 9999, d))
 
-    results.sort(key=lambda x: x.match_score or 0, reverse=True)
-    return {"recommendations": results[:limit]}
+    # Primary sort: score DESC. Tiebreaker: QS ranking ASC (lower = better)
+    results.sort(key=lambda x: (-x[0], x[1]))
+
+    good = [(s, r, d) for s, r, d in results if s > 8.0]
+    top  = [d for _, _, d in (good if len(good) >= limit else results)]
+
+    return {"recommendations": top[:limit]}
 
 
 @router.get("/{uni_id}/explain", response_model=ExplainResponse)

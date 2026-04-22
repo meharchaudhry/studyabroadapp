@@ -6,7 +6,7 @@ Ingests all visa-related markdown documents from data/visa_docs/ into ChromaDB.
 Features:
   - Named collection "visa_policies" (consistent with rag.py)
   - Wipes the collection on each run so we always have a clean, up-to-date index
-  - Larger chunks (800 chars, 150 overlap) for better semantic coherence
+  - Larger chunks (600 chars, 200 overlap) for better semantic coherence
   - Rich metadata: source filename, country, topic_type (country-guide | topic-guide)
   - Prints chunk counts per document for verification
 """
@@ -23,7 +23,28 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+
+
+class GeminiEmbeddings:
+    """REST-based Google embeddings — avoids gRPC DNS issues."""
+    def __init__(self, api_key: str, model: str = "models/gemini-embedding-001"):
+        from google import genai as _genai
+        self._client = _genai.Client(api_key=api_key)
+        self._model  = model
+
+    def embed_documents(self, texts: list) -> list:
+        results, batch_size = [], 50
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i : i + batch_size]
+            resp  = self._client.models.embed_content(model=self._model, contents=batch)
+            results.extend([list(e.values) for e in resp.embeddings])
+            print(f"  Embedded {min(i+batch_size, len(texts))}/{len(texts)} chunks…", end="\r")
+        print()
+        return results
+
+    def embed_query(self, text: str) -> list:
+        resp = self._client.models.embed_content(model=self._model, contents=text)
+        return list(resp.embeddings[0].values)
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -72,6 +93,7 @@ TOPIC_GUIDES = {
     "visa_interview_us_tips",
     "health_insurance_guide",
     "police_clearance_guide",
+    "job_portals_guide",
 }
 
 
@@ -113,20 +135,6 @@ def load_documents(docs_dir: str) -> list[Document]:
     return docs
 
 
-def save_chunks_to_json(chunks: list[Document], output_path: str):
-    """Saves the list of Document chunks to a JSON file for verification."""
-    import json
-    chunk_data = []
-    for chunk in chunks:
-        chunk_data.append({
-            "content": chunk.page_content,
-            "metadata": chunk.metadata,
-        })
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(chunk_data, f, indent=2, ensure_ascii=False)
-    print(f"  ✅ Saved {len(chunks)} chunks for verification to: {output_path}")
-
-
 def main():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     docs_dir = os.path.join(base_dir, "data", "visa_docs")
@@ -151,17 +159,13 @@ def main():
 
     # ── Chunk documents ───────────────────────────────────────────────────────
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=800,
-        chunk_overlap=150,
+        chunk_size=600,
+        chunk_overlap=200,
         separators=["\n## ", "\n### ", "\n#### ", "\n\n", "\n", " "],
     )
     chunks = splitter.split_documents(raw_docs)
 
-    # Save chunks to a local file for verification
-    output_path = os.path.join(base_dir, "data", "visa_ingest_preview.json")
-    save_chunks_to_json(chunks, output_path)
-
-    print(f"\nChunking complete: {len(chunks)} chunks from {len(raw_docs)} documents")
+    print(f"Chunking complete: {len(chunks)} chunks from {len(raw_docs)} documents")
     print(f"  avg chunk size: {sum(len(c.page_content) for c in chunks) // len(chunks)} chars\n")
 
     # Per-document chunk count
@@ -171,12 +175,17 @@ def main():
         print(f"  {fname}: {n} chunks")
 
     # ── Embed and store ───────────────────────────────────────────────────────
-    print(f"\nInitialising embeddings (all-MiniLM-L6-v2)...")
-    embeddings = HuggingFaceEmbeddings(
-        model_name="all-MiniLM-L6-v2",
-        model_kwargs={"device": "cpu"},
-        encode_kwargs={"normalize_embeddings": True},
-    )
+    # Load API key from backend/.env
+    from dotenv import load_dotenv
+    env_path = os.path.join(base_dir, ".env")
+    load_dotenv(env_path)
+    api_key = os.getenv("GOOGLE_API_KEY", "")
+    if not api_key:
+        print("❌ GOOGLE_API_KEY not set in backend/.env — aborting.")
+        return
+
+    print(f"\nInitialising embeddings (Google gemini-embedding-001 via REST)...")
+    embeddings = GeminiEmbeddings(api_key=api_key)
 
     print(f"Wiping existing collection '{COLLECTION_NAME}' (if any) and re-ingesting...")
 

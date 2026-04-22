@@ -38,6 +38,13 @@ class User(Base):
     scholarship_interest = Column(Boolean, nullable=True)
     work_abroad_interest = Column(Boolean, nullable=True)
 
+    # ── Career & lifestyle preferences ─────────────────────────────────────────
+    career_goal           = Column(String, nullable=True)   # "tech industry"|"finance"|"academia"|"entrepreneurship"|"healthcare"|"government"|"ngo"
+    study_priority        = Column(String, nullable=True)   # "research"|"internships"|"coursework"|"networking"|"startup ecosystem"
+    preferred_environment = Column(String, nullable=True)   # "urban"|"campus town"|"small city"|"no preference"
+    learning_style        = Column(String, nullable=True)   # "seminars"|"lectures"|"online flexibility"|"project-based"
+    living_preference     = Column(String, nullable=True)   # "on-campus"|"shared house"|"studio"|"no preference"
+
     # OTP fields
     otp = Column(String, nullable=True)
     otp_expires_at = Column(DateTime, nullable=True)

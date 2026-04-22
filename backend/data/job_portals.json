@@ -103,6 +103,92 @@
         { "id": "ch_j2", "name": "LinkedIn Switzerland", "url": "https://www.linkedin.com/jobs/search/?location=Switzerland", "description": "Finance, pharma, and tech internships in Zurich, Geneva, and Basel.", "type": ["internship", "graduate"], "student_friendly": true, "logo_color": "#0077B5" },
         { "id": "ch_j3", "name": "Jobscout24", "url": "https://www.jobscout24.ch/en/jobs/internship", "description": "Swiss job aggregator with student and part-time role filters.", "type": ["part-time", "internship"], "student_friendly": true, "logo_color": "#FF6600" }
       ]
+    },
+    {
+      "country": "Canada",
+      "country_code": "CA",
+      "portals": [
+        { "id": "ca_j1", "name": "LinkedIn Canada", "url": "https://www.linkedin.com/jobs/search/?location=Canada", "description": "Canada's largest professional network — internships, graduate roles, and part-time opportunities across all provinces.", "type": ["internship", "graduate", "part-time"], "student_friendly": true, "logo_color": "#0077B5" },
+        { "id": "ca_j2", "name": "Indeed Canada", "url": "https://ca.indeed.com/jobs?q=student+graduate", "description": "Canada's top job aggregator — broad listings for students and new graduates across all industries.", "type": ["internship", "graduate", "part-time"], "student_friendly": true, "logo_color": "#2164F3" },
+        { "id": "ca_j3", "name": "Workopolis", "url": "https://www.workopolis.com/en/jobs", "description": "Canadian job board with strong presence in Toronto, Vancouver, and Montreal for student and entry-level roles.", "type": ["graduate", "part-time"], "student_friendly": true, "logo_color": "#E63946" },
+        { "id": "ca_j4", "name": "Job Bank Canada", "url": "https://www.jobbank.gc.ca/jobsearch/jobsearch", "description": "Canada's official government job board — free listings including co-op, internship, and graduate positions.", "type": ["internship", "graduate", "part-time"], "student_friendly": true, "logo_color": "#CC0000" }
+      ]
+    },
+    {
+      "country": "Ireland",
+      "country_code": "IE",
+      "portals": [
+        { "id": "ie_j1", "name": "LinkedIn Ireland", "url": "https://www.linkedin.com/jobs/search/?location=Ireland", "description": "Top professional network in Ireland — strong for tech and pharma internships in Dublin.", "type": ["internship", "graduate", "part-time"], "student_friendly": true, "logo_color": "#0077B5" },
+        { "id": "ie_j2", "name": "IrishJobs", "url": "https://www.irishjobs.ie", "description": "Ireland's leading job board with listings across all sectors and experience levels.", "type": ["graduate", "part-time"], "student_friendly": true, "logo_color": "#009A44" },
+        { "id": "ie_j3", "name": "GradIreland", "url": "https://gradireland.com/jobs", "description": "Ireland's dedicated graduate careers platform — graduate programmes, internships, and placements.", "type": ["graduate", "internship"], "student_friendly": true, "logo_color": "#FF6600" },
+        { "id": "ie_j4", "name": "Jobs.ie", "url": "https://www.jobs.ie", "description": "Major Irish job portal with part-time, full-time, and entry-level listings for students.", "type": ["graduate", "part-time"], "student_friendly": true, "logo_color": "#003087" }
+      ]
+    },
+    {
+      "country": "Japan",
+      "country_code": "JP",
+      "portals": [
+        { "id": "jp_j1", "name": "LinkedIn Japan", "url": "https://www.linkedin.com/jobs/search/?location=Japan", "description": "English-language professional opportunities in Tokyo and major Japanese cities.", "type": ["internship", "graduate", "part-time"], "student_friendly": true, "logo_color": "#0077B5" },
+        { "id": "jp_j2", "name": "GaijinPot Jobs", "url": "https://jobs.gaijinpot.com", "description": "English-language jobs in Japan for international students and foreign professionals — no Japanese required.", "type": ["internship", "graduate", "part-time"], "student_friendly": true, "logo_color": "#E40009" },
+        { "id": "jp_j3", "name": "Daijob", "url": "https://www.daijob.com/en", "description": "Bilingual job board connecting international talent with Japanese companies — ideal for students with Japanese skills.", "type": ["internship", "graduate"], "student_friendly": true, "logo_color": "#1A73E8" },
+        { "id": "jp_j4", "name": "JREC-IN", "url": "https://jrecin.jst.go.jp", "description": "Japan's premier portal for academic, research, and scientific positions — great for postgraduate researchers.", "type": ["graduate", "internship"], "student_friendly": true, "logo_color": "#003580" }
+      ]
+    },
+    {
+      "country": "Norway",
+      "country_code": "NO",
+      "portals": [
+        { "id": "no_j1", "name": "LinkedIn Norway", "url": "https://www.linkedin.com/jobs/search/?location=Norway", "description": "Professional opportunities in Oslo and Norwegian energy, tech, and maritime sectors.", "type": ["internship", "graduate", "part-time"], "student_friendly": true, "logo_color": "#0077B5" },
+        { "id": "no_j2", "name": "FINN Jobb", "url": "https://www.finn.no/job/fulltime/search.html", "description": "Norway's largest job board — comprehensive listings across all industries and regions.", "type": ["graduate", "part-time", "internship"], "student_friendly": true, "logo_color": "#CC0000" },
+        { "id": "no_j3", "name": "Arbeidsplassen", "url": "https://arbeidsplassen.nav.no", "description": "Official Norwegian government employment portal — free job listings including student and entry-level positions.", "type": ["graduate", "part-time", "internship"], "student_friendly": true, "logo_color": "#003580" }
+      ]
+    },
+    {
+      "country": "Denmark",
+      "country_code": "DK",
+      "portals": [
+        { "id": "dk_j1", "name": "LinkedIn Denmark", "url": "https://www.linkedin.com/jobs/search/?location=Denmark", "description": "Strong professional network in Copenhagen — English-language roles in tech, design, and sustainability.", "type": ["internship", "graduate", "part-time"], "student_friendly": true, "logo_color": "#0077B5" },
+        { "id": "dk_j2", "name": "Jobindex", "url": "https://www.jobindex.dk", "description": "Denmark's leading job portal with broad listings for students, graduates, and young professionals.", "type": ["graduate", "part-time", "internship"], "student_friendly": true, "logo_color": "#D62828" },
+        { "id": "dk_j3", "name": "Graduateland", "url": "https://graduateland.com", "description": "Nordic graduate careers platform connecting students across Denmark, Sweden, and Norway with top employers.", "type": ["graduate", "internship"], "student_friendly": true, "logo_color": "#6A0DAD" }
+      ]
+    },
+    {
+      "country": "UAE",
+      "country_code": "AE",
+      "portals": [
+        { "id": "ae_j1", "name": "LinkedIn UAE", "url": "https://www.linkedin.com/jobs/search/?location=United+Arab+Emirates", "description": "Top professional network in the UAE — strong for finance, tech, and consulting roles in Dubai and Abu Dhabi.", "type": ["internship", "graduate", "part-time"], "student_friendly": true, "logo_color": "#0077B5" },
+        { "id": "ae_j2", "name": "Bayt", "url": "https://www.bayt.com", "description": "Middle East's leading job site — extensive listings across UAE, Saudi Arabia, and the wider Gulf region.", "type": ["graduate", "internship", "part-time"], "student_friendly": true, "logo_color": "#E63946" },
+        { "id": "ae_j3", "name": "GulfTalent", "url": "https://www.gulftalent.com", "description": "Premium job board for Gulf region professionals — strong in finance, engineering, and management roles.", "type": ["graduate", "internship"], "student_friendly": true, "logo_color": "#FF6600" },
+        { "id": "ae_j4", "name": "Naukrigulf", "url": "https://www.naukrigulf.com", "description": "Popular Gulf job portal especially among Indian and South Asian professionals — broad listings across the UAE.", "type": ["graduate", "internship", "part-time"], "student_friendly": true, "logo_color": "#CC0000" }
+      ]
+    },
+    {
+      "country": "New Zealand",
+      "country_code": "NZ",
+      "portals": [
+        { "id": "nz_j1", "name": "LinkedIn NZ", "url": "https://www.linkedin.com/jobs/search/?location=New+Zealand", "description": "Professional opportunities in Auckland, Wellington, and Christchurch across all sectors.", "type": ["internship", "graduate", "part-time"], "student_friendly": true, "logo_color": "#0077B5" },
+        { "id": "nz_j2", "name": "Seek NZ", "url": "https://www.seek.co.nz", "description": "New Zealand's #1 job site — thousands of listings for graduates, students, and part-time workers.", "type": ["graduate", "part-time", "internship"], "student_friendly": true, "logo_color": "#1A1A2E" },
+        { "id": "nz_j3", "name": "Trade Me Jobs", "url": "https://www.trademe.co.nz/a/jobs", "description": "NZ's trusted classifieds platform with a strong jobs section — great for local and student-friendly roles.", "type": ["part-time", "graduate"], "student_friendly": true, "logo_color": "#009A44" }
+      ]
+    },
+    {
+      "country": "Sweden",
+      "country_code": "SE",
+      "portals": [
+        { "id": "se_j1", "name": "LinkedIn Sweden", "url": "https://www.linkedin.com/jobs/search/?location=Sweden", "description": "Leading professional network in Sweden — English-language tech and startup roles in Stockholm.", "type": ["internship", "graduate", "part-time"], "student_friendly": true, "logo_color": "#0077B5" },
+        { "id": "se_j2", "name": "Arbetsförmedlingen", "url": "https://arbetsformedlingen.se/for-arbetssokande/sok-jobb", "description": "Official Swedish public employment service — free job listings including part-time and student positions.", "type": ["part-time", "graduate", "internship"], "student_friendly": true, "logo_color": "#003580" },
+        { "id": "se_j3", "name": "Graduateland", "url": "https://graduateland.com", "description": "Nordic graduate careers platform — connects Swedish university students with top graduate employers.", "type": ["graduate", "internship"], "student_friendly": true, "logo_color": "#6A0DAD" },
+        { "id": "se_j4", "name": "Academic Work", "url": "https://www.academicwork.se", "description": "Sweden's specialist job platform for students and young professionals — internships, part-time, and first jobs.", "type": ["internship", "part-time", "graduate"], "student_friendly": true, "logo_color": "#FF6600" }
+      ]
+    },
+    {
+      "country": "South Korea",
+      "country_code": "KR",
+      "portals": [
+        { "id": "kr_j1", "name": "LinkedIn Korea", "url": "https://www.linkedin.com/jobs/search/?location=South+Korea", "description": "Professional opportunities at Korean multinationals and international firms in Seoul.", "type": ["internship", "graduate", "part-time"], "student_friendly": true, "logo_color": "#0077B5" },
+        { "id": "kr_j2", "name": "Saramin", "url": "https://www.saramin.co.kr", "description": "Korea's top job board — comprehensive listings across all industries for students and graduates.", "type": ["graduate", "internship", "part-time"], "student_friendly": true, "logo_color": "#E40009" },
+        { "id": "kr_j3", "name": "Work Together Foundation", "url": "https://www.worktogether.or.kr", "description": "Government-backed work programs connecting foreign residents and international students with Korean employers.", "type": ["internship", "part-time"], "student_friendly": true, "logo_color": "#003580" }
+      ]
     }
   ]
 }

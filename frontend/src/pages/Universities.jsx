@@ -14,10 +14,18 @@ const SUBJECTS = [
   "Economics","Data Science","Finance","Architecture","Psychology","Physics",
   "Environmental","Public Health","Education","Social Science",
 ];
+const USD_TO_INR = 83;
+function fmtINR(usd) {
+  if (!usd && usd !== 0) return '—';
+  const inr = Math.round(usd * USD_TO_INR);
+  if (inr >= 10000000) return `₹${(inr / 10000000).toFixed(1)} Cr`;
+  return `₹${(inr / 100000).toFixed(1)} L`;
+}
+
 const BUDGET_OPTIONS = [
-  { label: 'Under $20k', value: 20000 },
-  { label: 'Under $35k', value: 35000 },
-  { label: 'Under $50k', value: 50000 },
+  { label: 'Under ₹16.6 L/yr', value: 20000 },
+  { label: 'Under ₹29 L/yr', value: 35000 },
+  { label: 'Under ₹41.5 L/yr', value: 50000 },
   { label: 'Any',        value: '' },
 ];
 
@@ -158,11 +166,32 @@ export default function Universities() {
 
       {/* AI matches banner */}
       {mode === 'matches' && !loading && !error && universities.length > 0 && (
-        <div className="bg-lavendLight border border-lavender/20 rounded-xl p-4 flex items-center gap-3">
-          <Sparkles className="w-5 h-5 text-lavender shrink-0" />
-          <p className="text-sm text-lavender font-medium">
-            Ranked by 6-factor AI match: CGPA fit · Budget · Field · IELTS · QS ranking · Country preference.
-            Click any card, then <strong>Why this for me?</strong> for a full breakdown.
+        <div className="bg-lavendLight border border-lavender/20 rounded-xl p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-lavender shrink-0" />
+            <p className="text-sm text-lavender font-bold">
+              Personalised ranking — scored out of 100 across 8 factors specific to your profile
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5 text-[10px]">
+            {[
+              { label: 'Subject match', pts: '35pts', color: 'bg-lavender/20 text-lavender' },
+              { label: 'Budget fit', pts: '20pts', color: 'bg-mintLight text-teal-700' },
+              { label: 'CGPA eligibility', pts: '15pts', color: 'bg-amberLight text-amber-700' },
+              { label: 'Ranking preference', pts: '10pts', color: 'bg-skyLight text-blue-700' },
+              { label: 'Country preference', pts: '10pts', color: 'bg-peachLight text-orange-700' },
+              { label: 'English score', pts: '5pts', color: 'bg-mintLight text-teal-700' },
+              { label: 'Profile bonus', pts: '+3pts', color: 'bg-lavendLight text-lavender' },
+              { label: 'Scholarships / work visa', pts: '+2pts', color: 'bg-lavendLight text-lavender' },
+            ].map(f => (
+              <span key={f.label} className={`px-2 py-0.5 rounded-full font-semibold flex items-center gap-1 ${f.color}`}>
+                {f.label} <span className="opacity-60">{f.pts}</span>
+              </span>
+            ))}
+          </div>
+          <p className="text-xs text-lavender/70">
+            Click any card → <strong>Why this for me?</strong> for a full factor-by-factor breakdown.
+            Hard exclusions (cost &gt;2× budget, CGPA gap &gt;2pts) are filtered out automatically.
           </p>
         </div>
       )}
@@ -245,9 +274,10 @@ function UniCard({ uni, rank }) {
           {/* Match score ring */}
           {pct !== null && (
             <div className="absolute top-3 right-3">
-              <div className={`w-11 h-11 rounded-full flex items-center justify-center text-[11px] font-black border-2 border-white shadow-md
-                ${pct >= 75 ? 'bg-teal-500 text-white' : pct >= 55 ? 'bg-lavender text-white' : 'bg-amber-400 text-white'}`}>
-                {pct}%
+              <div className={`w-12 h-12 rounded-full flex flex-col items-center justify-center border-2 border-white shadow-md
+                ${pct >= 75 ? 'bg-teal-500 text-white' : pct >= 50 ? 'bg-lavender text-white' : pct >= 25 ? 'bg-amber-400 text-white' : 'bg-slate-400 text-white'}`}>
+                <span className="text-[11px] font-black leading-none">{pct}</span>
+                <span className="text-[8px] opacity-80">/100</span>
               </div>
             </div>
           )}
@@ -275,7 +305,7 @@ function UniCard({ uni, rank }) {
             {uni.name}
           </h3>
           <div className="grid grid-cols-2 gap-2 mt-auto">
-            {uni.tuition && <Chip label="Tuition/yr" val={`$${(uni.tuition / 1000).toFixed(0)}k`} />}
+            {uni.tuition && <Chip label="Tuition/yr" val={fmtINR(uni.tuition)} />}
             {uni.ielts && <Chip label="IELTS min" val={`${uni.ielts}+`} />}
             {uni.requirements_cgpa && <Chip label="Min CGPA" val={uni.requirements_cgpa} />}
             {uni.job_market_score && <Chip label="Jobs score" val={`${uni.job_market_score}/10`} accent />}

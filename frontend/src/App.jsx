@@ -15,8 +15,6 @@ import Housing from './pages/Housing';
 import BookingAppointments from './pages/BookingAppointments';
 import Decision from './pages/Decision';
 import AIAgent from './pages/AIAgent';
-import Profile from './pages/Profile';
-import RAGEvaluation from './pages/RAGEvaluation';
 
 function App() {
   return (
@@ -29,8 +27,6 @@ function App() {
         <Route element={<AuthGuard />}>
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/rag-eval" element={<RAGEvaluation />} />
             <Route path="/universities" element={<Universities />} />
             <Route path="/universities/:id" element={<UniversityDetail />} />
             <Route path="/housing" element={<Housing />} />

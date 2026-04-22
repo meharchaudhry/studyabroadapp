@@ -3,7 +3,8 @@ import {
   Bot, Send, User, Sparkles, FileCheck, BarChart3, Clock,
   BookOpen, CheckCircle2, Circle, ChevronDown, ChevronRight,
   Zap, Target, TrendingUp, AlertCircle, Trophy, RefreshCw,
-  Download, Plus, ArrowRight, Loader2,
+  Download, ArrowRight, Loader2, Calendar, AlertTriangle,
+  ChevronLeft, Info,
 } from 'lucide-react';
 import { aiAPI } from '../api/ai';
 import { authAPI } from '../api/auth';
@@ -18,58 +19,147 @@ const TABS = [
 ];
 
 const COUNTRIES = [
-  'UK','USA','Canada','Australia','Germany','Netherlands',
-  'Ireland','Singapore','Japan','France',
+  'United Kingdom','United States','Canada','Australia','Germany',
+  'Netherlands','Ireland','Singapore','Japan','France','Sweden',
+  'Switzerland','South Korea','New Zealand','UAE',
 ];
 
-const INTAKES = ['Fall (Sep)', 'Spring (Jan)', 'Winter (Jan/Feb)', 'Summer (May)'];
+const INTAKE_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const INTAKE_YEARS  = [new Date().getFullYear(), new Date().getFullYear() + 1, new Date().getFullYear() + 2];
 
 const PRIORITY_STYLES = {
-  critical: 'bg-rose/10 text-rose border-rose/30',
-  high:     'bg-amberLight text-amber-700 border-amber/30',
-  medium:   'bg-skyLight text-blue-600 border-blue-200',
+  critical: 'bg-rose-50 text-rose-700 border-rose-200',
+  high:     'bg-amber-50 text-amber-700 border-amber-200',
+  medium:   'bg-sky-50 text-blue-600 border-blue-200',
 };
 
 const CATEGORY_COLORS = {
-  Identity:       'bg-lavendLight text-lavender',
-  Admission:      'bg-skyLight text-blue-600',
-  Financial:      'bg-amberLight text-amber-700',
+  Identity:         'bg-lavendLight text-lavender',
+  Admission:        'bg-skyLight text-blue-600',
+  Financial:        'bg-amberLight text-amber-700',
   'Health & Other': 'bg-mintLight text-teal-600',
   'Interview Prep': 'bg-peachLight text-orange-600',
-  Health:         'bg-mintLight text-teal-600',
+  Health:           'bg-mintLight text-teal-600',
 };
 
 // ── Markdown-lite renderer ───────────────────────────────────────────────────
 function renderMd(text) {
   if (!text) return null;
-  return text.split('\n').map((line, i) => {
-    const parts = line.split(/(\*\*[^*]+\*\*)/g).map((p, j) =>
+  const lines = text.split('\n');
+  const elements = [];
+  let inList = false;
+
+  lines.forEach((line, i) => {
+    const bold = line.split(/(\*\*[^*]+\*\*)/g).map((p, j) =>
       p.startsWith('**') && p.endsWith('**')
         ? <strong key={j}>{p.slice(2, -2)}</strong>
         : p
     );
-    if (line.trimStart().startsWith('- ') || line.trimStart().startsWith('• '))
-      return <li key={i} className="ml-4 list-disc">{parts}</li>;
-    if (line.match(/^\d+\.\s/))
-      return <li key={i} className="ml-4 list-decimal">{parts}</li>;
-    if (line.startsWith('###')) return <h4 key={i} className="font-bold text-text mt-2">{line.slice(3).trim()}</h4>;
-    if (line.startsWith('##'))  return <h3 key={i} className="font-bold text-text mt-3">{line.slice(2).trim()}</h3>;
-    if (line.startsWith('#'))   return <h2 key={i} className="font-bold text-text mt-3 text-base">{line.slice(1).trim()}</h2>;
-    if (line.trim() === '') return <br key={i} />;
-    return <p key={i}>{parts}</p>;
+
+    if (line.trimStart().startsWith('- ') || line.trimStart().startsWith('• ')) {
+      if (!inList) { inList = true; }
+      elements.push(<li key={i} className="ml-4 list-disc leading-relaxed">{bold}</li>);
+    } else {
+      inList = false;
+      if (line.match(/^\d+\.\s/)) {
+        elements.push(<li key={i} className="ml-4 list-decimal leading-relaxed">{bold}</li>);
+      } else if (line.startsWith('### ')) {
+        elements.push(<h4 key={i} className="font-bold text-text mt-3 mb-1">{line.slice(4)}</h4>);
+      } else if (line.startsWith('## ')) {
+        elements.push(<h3 key={i} className="font-bold text-text mt-4 mb-1 text-base">{line.slice(3)}</h3>);
+      } else if (line.startsWith('# ')) {
+        elements.push(<h2 key={i} className="font-black text-text mt-4 mb-1 text-lg">{line.slice(2)}</h2>);
+      } else if (line.trim() === '') {
+        elements.push(<div key={i} className="h-1.5" />);
+      } else {
+        elements.push(<p key={i} className="leading-relaxed">{bold}</p>);
+      }
+    }
   });
+  return elements;
 }
 
-// ── Suggested chat prompts ────────────────────────────────────────────────────
+// ── Chat suggestions ──────────────────────────────────────────────────────────
 const SUGGESTIONS = [
   'What IELTS score do I need for UK universities?',
   'How do I get a GIC for Canada?',
-  'What is the Germany blocked account requirement?',
-  'How early should I start my visa application?',
-  'What scholarships are available for Indian students?',
-  'How do I write a strong SOP?',
+  'What is the Germany APS certificate and how long does it take?',
+  'What scholarships are available for Indian students going to the USA?',
+  'How early should I start my UK student visa application?',
+  'What is the difference between F-1 and F-2 visa?',
+  'How do I write a strong SOP for MSc Computer Science?',
+  'What is post-study work rights in Australia vs UK?',
 ];
 
+// ── ICS Calendar Export ──────────────────────────────────────────────────────
+function generateICS(months, intakeMonth, intakeYear) {
+  const now      = new Date();
+  const lines    = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0',
+    'PRODID:-//StudyPathway AI//StudyPathway//EN',
+    'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'X-WR-CALNAME:StudyPathway Application Timeline',
+    'X-WR-TIMEZONE:Asia/Kolkata',
+    '',
+  ];
+
+  months.forEach((month, idx) => {
+    const d = new Date(now);
+    d.setMonth(d.getMonth() + idx);
+    const yyyymmdd = d.toISOString().slice(0, 10).replace(/-/g, '');
+    const uid      = `studypathway-${idx}-${Date.now()}@studypathway`;
+
+    lines.push('BEGIN:VEVENT');
+    lines.push(`DTSTART;VALUE=DATE:${yyyymmdd}`);
+    lines.push(`DTEND;VALUE=DATE:${yyyymmdd}`);
+    lines.push(`SUMMARY:📚 ${month.label}`);
+    lines.push(`DESCRIPTION:${month.tasks.map(t => `• ${t}`).join('\\n')}`);
+    lines.push(`UID:${uid}`);
+    lines.push('STATUS:CONFIRMED');
+    if (month.milestone) {
+      lines.push('BEGIN:VALARM');
+      lines.push('TRIGGER:-P7D');
+      lines.push('ACTION:DISPLAY');
+      lines.push(`DESCRIPTION:Reminder: ${month.label} — 1 week away`);
+      lines.push('END:VALARM');
+    }
+    lines.push('END:VEVENT');
+  });
+
+  // Add intake date as a special event
+  const intakeMonthIdx = INTAKE_MONTHS.indexOf(intakeMonth);
+  if (intakeMonthIdx >= 0 && intakeYear) {
+    const intakeDate = `${intakeYear}${String(intakeMonthIdx + 1).padStart(2, '0')}01`;
+    lines.push('BEGIN:VEVENT');
+    lines.push(`DTSTART;VALUE=DATE:${intakeDate}`);
+    lines.push(`DTEND;VALUE=DATE:${intakeDate}`);
+    lines.push(`SUMMARY:🎓 University Intake — ${intakeMonth} ${intakeYear}`);
+    lines.push(`UID:studypathway-intake-${Date.now()}@studypathway`);
+    lines.push('BEGIN:VALARM');
+    lines.push('TRIGGER:-P30D');
+    lines.push('ACTION:DISPLAY');
+    lines.push('DESCRIPTION:1 month until your university intake!');
+    lines.push('END:VALARM');
+    lines.push('END:VEVENT');
+  }
+
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+function downloadICS(months, intakeMonth, intakeYear) {
+  const ics  = generateICS(months, intakeMonth, intakeYear);
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'studypathway-timeline.ics';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Main Page
 // ═════════════════════════════════════════════════════════════════════════════
 export default function AIAgent() {
   const [tab, setTab]         = useState('chat');
@@ -89,7 +179,7 @@ export default function AIAgent() {
         <div>
           <h1 className="text-2xl font-black text-text">AI Study Coach</h1>
           <p className="text-muted text-sm">
-            Claude-powered · Document checklists · Timeline planning · Profile analysis
+            Gemini-powered · Document checklists · Timeline planning · Profile analysis
           </p>
         </div>
       </div>
@@ -123,7 +213,7 @@ export default function AIAgent() {
 function ChatTab({ profile }) {
   const [messages, setMessages] = useState([{
     role: 'assistant',
-    content: "Hi! I'm your AI Study Coach powered by Claude. I know everything about studying abroad as an Indian student — visas, universities, scholarships, IELTS/GRE prep, budgeting, and more.\n\nWhat would you like help with today?",
+    content: "Hi! I'm your AI Study Coach, powered by Google Gemini and trained on everything you need to know about studying abroad as an Indian student.\n\nI can help with:\n- **Visa requirements** for UK, USA, Canada, Germany, Australia and more\n- **University applications**, SOPs, LORs, and deadlines\n- **Scholarship opportunities** — Chevening, Fulbright, DAAD, MEXT, GKS\n- **IELTS, TOEFL, GRE, GMAT** preparation strategies\n- **Financial planning**, GIC, blocked accounts, and budgeting\n- **Post-study work** rights in each country\n\nWhat would you like help with today?",
   }]);
   const [input, setInput]     = useState('');
   const [loading, setLoading] = useState(false);
@@ -147,7 +237,7 @@ function ChatTab({ profile }) {
     } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Sorry, the AI service is temporarily unavailable.',
+        content: 'Sorry, I\'m having trouble connecting right now. Please check your internet connection and try again.',
       }]);
     } finally {
       setLoading(false);
@@ -156,21 +246,24 @@ function ChatTab({ profile }) {
   };
 
   return (
-    <div className="card flex flex-col" style={{ height: '620px' }}>
-      {/* Chat header */}
+    <div className="card flex flex-col" style={{ height: '640px' }}>
+      {/* Header */}
       <div className="p-4 border-b border-surfaceBorder flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-gradient-to-br from-lavender to-blue-500 rounded-xl flex items-center justify-center shadow-sm">
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
             <Bot className="w-4 h-4 text-white" />
           </div>
           <div>
             <p className="text-sm font-bold text-text">AI Study Coach</p>
-            <p className="text-[10px] text-muted">Claude · Personalised for your profile</p>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
+              <p className="text-[10px] text-muted">Gemini · Personalised to your profile</p>
+            </div>
           </div>
         </div>
         <button onClick={() => setMessages([{
           role: 'assistant',
-          content: "Hi again! What would you like help with?",
+          content: "Hi again! What would you like to know about studying abroad?",
         }])} className="p-1.5 rounded-lg text-muted hover:text-lavender hover:bg-surfaceAlt transition-colors" title="New chat">
           <RefreshCw className="w-3.5 h-3.5" />
         </button>
@@ -204,9 +297,9 @@ function ChatTab({ profile }) {
               <Bot className="w-3.5 h-3.5 text-lavender" />
             </div>
             <div className="bg-surfaceAlt rounded-2xl rounded-tl-sm px-4 py-3">
-              <div className="flex gap-1">
+              <div className="flex gap-1 items-center">
                 {[0, 0.15, 0.3].map((d, i) => (
-                  <div key={i} className="w-1.5 h-1.5 bg-lavender rounded-full animate-bounce"
+                  <div key={i} className="w-2 h-2 bg-lavender/60 rounded-full animate-bounce"
                     style={{ animationDelay: `${d}s` }} />
                 ))}
               </div>
@@ -216,13 +309,13 @@ function ChatTab({ profile }) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Suggestions */}
+      {/* Suggestion chips */}
       {messages.length <= 1 && (
-        <div className="px-4 pb-2 flex gap-2 flex-wrap">
+        <div className="px-4 pb-2 flex gap-2 flex-wrap max-h-24 overflow-y-auto">
           {SUGGESTIONS.map((q, i) => (
             <button key={i} onClick={() => send(q)}
-              className="text-[11px] bg-lavendLight text-lavender px-2.5 py-1.5 rounded-lg hover:bg-lavender hover:text-white transition-colors border border-lavender/20 flex items-center gap-1">
-              <Sparkles className="w-2.5 h-2.5" /> {q}
+              className="text-[11px] bg-lavendLight text-lavender px-2.5 py-1.5 rounded-lg hover:bg-lavender hover:text-white transition-colors border border-lavender/20 flex items-center gap-1 flex-shrink-0">
+              <Sparkles className="w-2.5 h-2.5 flex-shrink-0" /> {q}
             </button>
           ))}
         </div>
@@ -247,22 +340,22 @@ function ChatTab({ profile }) {
 // Checklist Tab
 // ═══════════════════════════════════════════════════════════
 function ChecklistTab({ profile }) {
-  const [country, setCountry]         = useState('UK');
-  const [result, setResult]           = useState(null);
-  const [loading, setLoading]         = useState(false);
-  const [checked, setChecked]         = useState({});
+  const [country, setCountry]           = useState('United Kingdom');
+  const [result, setResult]             = useState(null);
+  const [loading, setLoading]           = useState(false);
+  const [checked, setChecked]           = useState({});
   const [expandedCats, setExpandedCats] = useState({});
 
   const generate = async () => {
-    setLoading(true);
-    setResult(null);
-    setChecked({});
+    setLoading(true); setResult(null); setChecked({});
     try {
       const data = await aiAPI.generateChecklist(country, profile);
       setResult(data);
-      // Auto-expand first category
-      const firstCat = [...new Set((data.checklist || []).map(i => i.category))][0];
-      if (firstCat) setExpandedCats({ [firstCat]: true });
+      // Auto-expand Identity and Admission
+      const cats = [...new Set((data.checklist || []).map(i => i.category))];
+      const initial = {};
+      cats.slice(0, 2).forEach(c => { initial[c] = true; });
+      setExpandedCats(initial);
     } catch {
       setResult({ error: true });
     } finally {
@@ -270,7 +363,7 @@ function ChecklistTab({ profile }) {
     }
   };
 
-  const toggleCheck = id => setChecked(p => ({ ...p, [id]: !p[id] }));
+  const toggleCheck = id  => setChecked(p => ({ ...p, [id]: !p[id] }));
   const toggleCat   = cat => setExpandedCats(p => ({ ...p, [cat]: !p[cat] }));
 
   const grouped = (result?.checklist || []).reduce((acc, item) => {
@@ -282,19 +375,19 @@ function ChecklistTab({ profile }) {
   const doneCount = Object.values(checked).filter(Boolean).length;
   const progress  = total ? Math.round((doneCount / total) * 100) : 0;
 
-  // Copy all tasks to a simple text list for "add to todo" feel
   const copyToClipboard = () => {
     const text = (result?.checklist || [])
-      .map(i => `[ ] ${i.category}: ${i.task}`)
+      .map(i => `[ ] [${i.priority?.toUpperCase()}] ${i.category}: ${i.task}${i.note ? ` — ${i.note}` : ''}`)
       .join('\n');
     navigator.clipboard.writeText(text).catch(() => {});
   };
 
   return (
     <div className="space-y-4">
-      {/* Controls */}
-      <div className="card p-4 flex flex-wrap gap-3 items-center">
-        <div className="flex flex-wrap gap-2 flex-1">
+      {/* Country selector */}
+      <div className="card p-4 space-y-3">
+        <p className="text-xs font-bold text-muted uppercase tracking-wide">Select Destination Country</p>
+        <div className="flex flex-wrap gap-2">
           {COUNTRIES.map(c => (
             <button key={c} onClick={() => setCountry(c)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
@@ -308,112 +401,112 @@ function ChecklistTab({ profile }) {
         <button onClick={generate} disabled={loading}
           className="btn-primary px-5 py-2.5 gap-2 disabled:opacity-60 flex-shrink-0">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-          {loading ? 'Generating…' : 'Generate with AI'}
+          {loading ? 'Generating personalised checklist…' : `Generate ${country} Checklist`}
         </button>
       </div>
 
       {/* Empty state */}
       {!result && !loading && (
-        <div className="card p-16 text-center">
+        <div className="card p-14 text-center">
           <div className="w-14 h-14 bg-lavendLight rounded-2xl flex items-center justify-center mx-auto mb-4">
             <FileCheck className="w-7 h-7 text-lavender" />
           </div>
           <p className="font-bold text-text text-lg mb-1">AI-Powered Document Checklist</p>
           <p className="text-sm text-muted max-w-sm mx-auto">
-            Select a country and click "Generate with AI" to get a personalised,
-            prioritised checklist tailored to your profile.
+            Select a destination and click Generate to get a comprehensive,
+            prioritised checklist personalised to your exact profile.
           </p>
+          <div className="flex gap-2 justify-center mt-4 flex-wrap">
+            {['✅ Personalised to your CGPA & test scores', '⚡ Country-specific requirements', '📋 Priority-sorted with deadlines'].map(f => (
+              <span key={f} className="text-[11px] bg-surfaceAlt text-textSoft px-2.5 py-1 rounded-full">{f}</span>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Error */}
       {result?.error && (
         <div className="card p-8 text-center">
-          <AlertCircle className="w-8 h-8 text-rose mx-auto mb-2" />
+          <AlertCircle className="w-8 h-8 text-rose-500 mx-auto mb-2" />
           <p className="font-semibold text-text">Could not generate checklist</p>
-          <p className="text-sm text-muted mt-1">Please check your API configuration and try again.</p>
+          <p className="text-sm text-muted mt-1">Please check your GOOGLE_API_KEY is configured.</p>
         </div>
       )}
 
-      {/* Results */}
       {result && !result.error && (
         <>
-          {/* Overview card */}
+          {/* Overview */}
           <div className="card p-5">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
-                <h2 className="font-bold text-text text-lg">{result.country} — Document Checklist</h2>
-                <p className="text-sm text-muted mt-1 max-w-lg">{result.summary}</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <h2 className="font-bold text-text text-lg">{result.country}</h2>
+                  {result.visa_type && (
+                    <span className="badge bg-lavendLight text-lavender text-[10px]">{result.visa_type}</span>
+                  )}
+                </div>
+                <p className="text-sm text-muted max-w-xl">{result.summary}</p>
               </div>
-              <div className="flex gap-2">
-                <button onClick={copyToClipboard}
-                  className="btn-ghost text-xs py-1.5 px-3">
-                  <Download className="w-3.5 h-3.5" /> Copy All
-                </button>
-              </div>
+              <button onClick={copyToClipboard} className="btn-ghost text-xs py-1.5 px-3 flex-shrink-0">
+                <Download className="w-3.5 h-3.5" /> Copy All
+              </button>
             </div>
-
             <div className="grid grid-cols-3 gap-3 mt-4 text-xs">
               {result.visa_fee_usd > 0 && (
-                <div className="bg-surfaceAlt rounded-lg p-2.5">
+                <div className="bg-surfaceAlt rounded-xl p-3">
                   <p className="text-muted mb-0.5">Visa Fee</p>
                   <p className="font-bold text-text">${result.visa_fee_usd} USD</p>
                 </div>
               )}
               {result.timeline_weeks > 0 && (
-                <div className="bg-surfaceAlt rounded-lg p-2.5">
+                <div className="bg-surfaceAlt rounded-xl p-3">
                   <p className="text-muted mb-0.5">Lead Time</p>
                   <p className="font-bold text-text">{result.timeline_weeks} weeks</p>
                 </div>
               )}
-              <div className="bg-surfaceAlt rounded-lg p-2.5">
+              <div className="bg-surfaceAlt rounded-xl p-3">
                 <p className="text-muted mb-0.5">Documents</p>
-                <p className="font-bold text-text">{total} total</p>
+                <p className="font-bold text-text">{total} items</p>
               </div>
             </div>
-
-            {/* Progress bar */}
+            {/* Progress */}
             <div className="mt-4">
               <div className="flex justify-between text-xs mb-1.5">
-                <span className="text-textSoft font-medium">Documents ready</span>
-                <span className="font-bold text-lavender">{doneCount}/{total}</span>
+                <span className="text-textSoft font-medium">Progress</span>
+                <span className="font-bold text-lavender">{doneCount}/{total} ready</span>
               </div>
               <div className="bg-lavendLight rounded-full h-2 overflow-hidden">
                 <div className="bg-lavender h-2 rounded-full transition-all duration-500"
                   style={{ width: `${progress}%` }} />
               </div>
               {progress === 100 && (
-                <p className="text-xs text-teal-600 font-semibold mt-1.5">🎉 All documents ready!</p>
+                <p className="text-xs text-teal-600 font-bold mt-1.5">🎉 All documents ready! Go apply!</p>
               )}
             </div>
           </div>
 
-          {/* Checklist groups */}
+          {/* Checklist grouped by category */}
           {Object.entries(grouped).map(([cat, items]) => (
             <div key={cat} className="card overflow-hidden">
               <button onClick={() => toggleCat(cat)}
                 className="w-full flex items-center justify-between p-4 hover:bg-surfaceAlt transition-colors">
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-3">
                   <span className={`badge text-[10px] ${CATEGORY_COLORS[cat] || 'bg-surfaceAlt text-textSoft'}`}>{cat}</span>
-                  <span className="text-xs text-muted">
-                    {items.filter(i => checked[i.id]).length}/{items.length} done
-                  </span>
+                  <span className="text-xs text-muted">{items.filter(i => checked[i.id]).length}/{items.length} done</span>
                 </div>
                 <ChevronDown className={`w-4 h-4 text-muted transition-transform ${expandedCats[cat] ? 'rotate-180' : ''}`} />
               </button>
-
               {expandedCats[cat] && (
                 <div className="px-4 pb-4 space-y-2 border-t border-surfaceBorder pt-3">
                   {items.map(item => (
                     <div key={item.id}
-                      className="flex items-start gap-3 p-3 rounded-xl hover:bg-surfaceAlt cursor-pointer transition-colors group"
-                      onClick={() => toggleCheck(item.id)}>
+                      onClick={() => toggleCheck(item.id)}
+                      className="flex items-start gap-3 p-3 rounded-xl hover:bg-surfaceAlt cursor-pointer transition-colors group">
                       {checked[item.id]
                         ? <CheckCircle2 className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />
                         : <Circle className="w-4 h-4 text-muted flex-shrink-0 mt-0.5 group-hover:text-lavender" />}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-sm leading-snug ${checked[item.id] ? 'line-through text-muted' : 'text-text font-medium'}`}>
+                          <span className={`text-sm leading-snug font-medium ${checked[item.id] ? 'line-through text-muted' : 'text-text'}`}>
                             {item.task}
                           </span>
                           <span className={`badge text-[9px] border ${PRIORITY_STYLES[item.priority] || ''}`}>
@@ -421,7 +514,9 @@ function ChecklistTab({ profile }) {
                           </span>
                         </div>
                         {item.note && (
-                          <p className="text-xs text-muted mt-0.5">{item.note}</p>
+                          <p className="text-xs text-muted mt-0.5 flex items-start gap-1">
+                            <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />{item.note}
+                          </p>
                         )}
                         {item.deadline && (
                           <p className="text-[10px] text-blue-500 mt-0.5 flex items-center gap-1">
@@ -442,106 +537,334 @@ function ChecklistTab({ profile }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Timeline Tab
+// Timeline Tab — Multi-step questionnaire
 // ═══════════════════════════════════════════════════════════
 function TimelineTab({ profile }) {
-  const [intake, setIntake]     = useState('Fall (Sep)');
-  const [countries, setCountries] = useState(profile?.target_countries || []);
-  const [result, setResult]     = useState(null);
-  const [loading, setLoading]   = useState(false);
+  const [step, setStep]   = useState(1);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const [intakeMonth, setIntakeMonth] = useState('September');
+  const [intakeYear,  setIntakeYear]  = useState(INTAKE_YEARS[1]);
+  const [countries,   setCountries]   = useState([]);
+
+  const [ieltsDone,  setIeltsDone]  = useState(profile?.english_test === 'IELTS' ? 'done' : 'planned');
+  const [ieltsScore, setIeltsScore] = useState(profile?.english_score || '');
+  const [ieltsWhen,  setIeltsWhen]  = useState('');
+  const [greDone,    setGreDone]    = useState(profile?.gre_score ? 'done' : 'planned');
+  const [greScore,   setGreScore]   = useState(profile?.gre_score || '');
+  const [greWhen,    setGreWhen]    = useState('');
+  const [greNA,      setGreNA]      = useState(false);
+
+  const [appStatus, setAppStatus] = useState({
+    shortlisted: false, sop_started: false, lors_arranged: false,
+    transcripts_ready: false, budget_confirmed: false,
+    offer_received: false, deposit_paid: false, visa_started: false,
+  });
 
   useEffect(() => {
     if (profile?.target_countries?.length) setCountries(profile.target_countries);
+    if (profile?.english_test === 'IELTS' && profile?.english_score) {
+      setIeltsDone('done'); setIeltsScore(String(profile.english_score));
+    }
+    if (profile?.gre_score) { setGreDone('done'); setGreScore(String(profile.gre_score)); }
   }, [profile]);
+
+  const toggleCountry = c => setCountries(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
+  const toggleStatus  = k => setAppStatus(p => ({ ...p, [k]: !p[k] }));
+
+  const monthsUntilIntake = () => {
+    const now    = new Date();
+    const target = new Date(`${intakeMonth} 1, ${intakeYear}`);
+    return Math.max(1, Math.round((target - now) / (1000 * 60 * 60 * 24 * 30)));
+  };
 
   const generate = async () => {
     setLoading(true);
     try {
-      const data = await aiAPI.generateTimeline(intake, countries, profile);
+      const intake        = `${intakeMonth} ${intakeYear}`;
+      const currentStatus = {
+        ielts_done: ieltsDone === 'done', ielts_score: ieltsScore, ielts_when: ieltsWhen,
+        gre_done:   greDone  === 'done',  gre_score:   greScore,   gre_when:   greWhen,
+        gre_not_needed: greNA,
+        months_until_intake: monthsUntilIntake(),
+        ...appStatus,
+      };
+      const data = await aiAPI.generateTimeline(intake, countries, profile, currentStatus);
       setResult(data);
+      setStep(4);
     } catch {
-      setResult({ error: true });
+      setResult({ error: true }); setStep(4);
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleCountry = c => setCountries(prev =>
-    prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]
-  );
+  const reset = () => { setResult(null); setStep(1); };
 
-  return (
+  // ── Step 1: Planning ──
+  if (step === 1) return (
     <div className="space-y-4">
-      {/* Controls */}
-      <div className="card p-5 space-y-4">
+      <StepHeader step={1} total={3} title="When & Where?" sub="Set your target intake and destination countries" />
+      <div className="card p-5 space-y-5">
         <div>
-          <p className="text-xs font-bold text-muted uppercase tracking-wide mb-2">Intake</p>
-          <div className="flex gap-2 flex-wrap">
-            {INTAKES.map(i => (
-              <button key={i} onClick={() => setIntake(i)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
-                  ${intake === i ? 'bg-lavender text-white border-lavender' : 'bg-white text-textSoft border-surfaceBorder hover:border-lavender/50'}`}>
-                {i}
-              </button>
-            ))}
+          <p className="text-xs font-bold text-muted uppercase tracking-wide mb-2">Target Intake</p>
+          <div className="flex gap-3 flex-wrap">
+            <div>
+              <label className="text-xs text-muted block mb-1">Month</label>
+              <select value={intakeMonth} onChange={e => setIntakeMonth(e.target.value)}
+                className="input-field text-sm py-2 pr-8">
+                {INTAKE_MONTHS.map(m => <option key={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted block mb-1">Year</label>
+              <select value={intakeYear} onChange={e => setIntakeYear(Number(e.target.value))}
+                className="input-field text-sm py-2 pr-8">
+                {INTAKE_YEARS.map(y => <option key={y}>{y}</option>)}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <div className="bg-surfaceAlt rounded-xl px-4 py-2 text-xs">
+                <p className="text-muted">Time available</p>
+                <p className="font-bold text-lavender text-sm">{monthsUntilIntake()} months</p>
+              </div>
+            </div>
           </div>
         </div>
         <div>
-          <p className="text-xs font-bold text-muted uppercase tracking-wide mb-2">Target Countries</p>
-          <div className="flex gap-2 flex-wrap">
+          <p className="text-xs font-bold text-muted uppercase tracking-wide mb-2">Target Countries <span className="normal-case font-normal">(select all that apply)</span></p>
+          <div className="flex flex-wrap gap-2">
             {COUNTRIES.map(c => (
               <button key={c} onClick={() => toggleCountry(c)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
-                  ${countries.includes(c) ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-textSoft border-surfaceBorder hover:border-blue-300'}`}>
+                  ${countries.includes(c)
+                    ? 'bg-lavender text-white border-lavender'
+                    : 'bg-white text-textSoft border-surfaceBorder hover:border-lavender/50'}`}>
                 {c}
               </button>
             ))}
           </div>
+          {countries.length > 0 && (
+            <p className="text-xs text-lavender mt-2">Selected: {countries.join(', ')}</p>
+          )}
         </div>
-        <button onClick={generate} disabled={loading}
-          className="btn-primary px-5 py-2.5 gap-2 w-full justify-center disabled:opacity-60">
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
-          {loading ? 'Generating timeline…' : 'Generate My Timeline'}
-        </button>
       </div>
-
-      {/* Empty state */}
-      {!result && !loading && (
-        <div className="card p-16 text-center">
-          <Clock className="w-12 h-12 text-muted mx-auto mb-4 opacity-30" />
-          <p className="font-bold text-text">Month-by-Month Application Plan</p>
-          <p className="text-sm text-muted mt-1">Select your intake and target countries, then generate your personalised timeline.</p>
+      {/* Germany APS warning */}
+      {countries.includes('Germany') && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-bold text-amber-800">Germany APS Certificate Warning</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Indian students need an APS certificate from APS India (Delhi) — processing takes <strong>6–8 months</strong>.
+              This is the biggest bottleneck. If not already applied, this should be your first action.
+            </p>
+          </div>
         </div>
       )}
+      <div className="flex justify-end">
+        <button onClick={() => setStep(2)} disabled={countries.length === 0}
+          className="btn-primary px-6 py-2.5 gap-2 disabled:opacity-60">
+          Next: Test Status <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
 
-      {/* Timeline results */}
-      {result && !result.error && (
-        <div className="space-y-3">
-          <h2 className="font-bold text-text text-lg px-1">
-            {result.intake} Intake — Application Roadmap
-          </h2>
+  // ── Step 2: Test Status ──
+  if (step === 2) return (
+    <div className="space-y-4">
+      <StepHeader step={2} total={3} title="Test Status" sub="Tell us where you are with your English and aptitude tests" />
+      <div className="card p-5 space-y-5">
+        {/* IELTS/TOEFL */}
+        <div>
+          <p className="text-sm font-bold text-text mb-3">English Proficiency Test (IELTS / TOEFL)</p>
+          <div className="flex gap-2 mb-3 flex-wrap">
+            {['done', 'planned', 'not started'].map(v => (
+              <button key={v} onClick={() => setIeltsDone(v)}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-all capitalize
+                  ${ieltsDone === v ? 'bg-lavender text-white border-lavender' : 'bg-white text-textSoft border-surfaceBorder hover:border-lavender/50'}`}>
+                {v === 'done' ? '✅ Already done' : v === 'planned' ? '📅 Planned' : '❌ Not started'}
+              </button>
+            ))}
+          </div>
+          {ieltsDone === 'done' && (
+            <input value={ieltsScore} onChange={e => setIeltsScore(e.target.value)}
+              placeholder="Your score (e.g. 7.0 for IELTS, 100 for TOEFL)"
+              className="input-field text-sm" />
+          )}
+          {ieltsDone === 'planned' && (
+            <input value={ieltsWhen} onChange={e => setIeltsWhen(e.target.value)}
+              placeholder="When are you taking it? (e.g. 'March 2025' or '2 months from now')"
+              className="input-field text-sm" />
+          )}
+        </div>
+
+        {/* GRE/GMAT */}
+        <div>
+          <p className="text-sm font-bold text-text mb-3">GRE / GMAT</p>
+          <div className="flex gap-2 mb-3 flex-wrap">
+            {['done', 'planned', 'not started'].map(v => (
+              <button key={v} onClick={() => { setGreDone(v); setGreNA(false); }}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-all capitalize
+                  ${!greNA && greDone === v ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-textSoft border-surfaceBorder hover:border-blue-300'}`}>
+                {v === 'done' ? '✅ Already done' : v === 'planned' ? '📅 Planned' : '❌ Not started'}
+              </button>
+            ))}
+            <button onClick={() => { setGreNA(true); setGreDone(''); }}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-all
+                ${greNA ? 'bg-teal-500 text-white border-teal-500' : 'bg-white text-textSoft border-surfaceBorder hover:border-teal-300'}`}>
+              ℹ️ Not required for my programs
+            </button>
+          </div>
+          {!greNA && greDone === 'done' && (
+            <input value={greScore} onChange={e => setGreScore(e.target.value)}
+              placeholder="Your GRE score (e.g. 320) or GMAT score (e.g. 680)"
+              className="input-field text-sm" />
+          )}
+          {!greNA && greDone === 'planned' && (
+            <input value={greWhen} onChange={e => setGreWhen(e.target.value)}
+              placeholder="When are you taking it? (e.g. 'April 2025')"
+              className="input-field text-sm" />
+          )}
+        </div>
+      </div>
+      <div className="flex justify-between">
+        <button onClick={() => setStep(1)} className="btn-ghost px-4 py-2 gap-2">
+          <ChevronLeft className="w-4 h-4" /> Back
+        </button>
+        <button onClick={() => setStep(3)} className="btn-primary px-6 py-2.5 gap-2">
+          Next: Application Stage <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── Step 3: Application stage ──
+  if (step === 3) {
+    const statusItems = [
+      { key: 'shortlisted',       label: 'Researched and shortlisted universities',  icon: '🎓' },
+      { key: 'sop_started',       label: 'Started writing my SOP/personal statement', icon: '✍️' },
+      { key: 'lors_arranged',     label: 'Arranged/requested Letters of Recommendation', icon: '📄' },
+      { key: 'transcripts_ready', label: 'Official transcripts ordered/ready',        icon: '📋' },
+      { key: 'budget_confirmed',  label: 'Budget / funding source confirmed',          icon: '💰' },
+      { key: 'offer_received',    label: 'Received an offer letter from a university', icon: '🎉' },
+      { key: 'deposit_paid',      label: 'Paid tuition deposit to confirm enrolment',  icon: '💳' },
+      { key: 'visa_started',      label: 'Started visa application process',           icon: '🛂' },
+    ];
+
+    return (
+      <div className="space-y-4">
+        <StepHeader step={3} total={3} title="Application Stage" sub="Tick everything you've already completed — we'll skip these in your timeline" />
+        <div className="card p-5">
+          <div className="space-y-2">
+            {statusItems.map(({ key, label, icon }) => (
+              <button key={key} onClick={() => toggleStatus(key)}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left
+                  ${appStatus[key]
+                    ? 'bg-teal-50 border-teal-200 text-teal-700'
+                    : 'bg-white border-surfaceBorder text-textSoft hover:border-lavender/40'}`}>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0
+                  ${appStatus[key] ? 'bg-teal-500 border-teal-500' : 'border-gray-300'}`}>
+                  {appStatus[key] && <CheckCircle2 className="w-3 h-3 text-white" />}
+                </div>
+                <span className="text-sm">{icon} {label}</span>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted mt-3">
+            {Object.values(appStatus).filter(Boolean).length} of {statusItems.length} steps completed
+          </p>
+        </div>
+        <div className="flex justify-between">
+          <button onClick={() => setStep(2)} className="btn-ghost px-4 py-2 gap-2">
+            <ChevronLeft className="w-4 h-4" /> Back
+          </button>
+          <button onClick={generate} disabled={loading}
+            className="btn-primary px-6 py-2.5 gap-2 disabled:opacity-60">
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            {loading ? 'Generating personalised timeline…' : 'Generate My Timeline'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Step 4: Results ──
+  if (step === 4) return (
+    <div className="space-y-4">
+      {result?.error ? (
+        <div className="card p-10 text-center">
+          <AlertCircle className="w-8 h-8 text-rose-500 mx-auto mb-2" />
+          <p className="font-semibold text-text">Could not generate timeline</p>
+          <p className="text-sm text-muted mt-1 mb-4">Check your GOOGLE_API_KEY configuration.</p>
+          <button onClick={reset} className="btn-secondary">Try Again</button>
+        </div>
+      ) : (
+        <>
+          {/* Header */}
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h2 className="font-bold text-text text-lg">
+                {intakeMonth} {intakeYear} — Application Roadmap
+              </h2>
+              <p className="text-sm text-muted">{countries.join(', ')}</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => downloadICS(result?.months || [], intakeMonth, intakeYear)}
+                className="btn-secondary text-xs px-3 py-2 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" /> Export to Calendar (.ics)
+              </button>
+              <button onClick={reset} className="btn-ghost text-xs px-3 py-2">
+                <RefreshCw className="w-3.5 h-3.5" /> Redo
+              </button>
+            </div>
+          </div>
+
+          {/* Urgent warnings */}
+          {(result?.urgent_warnings || []).length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-1.5">
+              <p className="text-sm font-bold text-amber-800 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" /> Urgent Actions Required
+              </p>
+              {result.urgent_warnings.map((w, i) => (
+                <p key={i} className="text-xs text-amber-700">{w}</p>
+              ))}
+            </div>
+          )}
+
+          {/* Calendar export info */}
+          <div className="bg-lavendLight border border-lavender/20 rounded-xl p-3 flex items-start gap-3">
+            <Calendar className="w-4 h-4 text-lavender mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-lavender/80">
+              <strong>Add to Google/Apple Calendar:</strong> Click "Export to Calendar (.ics)" → open the downloaded file → your calendar app will import all milestones automatically. Google Calendar: open calendar.google.com → Settings → Import.
+            </p>
+          </div>
+
+          {/* Timeline */}
           <div className="relative">
-            {/* Vertical line */}
             <div className="absolute left-5 top-5 bottom-5 w-0.5 bg-surfaceBorder rounded-full" />
             <div className="space-y-4">
-              {(result.months || []).map((month, i) => (
+              {(result?.months || []).map((month, i) => (
                 <div key={i} className="relative flex gap-4">
-                  {/* Dot */}
-                  <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center z-10 border-2
+                  <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center z-10 border-2 shadow-sm
                     ${month.milestone
-                      ? 'bg-lavender border-lavender text-white shadow-sm'
+                      ? 'bg-lavender border-lavender text-white'
                       : 'bg-white border-surfaceBorder text-muted'}`}>
                     {month.milestone ? <Trophy className="w-4 h-4" /> : <span className="text-xs font-bold">{i + 1}</span>}
                   </div>
                   <div className={`flex-1 card p-4 ${month.milestone ? 'border-lavender/30 bg-lavendLight/20' : ''}`}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs font-bold text-lavender uppercase tracking-wide">{month.month}</span>
-                      <span className="font-bold text-text text-sm">{month.label}</span>
+                    <div className="flex items-start justify-between gap-2 mb-2 flex-wrap">
+                      <div>
+                        <span className="text-xs font-bold text-lavender uppercase tracking-wide">{month.month}</span>
+                        <p className="font-bold text-text text-sm">{month.label}</p>
+                      </div>
                       {month.milestone && (
-                        <span className="badge badge-lavender text-[9px] ml-auto">Milestone</span>
+                        <span className="badge bg-lavender text-white text-[9px]">Milestone</span>
                       )}
                     </div>
-                    <ul className="space-y-1">
+                    <ul className="space-y-1.5">
                       {(month.tasks || []).map((task, j) => (
                         <li key={j} className="flex items-start gap-2 text-sm text-textSoft">
                           <ArrowRight className="w-3 h-3 mt-1 text-lavender flex-shrink-0" />
@@ -549,13 +872,37 @@ function TimelineTab({ profile }) {
                         </li>
                       ))}
                     </ul>
+                    {month.country_specific && (
+                      <p className="mt-2 text-xs text-blue-600 bg-skyLight px-2.5 py-1.5 rounded-lg flex items-start gap-1.5">
+                        <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />{month.country_specific}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
+        </>
       )}
+    </div>
+  );
+
+  return null;
+}
+
+function StepHeader({ step, total, title, sub }) {
+  return (
+    <div className="flex items-center gap-4">
+      <div className="flex gap-1.5">
+        {Array.from({ length: total }, (_, i) => (
+          <div key={i} className={`h-1.5 rounded-full transition-all ${i < step ? 'bg-lavender w-8' : 'bg-surfaceBorder w-4'}`} />
+        ))}
+      </div>
+      <div>
+        <span className="text-xs text-muted">Step {step} of {total}</span>
+        <p className="font-bold text-text text-sm">{title}</p>
+        <p className="text-xs text-muted">{sub}</p>
+      </div>
     </div>
   );
 }
@@ -563,6 +910,16 @@ function TimelineTab({ profile }) {
 // ═══════════════════════════════════════════════════════════
 // Profile Analysis Tab
 // ═══════════════════════════════════════════════════════════
+const DIMENSION_META = {
+  academic:          { label: 'Academic (CGPA)',         max: 30, color: 'bg-lavender' },
+  english:           { label: 'English Proficiency',     max: 20, color: 'bg-teal-500' },
+  standardized_test: { label: 'GRE / GMAT',              max: 10, color: 'bg-blue-500' },
+  experience:        { label: 'Work Experience',         max: 15, color: 'bg-amber-500' },
+  financial:         { label: 'Financial Preparedness',  max: 10, color: 'bg-orange-400' },
+  completeness:      { label: 'Profile Completeness',    max: 10, color: 'bg-indigo-400' },
+  clarity:           { label: 'Career Clarity',          max: 5,  color: 'bg-pink-400' },
+};
+
 function ProfileTab({ profile }) {
   const [result, setResult]   = useState(null);
   const [loading, setLoading] = useState(false);
@@ -579,13 +936,9 @@ function ProfileTab({ profile }) {
     }
   };
 
-  const scoreColor = (s) => {
-    if (s >= 75) return 'text-teal-600';
-    if (s >= 50) return 'text-amber-600';
-    return 'text-rose';
-  };
-
-  const impactColor = { high: 'text-rose', medium: 'text-amber-600', low: 'text-teal-600' };
+  const scoreColor = s => s >= 75 ? 'text-teal-600' : s >= 50 ? 'text-amber-600' : 'text-rose-500';
+  const bgColor    = s => s >= 75 ? 'bg-teal-500'  : s >= 50 ? 'bg-amber-400'   : 'bg-rose-400';
+  const impactBadge = { high: 'bg-rose-50 text-rose-700', medium: 'bg-amber-50 text-amber-700', low: 'bg-teal-50 text-teal-700' };
 
   return (
     <div className="space-y-4">
@@ -595,44 +948,84 @@ function ProfileTab({ profile }) {
         </div>
         <div>
           <h2 className="font-bold text-text">AI Profile Analysis</h2>
-          <p className="text-sm text-muted mt-1">
-            Get an honest, data-driven assessment of your study abroad readiness — strengths, gaps, and a personalised action plan.
+          <p className="text-sm text-muted mt-1 max-w-lg mx-auto">
+            7-dimensional analysis: Academic · English · GRE · Experience · Financial · Completeness · Career Clarity
           </p>
         </div>
         <button onClick={analyze} disabled={loading}
           className="btn-primary px-6 py-2.5 gap-2 mx-auto disabled:opacity-60">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Target className="w-4 h-4" />}
-          {loading ? 'Analysing…' : 'Analyse My Profile'}
+          {loading ? 'Analysing your profile…' : 'Analyse My Profile'}
         </button>
       </div>
 
       {result?.error && (
         <div className="card p-8 text-center">
-          <AlertCircle className="w-8 h-8 text-rose mx-auto mb-2" />
+          <AlertCircle className="w-8 h-8 text-rose-500 mx-auto mb-2" />
           <p className="font-semibold">Analysis failed — check API configuration.</p>
         </div>
       )}
 
       {result && !result.error && (
         <div className="space-y-4">
-          {/* Score */}
-          <div className="card p-6 text-center">
-            <p className="text-sm font-semibold text-muted mb-2">Profile Strength Score</p>
-            <div className={`text-6xl font-black ${scoreColor(result.overall_score)}`}>
-              {result.overall_score}
-              <span className="text-2xl text-muted font-normal">/100</span>
+          {/* Score + grade */}
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <div>
+                <p className="text-xs font-bold text-muted uppercase tracking-wide mb-1">Overall Profile Strength</p>
+                <div className="flex items-baseline gap-2">
+                  <span className={`text-5xl font-black ${scoreColor(result.overall_score)}`}>{result.overall_score}</span>
+                  <span className="text-xl text-muted font-normal">/100</span>
+                  <span className={`badge ml-2 font-bold text-sm px-3 py-1 ${
+                    result.grade === 'Excellent' ? 'bg-teal-100 text-teal-700' :
+                    result.grade === 'Good'      ? 'bg-lavendLight text-lavender' :
+                    result.grade === 'Fair'      ? 'bg-amberLight text-amber-700' :
+                    'bg-rose-50 text-rose-700'}`}>
+                    {result.grade}
+                  </span>
+                </div>
+              </div>
+              {/* Circular indicator */}
+              <div className={`w-16 h-16 rounded-full border-4 flex items-center justify-center
+                ${result.overall_score >= 75 ? 'border-teal-400' : result.overall_score >= 50 ? 'border-lavender' : 'border-amber-400'}`}>
+                <span className="text-xs font-black text-text">{result.overall_score}%</span>
+              </div>
             </div>
-            <div className="w-full bg-surfaceBorder rounded-full h-3 mt-4 overflow-hidden">
-              <div
-                className={`h-3 rounded-full transition-all duration-700 ${
-                  result.overall_score >= 75 ? 'bg-teal-500' :
-                  result.overall_score >= 50 ? 'bg-amber-400' : 'bg-rose'}`}
+            <div className={`w-full rounded-full h-3 bg-surfaceBorder overflow-hidden`}>
+              <div className={`h-3 rounded-full transition-all duration-700 ${bgColor(result.overall_score)}`}
                 style={{ width: `${result.overall_score}%` }} />
             </div>
             {result.verdict && (
-              <p className="text-sm text-textSoft mt-4 max-w-lg mx-auto leading-relaxed">{result.verdict}</p>
+              <p className="text-sm text-textSoft mt-4 leading-relaxed">{result.verdict}</p>
             )}
           </div>
+
+          {/* Dimension breakdown */}
+          {result.dimension_scores && (
+            <div className="card p-5">
+              <h3 className="font-bold text-text mb-4 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-lavender" /> Score Breakdown
+              </h3>
+              <div className="space-y-3">
+                {Object.entries(DIMENSION_META).map(([key, meta]) => {
+                  const val = result.dimension_scores[key] ?? 0;
+                  const pct = Math.round((val / meta.max) * 100);
+                  return (
+                    <div key={key}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-textSoft font-medium">{meta.label}</span>
+                        <span className="font-bold text-text">{val}<span className="text-muted font-normal">/{meta.max}</span></span>
+                      </div>
+                      <div className="bg-surfaceBorder rounded-full h-2 overflow-hidden">
+                        <div className={`h-2 rounded-full transition-all duration-700 ${meta.color}`}
+                          style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="grid md:grid-cols-2 gap-4">
             {/* Strengths */}
@@ -648,23 +1041,22 @@ function ProfileTab({ profile }) {
                 ))}
               </ul>
             </div>
-
             {/* Gaps */}
             <div className="card p-4">
               <h3 className="font-bold text-text mb-3 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose" /> Gaps to Address
+                <AlertCircle className="w-4 h-4 text-rose-500" /> Gaps to Address
               </h3>
               <ul className="space-y-2">
                 {(result.gaps || []).filter(Boolean).map((g, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-textSoft">
-                    <AlertCircle className="w-4 h-4 text-rose flex-shrink-0 mt-0.5" /> {g}
+                    <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" /> {g}
                   </li>
                 ))}
               </ul>
             </div>
           </div>
 
-          {/* Actions */}
+          {/* Action plan */}
           {result.actions?.length > 0 && (
             <div className="card p-4">
               <h3 className="font-bold text-text mb-3 flex items-center gap-2">
@@ -673,13 +1065,14 @@ function ProfileTab({ profile }) {
               <div className="space-y-2">
                 {result.actions.map((a, i) => (
                   <div key={i} className="flex items-start gap-3 p-3 bg-surfaceAlt rounded-xl">
-                    <span className="text-xs font-bold text-muted mt-0.5 w-5">{i + 1}.</span>
-                    <div className="flex-1">
+                    <span className="text-xs font-bold text-muted mt-0.5 w-5 flex-shrink-0">{i + 1}.</span>
+                    <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-text">{a.action}</p>
-                      {a.deadline && <p className="text-xs text-muted mt-0.5">By: {a.deadline}</p>}
+                      {a.why && <p className="text-xs text-muted mt-0.5">{a.why}</p>}
+                      {a.deadline && <p className="text-xs text-blue-500 mt-0.5">⏰ By: {a.deadline}</p>}
                     </div>
                     <div className="flex gap-1.5 flex-shrink-0">
-                      <span className={`badge text-[9px] ${impactColor[a.impact] || ''}`}>
+                      <span className={`badge text-[9px] font-semibold px-2 py-0.5 rounded-full ${impactBadge[a.impact] || ''}`}>
                         {a.impact} impact
                       </span>
                     </div>
@@ -695,16 +1088,15 @@ function ProfileTab({ profile }) {
               <h3 className="font-bold text-text mb-3 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-lavender" /> Country Fit Scores
               </h3>
-              <div className="space-y-3">
+              <div className="grid sm:grid-cols-2 gap-3">
                 {result.match_countries.map((c, i) => (
-                  <div key={i}>
-                    <div className="flex justify-between text-sm mb-1">
+                  <div key={i} className="bg-surfaceAlt rounded-xl p-3">
+                    <div className="flex justify-between text-sm mb-1.5">
                       <span className="font-semibold text-text">{c.country}</span>
                       <span className={`font-bold ${scoreColor(c.fit)}`}>{c.fit}%</span>
                     </div>
-                    <div className="bg-surfaceBorder rounded-full h-2 overflow-hidden">
-                      <div className={`h-2 rounded-full transition-all duration-500
-                        ${c.fit >= 75 ? 'bg-teal-500' : c.fit >= 50 ? 'bg-lavender' : 'bg-amber-400'}`}
+                    <div className="bg-white rounded-full h-2 overflow-hidden">
+                      <div className={`h-2 rounded-full transition-all duration-500 ${bgColor(c.fit)}`}
                         style={{ width: `${c.fit}%` }} />
                     </div>
                     {c.reason && <p className="text-xs text-muted mt-1">{c.reason}</p>}
@@ -751,11 +1143,11 @@ function SopTab({ profile }) {
           <h2 className="font-bold text-text">Statement of Purpose Builder</h2>
         </div>
         <p className="text-sm text-muted">
-          Generate a personalised SOP outline based on your profile, tailored to a specific university and program.
+          Generate a personalised, structured SOP outline tailored to your profile and the specific university/program you're applying to.
         </p>
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-semibold text-muted block mb-1">University</label>
+            <label className="text-xs font-semibold text-muted block mb-1">Target University</label>
             <input value={university} onChange={e => setUniversity(e.target.value)}
               placeholder="e.g. University of Toronto"
               className="input-field" />
@@ -770,21 +1162,25 @@ function SopTab({ profile }) {
         <button onClick={generate} disabled={loading || !university.trim() || !program.trim()}
           className="btn-primary px-5 py-2.5 gap-2 w-full justify-center disabled:opacity-60">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
-          {loading ? 'Generating SOP Outline…' : 'Generate My SOP Outline'}
+          {loading ? 'Generating personalised SOP outline…' : 'Generate My SOP Outline'}
         </button>
       </div>
 
       {result && (
         <div className="card p-5">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-text">Your SOP Outline</h3>
-            <button onClick={copy} className="btn-ghost text-xs py-1.5 px-3">
+            <h3 className="font-bold text-text">Your SOP Outline — {university}</h3>
+            <button onClick={copy} className="btn-ghost text-xs py-1.5 px-3 flex items-center gap-1.5">
               <Download className="w-3.5 h-3.5" /> Copy
             </button>
           </div>
-          <div className="prose prose-sm max-w-none text-sm text-textSoft space-y-1 leading-relaxed bg-surfaceAlt rounded-xl p-4">
+          <div className="text-sm text-textSoft leading-relaxed bg-surfaceAlt rounded-xl p-5 space-y-1">
             {renderMd(result)}
           </div>
+          <p className="text-xs text-muted mt-3 flex items-center gap-1.5">
+            <Info className="w-3.5 h-3.5" />
+            This is an outline / framework. Use it as a starting point and add your personal stories and specific details.
+          </p>
         </div>
       )}
     </div>

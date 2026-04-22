@@ -187,3 +187,25 @@ SIRI requires students to demonstrate sufficient funds for the duration of the p
 - **SKAT (Danish Tax Authority):** https://www.skat.dk/
 - **Danish Embassy India (New Delhi):** https://indien.um.dk/
 - **VFS Global Denmark (India):** https://www.vfsglobal.com/denmark/india/
+
+---
+
+## FAQ — Quick Reference
+
+**Q: How do I apply for a Danish student residence permit from India?**
+Indian students apply for a Danish residence permit online through the Danish Immigration Service portal (newtodenmark.dk). Steps:
+1. Apply online at **newtodenmark.dk** (choose: "Apply for a residence permit as a student").
+2. You will receive a case order ID and must pay the processing fee online (DKK 2,050 — approximately INR 25,000).
+3. Submit biometrics and original documents at the nearest **VFS Global Danish Visa Application Centre** in India (Delhi, Mumbai, Chennai, Bengaluru).
+4. Processing time: 2–3 months on average (can be faster if documents are complete).
+5. Once approved, you receive an entry visa; after arriving in Denmark, collect your residence permit card.
+6. Register with the local **Borgerservice** (citizen service centre) within 5 business days of arrival.
+
+**Q: What is the minimum bank balance required for a Denmark student visa?**
+The Danish Immigration Service (SIRI) requires you to demonstrate funds of at least **DKK 6,243 per month** (approximately €840/month, INR 78,000/month as of 2024). For a full year, this equals DKK 74,916. Accepted proof: bank statements (personal or parental) showing the required balance, study loan sanction letter, or scholarship award letter. Unlike Germany, Denmark does NOT require a blocked account — regular bank statements are sufficient.
+
+**Q: Can international students work while studying in Denmark?**
+Yes. Students from outside the EU/EEA (including Indian students) holding a Danish study residence permit are allowed to work up to **20 hours per week during term time** and **full-time during summer holidays** (June, July, August). You do not need a separate work permit — your residence permit for study includes this right. Part-time work (student jobs / studiejob) is common and pays well (DKK 130–180/hour for basic student roles).
+
+**Q: Does Denmark offer post-study work opportunities?**
+Yes. After completing a degree from a Danish institution, you can apply for a **Job Seeking Residence Permit** to stay in Denmark and look for work for up to **2 years**. You must apply before your student permit expires, demonstrate sufficient funds (DKK 6,243/month), and have completed a full-time degree programme. If you find a job, you can convert to a work permit. Denmark also has a fast-track and Pay Limit schemes for high-skilled workers.

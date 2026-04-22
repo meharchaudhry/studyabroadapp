@@ -1,12 +1,11 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home, GraduationCap, FileCheck, Briefcase, Home as HomeIcon,
-  LogOut, ChevronRight, Globe, Sparkles, Calculator, User, BarChart
+  LogOut, ChevronRight, Globe, Sparkles, Calculator
 } from 'lucide-react';
 
 const menuItems = [
   { name: 'Dashboard',    path: '/dashboard',     icon: Home },
-  { name: 'Profile',      path: '/profile',       icon: User },
   { name: 'AI Coach',     path: '/ai-coach',      icon: Sparkles, highlight: true },
   { name: 'Universities', path: '/universities',  icon: GraduationCap },
   { name: 'Housing',      path: '/housing',       icon: HomeIcon },
@@ -14,7 +13,6 @@ const menuItems = [
   { name: 'Jobs',         path: '/jobs',          icon: Briefcase },
   { name: 'Finance ROI',  path: '/finance',       icon: Calculator },
   { name: 'My Decision',  path: '/decision',      icon: Globe },
-  { name: 'RAG Eval',     path: '/rag-eval',      icon: BarChart },
 ];
 
 export default function Layout() {

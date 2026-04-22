@@ -3,26 +3,28 @@ import { Link, useNavigate } from 'react-router-dom';
 import { authAPI } from '../api/auth';
 import {
   Globe, Eye, EyeOff, ArrowRight, ArrowLeft,
-  GraduationCap, Check, User, BookOpen, Plane, ClipboardList, IndianRupee
+  GraduationCap, Check, User, BookOpen, Plane, ClipboardList, IndianRupee, Briefcase
 } from 'lucide-react';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const COUNTRIES = [
-  { code: "USA",         flag: "🇺🇸", label: "USA"         },
-  { code: "UK",          flag: "🇬🇧", label: "UK"          },
-  { code: "Canada",      flag: "🇨🇦", label: "Canada"      },
-  { code: "Australia",   flag: "🇦🇺", label: "Australia"   },
-  { code: "Germany",     flag: "🇩🇪", label: "Germany"     },
-  { code: "France",      flag: "🇫🇷", label: "France"      },
-  { code: "Netherlands", flag: "🇳🇱", label: "Netherlands" },
-  { code: "Ireland",     flag: "🇮🇪", label: "Ireland"     },
-  { code: "Singapore",   flag: "🇸🇬", label: "Singapore"   },
-  { code: "Japan",       flag: "🇯🇵", label: "Japan"       },
-  { code: "Sweden",      flag: "🇸🇪", label: "Sweden"      },
-  { code: "Norway",      flag: "🇳🇴", label: "Norway"      },
-  { code: "New Zealand", flag: "🇳🇿", label: "NZ"          },
-  { code: "UAE",         flag: "🇦🇪", label: "UAE"         },
+  { code: "United States",  flag: "🇺🇸", label: "USA"         },
+  { code: "United Kingdom", flag: "🇬🇧", label: "UK"          },
+  { code: "Canada",         flag: "🇨🇦", label: "Canada"      },
+  { code: "Australia",      flag: "🇦🇺", label: "Australia"   },
+  { code: "Germany",        flag: "🇩🇪", label: "Germany"     },
+  { code: "France",         flag: "🇫🇷", label: "France"      },
+  { code: "Netherlands",    flag: "🇳🇱", label: "Netherlands" },
+  { code: "Ireland",        flag: "🇮🇪", label: "Ireland"     },
+  { code: "Singapore",      flag: "🇸🇬", label: "Singapore"   },
+  { code: "Japan",          flag: "🇯🇵", label: "Japan"       },
+  { code: "Sweden",         flag: "🇸🇪", label: "Sweden"      },
+  { code: "Norway",         flag: "🇳🇴", label: "Norway"      },
+  { code: "New Zealand",    flag: "🇳🇿", label: "NZ"          },
+  { code: "UAE",            flag: "🇦🇪", label: "UAE"         },
+  { code: "Switzerland",    flag: "🇨🇭", label: "Switzerland" },
+  { code: "South Korea",    flag: "🇰🇷", label: "S. Korea"    },
 ];
 
 const CURRENT_DEGREES = [
@@ -62,6 +64,44 @@ const RANKING_OPTIONS = [
   { value: "Any",     label: "Any",     sub: "Value & fit over rank"         },
 ];
 
+const CAREER_GOALS = [
+  { value: "tech industry",    label: "Tech Industry",    sub: "SWE, ML, product"      },
+  { value: "finance",          label: "Finance",          sub: "Banking, consulting"    },
+  { value: "academia",         label: "Academia",         sub: "Research, teaching"     },
+  { value: "entrepreneurship", label: "Entrepreneurship", sub: "Startups, VC"           },
+  { value: "healthcare",       label: "Healthcare",       sub: "Medicine, pharma"       },
+  { value: "government",       label: "Government / NGO", sub: "Policy, public sector"  },
+];
+
+const STUDY_PRIORITIES = [
+  { value: "research",          label: "Research",          sub: "Publications & labs"      },
+  { value: "internships",       label: "Internships",       sub: "Industry exposure"         },
+  { value: "coursework",        label: "Coursework",        sub: "Structured curriculum"     },
+  { value: "networking",        label: "Networking",        sub: "Alumni & industry connects" },
+  { value: "startup ecosystem", label: "Startup Ecosystem", sub: "Founders & investors"      },
+];
+
+const ENVIRONMENT_OPTIONS = [
+  { value: "urban",         label: "Urban city",     sub: "NYC, London, Berlin" },
+  { value: "campus town",   label: "Campus town",    sub: "Oxford, Ann Arbor"   },
+  { value: "small city",    label: "Small city",     sub: "Quiet, affordable"   },
+  { value: "no preference", label: "No preference",  sub: "Open to anything"    },
+];
+
+const LEARNING_STYLES = [
+  { value: "seminars",            label: "Seminars",           sub: "Discussion-led"      },
+  { value: "lectures",            label: "Lectures",           sub: "Traditional classes" },
+  { value: "online flexibility",  label: "Online flexible",    sub: "Hybrid / async"      },
+  { value: "project-based",       label: "Project-based",      sub: "Hands-on builds"     },
+];
+
+const LIVING_OPTIONS = [
+  { value: "on-campus",    label: "On-campus",     sub: "Dorms / student halls"  },
+  { value: "shared house", label: "Shared house",  sub: "With other students"    },
+  { value: "studio",       label: "Studio / solo", sub: "Private accommodation"  },
+  { value: "no preference",label: "No preference", sub: "Flexible"               },
+];
+
 // Budget presets in INR (annual, tuition + living)
 const BUDGET_PRESETS_INR = [
   { label: "₹20L",  value: 2000000  },
@@ -71,11 +111,12 @@ const BUDGET_PRESETS_INR = [
 ];
 
 const STEPS = [
-  { id: 1, label: "Account",   icon: User          },
-  { id: 2, label: "Academic",  icon: BookOpen      },
+  { id: 1, label: "Account",    icon: User          },
+  { id: 2, label: "Academic",   icon: BookOpen      },
   { id: 3, label: "Test Scores",icon: ClipboardList },
-  { id: 4, label: "Goals",     icon: Plane         },
-  { id: 5, label: "Budget",    icon: IndianRupee   },
+  { id: 4, label: "Goals",      icon: Plane         },
+  { id: 5, label: "Career",     icon: Briefcase     },
+  { id: 6, label: "Budget",     icon: IndianRupee   },
 ];
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -111,7 +152,13 @@ export default function Register() {
     target_countries: [],
     ranking_preference: '',
     work_abroad_interest: false,
-    // Step 5 — Budget
+    // Step 5 — Career & Life
+    career_goal: '',
+    study_priority: '',
+    preferred_environment: '',
+    learning_style: '',
+    living_preference: '',
+    // Step 6 — Budget
     budget_inr: '',
     scholarship_interest: false,
   });
@@ -145,7 +192,7 @@ export default function Register() {
       if (!form.preferred_degree) return err('Please select your target degree.');
       if (!form.target_countries.length) return err('Select at least one target country.');
     }
-    if (step === 5) {
+    if (step === 6) {
       if (!form.budget_inr) return err('Please enter your annual budget.');
     }
     return true;
@@ -184,6 +231,11 @@ export default function Register() {
         target_countries:     form.target_countries,
         ranking_preference:   form.ranking_preference || null,
         work_abroad_interest: form.work_abroad_interest,
+        career_goal:          form.career_goal || null,
+        study_priority:       form.study_priority || null,
+        preferred_environment:form.preferred_environment || null,
+        learning_style:       form.learning_style || null,
+        living_preference:    form.living_preference || null,
         budget_inr:           budgetInr,
         budget:               budgetUsd,
         scholarship_interest: form.scholarship_interest,
@@ -232,6 +284,7 @@ export default function Register() {
             "GRE / GMAT / IELTS / TOEFL scoring",
             "Budget in INR — no USD confusion",
             "Visa guidance + financial ROI in ₹",
+            "Career goal × country job market matching",
             "5-agent AI decision dashboard",
           ].map(f => (
             <div key={f} className="flex items-center gap-3 mb-2.5">
@@ -298,14 +351,16 @@ export default function Register() {
               {step === 2 && 'Academic background'}
               {step === 3 && 'Test scores & experience'}
               {step === 4 && 'Study goals'}
-              {step === 5 && 'Budget & preferences'}
+              {step === 5 && 'Career & lifestyle'}
+              {step === 6 && 'Budget & preferences'}
             </h2>
             <p className="text-muted text-sm">
               {step === 1 && 'Free forever — no credit card required.'}
               {step === 2 && 'Your current education & CGPA (10-point scale).'}
               {step === 3 && 'All optional — add what you have.'}
               {step === 4 && 'Where and what you want to study.'}
-              {step === 5 && 'Your total annual budget in Indian Rupees.'}
+              {step === 5 && 'Helps us match universities to your career & life goals.'}
+              {step === 6 && 'Your total annual budget in Indian Rupees.'}
             </p>
           </div>
 
@@ -604,8 +659,99 @@ export default function Register() {
               </>
             )}
 
-            {/* ── Step 5: Budget ── */}
+            {/* ── Step 5: Career & Life ── */}
             {step === 5 && (
+              <>
+                <p className="text-xs text-muted bg-surfaceAlt rounded-lg p-3 border border-surfaceBorder">
+                  ℹ️ All fields are optional — the more you fill, the better your matches.
+                </p>
+
+                <div>
+                  <label className="block text-sm font-semibold text-textSoft mb-2">Career goal</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {CAREER_GOALS.map(o => (
+                      <button key={o.value} type="button" onClick={() => set('career_goal', o.value)}
+                        className={`py-2.5 px-3 rounded-xl border text-left transition-all
+                          ${form.career_goal === o.value
+                            ? 'border-lavender bg-lavendLight shadow-sm'
+                            : 'border-surfaceBorder bg-white hover:border-lavender/50'}`}>
+                        <p className={`text-sm font-bold ${form.career_goal === o.value ? 'text-lavender' : 'text-text'}`}>{o.label}</p>
+                        <p className="text-xs text-muted">{o.sub}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-textSoft mb-2">Study priority</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {STUDY_PRIORITIES.map(o => (
+                      <button key={o.value} type="button" onClick={() => set('study_priority', o.value)}
+                        className={`py-2.5 px-3 rounded-xl border text-left transition-all
+                          ${form.study_priority === o.value
+                            ? 'border-lavender bg-lavendLight shadow-sm'
+                            : 'border-surfaceBorder bg-white hover:border-lavender/50'}`}>
+                        <p className={`text-sm font-bold ${form.study_priority === o.value ? 'text-lavender' : 'text-text'}`}>{o.label}</p>
+                        <p className="text-xs text-muted">{o.sub}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-semibold text-textSoft mb-2">Preferred environment</label>
+                    <div className="space-y-2">
+                      {ENVIRONMENT_OPTIONS.map(o => (
+                        <button key={o.value} type="button" onClick={() => set('preferred_environment', o.value)}
+                          className={`w-full py-2 px-3 rounded-lg border text-left transition-all
+                            ${form.preferred_environment === o.value
+                              ? 'border-lavender bg-lavendLight'
+                              : 'border-surfaceBorder bg-white hover:border-lavender/50'}`}>
+                          <p className={`text-sm font-bold ${form.preferred_environment === o.value ? 'text-lavender' : 'text-text'}`}>{o.label}</p>
+                          <p className="text-xs text-muted">{o.sub}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-textSoft mb-2">Living preference</label>
+                    <div className="space-y-2">
+                      {LIVING_OPTIONS.map(o => (
+                        <button key={o.value} type="button" onClick={() => set('living_preference', o.value)}
+                          className={`w-full py-2 px-3 rounded-lg border text-left transition-all
+                            ${form.living_preference === o.value
+                              ? 'border-lavender bg-lavendLight'
+                              : 'border-surfaceBorder bg-white hover:border-lavender/50'}`}>
+                          <p className={`text-sm font-bold ${form.living_preference === o.value ? 'text-lavender' : 'text-text'}`}>{o.label}</p>
+                          <p className="text-xs text-muted">{o.sub}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-textSoft mb-2">Learning style</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {LEARNING_STYLES.map(o => (
+                      <button key={o.value} type="button" onClick={() => set('learning_style', o.value)}
+                        className={`py-2.5 px-3 rounded-xl border text-left transition-all
+                          ${form.learning_style === o.value
+                            ? 'border-lavender bg-lavendLight shadow-sm'
+                            : 'border-surfaceBorder bg-white hover:border-lavender/50'}`}>
+                        <p className={`text-sm font-bold ${form.learning_style === o.value ? 'text-lavender' : 'text-text'}`}>{o.label}</p>
+                        <p className="text-xs text-muted">{o.sub}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ── Step 6: Budget ── */}
+            {step === 6 && (
               <>
                 <div>
                   <label className="block text-sm font-semibold text-textSoft mb-1.5">

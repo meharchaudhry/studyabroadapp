@@ -173,3 +173,28 @@ Irish immigration authorities require evidence of the ability to support oneself
 - **Education in Ireland (Official):** https://www.educationinireland.com/en/
 - **Critical Skills Employment Permit:** https://enterprise.gov.ie/en/what-we-do/workplace-and-skills/employment-permits/permit-types/critical-skills-employment-permit/
 - **Irish Embassy India (New Delhi):** https://www.dfa.ie/irish-embassy/india/
+
+---
+
+## FAQ — Quick Reference
+
+**Q: What financial evidence is required for an Irish student visa application?**
+Irish immigration authorities require you to demonstrate you can support yourself financially throughout your studies. Required evidence includes:
+- **Bank statements**: Personal or parental bank statements for the last 6 months showing a consistent and sufficient balance. The minimum recommended balance is €10,000 (living expenses) plus tuition fees paid or funds available.
+- **Tuition fee payment**: Evidence that tuition fees have been paid (or a substantial portion). Irish institutions typically require payment upfront or a semester in advance.
+- **Sponsor income proof**: If parents/guardian are sponsoring, provide their salary slips, income tax returns (ITR), and a letter of sponsorship.
+- **Study loan**: A sanctioned loan letter from an Indian bank specifying the loan amount and purpose.
+- **Scholarship letters**: If applicable, an official letter confirming scholarship amount, duration, and what it covers.
+- There is no specific minimum bank balance stated by law, but the practical minimum is tuition + €10,000 for living costs per year of study.
+
+**Q: How many hours per week can international students work in Ireland?**
+International students studying at an ILEP-listed institution (on a Stamp 2 visa) may work:
+- **During term time**: Up to **20 hours per week** (part-time)
+- **During official college holidays and summer recess**: Up to **40 hours per week** (full-time)
+Students on English language courses (Stamp 2 — language schools) have different rules and are NOT permitted to work.
+
+**Q: What is an ILEP and why must my course be on it?**
+ILEP stands for Interim List of Eligible Programmes. It is the official list maintained by the Irish Government of courses and institutions that qualify for the Stamp 2 student permission (which allows part-time work). Your institution AND specific course must appear on the ILEP for your study visa to be approved and for you to be eligible to work. Always verify at inis.gov.ie before applying.
+
+**Q: What is a Stamp 2 permission and the Irish Residence Permit (IRP)?**
+Upon arriving in Ireland for studies longer than 90 days, you must register with your local immigration officer (GNIB — Garda National Immigration Bureau) within 90 days to obtain an Irish Residence Permit (IRP). You will be given **Stamp 2** (full-time students at ILEP-listed colleges) which grants permission to study and work part-time (20 hrs/week during term). The IRP card costs €300. It must be renewed annually.

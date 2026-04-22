@@ -164,3 +164,19 @@ German authorities require proof that the student can cover their living expense
 - **Make it in Germany (Official Portal):** https://www.make-it-in-germany.com/en/
 - **Fintiba Blocked Account:** https://fintiba.com/
 - **Expatrio Blocked Account:** https://www.expatrio.com/
+
+---
+
+## FAQ — Quick Reference
+
+**Q: What is a blocked account (Sperrkonto) and how do I open one for a German student visa?**
+A blocked account (Sperrkonto) is a special bank account required by German immigration authorities as proof of financial resources. You deposit a minimum of €11,904 (as of 2024) — equivalent to €992/month × 12 months. The money is "blocked" and released to you monthly after you arrive in Germany. Recommended providers for Indian students: **Fintiba** (https://www.fintiba.com), **Expatrio** (https://www.expatrio.com), **Coracle** (https://www.coracle.de), or Deutsche Bank. Opening takes 1–3 days online; you receive a confirmation letter to include in your visa application.
+
+**Q: What visa do I need if I have a conditional admission (Zulassung unter Vorbehalt) from a German university?**
+If your German university has given you a conditional admission — for example, pending German language proficiency — you can apply for a **Visum zur Studienbewerbung** (visa for the purpose of applying to universities / studying). This is also called an **Aufnahme- und Sprachkursvisa**. It is valid for 3 months and is non-renewable. You use it to enter Germany to attend a preparatory language course (Studienkolleg), sit entrance exams, or submit final documents for admission. Once you receive unconditional admission, you convert to a full Studienvisum / Residence Permit.
+
+**Q: How many hours per week can international students work in Germany?**
+International students (non-EU, including Indian nationals) may work up to **120 full days OR 240 half-days per year** — equivalent to approximately 20 hours per week during term time. Working student (Werkstudent) contracts allow up to 20 hours/week during term. During semester breaks (approx. 10–12 weeks/year), you can work full-time without restriction. You do NOT need a separate work permit if you are enrolled as a full-time student — your residence permit for study already includes this permission.
+
+**Q: What is the Studienkolleg and who needs to attend?**
+A Studienkolleg is a one-year preparatory course (preparatory college) in Germany. Students whose school qualifications are not directly equivalent to the German Abitur (university entrance certificate) must complete a Studienkolleg before beginning a degree. Most Indian students with 12th standard qualifications applying for a bachelor's degree must attend Studienkolleg. If you have completed 1+ years of a bachelor's degree in India OR hold a bachelor's degree already (for a master's programme), you are typically exempt.

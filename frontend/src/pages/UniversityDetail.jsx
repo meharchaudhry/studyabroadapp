@@ -20,6 +20,15 @@ const FLAG_MAP = {
   USA: '🇺🇸', UK: '🇬🇧',
 };
 
+const USD_TO_INR = 83;
+
+function fmtINR(usd) {
+  if (!usd && usd !== 0) return '—';
+  const inr = Math.round(usd * USD_TO_INR);
+  if (inr >= 10000000) return `₹${(inr / 10000000).toFixed(1)} Cr`;
+  return `₹${(inr / 100000).toFixed(1)} L`;
+}
+
 function fmtUSD(n) {
   if (!n && n !== 0) return '—';
   return `$${Math.round(n).toLocaleString()}`;
@@ -191,17 +200,19 @@ export default function UniversityDetail() {
                 <div className="space-y-3">
                   <p className="text-xs font-bold text-muted uppercase tracking-wide">Match Factors</p>
                   {[
-                    { key: 'field',   label: 'Subject Match',     good: ['Strong match', 'directly aligned', 'overlap'], bad: ["don't closely"] },
-                    { key: 'cgpa',    label: 'CGPA Eligibility',  good: ['exceeds', 'competitive'], bad: ['below', 'points below'] },
-                    { key: 'budget',  label: 'Budget Fit',        good: ['within budget', 'to spare'], bad: ['significantly exceeds', '40%'] },
-                    { key: 'ranking', label: 'QS Ranking',        good: ['World-class', 'Elite', 'Top-100', 'Well-ranked'], bad: [] },
-                    { key: 'country', label: 'Country Preference',good: ['target destinations'], bad: ['outside'] },
-                    { key: 'ielts',   label: 'IELTS Eligibility', good: ['meets', 'acceptable'], bad: ['below the required'] },
-                  ].map(({ key, label, good, bad }) => {
+                    { key: 'field',      label: 'Subject Match',        good: ['Excellent match','directly aligns','Good overlap'], bad: ['Limited subject','no match'] },
+                    { key: 'cgpa',       label: 'CGPA Eligibility',     good: ['Strong fit','comfortably meets','competitive'], bad: ['below the minimum','significant gap','stretch'] },
+                    { key: 'budget',     label: 'Budget Fit',           good: ['Affordable','Fits budget','well under'], bad: ['double your budget','significantly exceeds'] },
+                    { key: 'ranking',    label: 'Ranking Preference',   good: ['fits your','perfectly','Highly ranked'], bad: ['does not meet','outside'] },
+                    { key: 'country',    label: 'Country Preference',   good: ['in your target list','geographic alignment'], bad: ['not in your target'] },
+                    { key: 'ielts',      label: 'English Eligibility',  good: ['comfortably meets','meets the'], bad: ['below the','below the minimum'] },
+                    { key: 'bonus',      label: 'Profile Bonus',        good: ['excellent','Strong profile','World-class'], bad: [] },
+                    { key: 'work_visa',  label: 'Post-Study Work Visa', good: ['excellent post','good post'], bad: [] },
+                  ].filter(({ key }) => explain.reasons[key]).map(({ key, label, good, bad }) => {
                     const hint = explain.reasons[key] || '';
                     const isGood = good.some(w => hint.includes(w));
                     const isBad  = bad.some(w => hint.includes(w));
-                    const value  = isGood ? 0.85 : isBad ? 0.30 : 0.55;
+                    const value  = isGood ? 0.88 : isBad ? 0.22 : 0.55;
                     return (
                       <FactorBar key={key} label={label} value={value} hint={hint}
                         color={isGood ? 'bg-teal-500' : isBad ? 'bg-rose' : 'bg-amber-400'} />
@@ -238,7 +249,7 @@ export default function UniversityDetail() {
               <Req label="IELTS" val={uni.ielts ? `${uni.ielts}+` : '6.5+'} />
               <Req label="TOEFL" val={uni.toefl ? `${uni.toefl}+` : '90+'} />
               <Req label="GRE / GMAT" val={uni.gre_required ? 'Required' : 'Optional'} accent={uni.gre_required} />
-              <Req label="Course Duration" val={`${uni.course_duration || 2} years`} />
+              <Req label="Course Duration" val={`${uni.course_duration || 2} year${(uni.course_duration || 2) === 1 ? '' : 's'}`} />
               {uni.intake_months?.length > 0 && (
                 <Req label="Intakes" val={uni.intake_months.join(', ')} />
               )}
@@ -271,13 +282,16 @@ export default function UniversityDetail() {
           <div className="card p-6">
             <h2 className="font-bold text-text mb-4">Cost Estimate (per year)</h2>
             <div className="space-y-3">
-              <CostRow label="Tuition" val={fmtUSD(uni.tuition)} />
-              <CostRow label="Living expenses" val={fmtUSD(uni.living_cost)} />
+              <CostRow label="Tuition" val={fmtINR(uni.tuition)} sub={fmtUSD(uni.tuition)} />
+              <CostRow label="Living expenses" val={fmtINR(uni.living_cost)} sub={fmtUSD(uni.living_cost)} />
               <div className="border-t border-surfaceBorder pt-3 flex justify-between items-center">
                 <span className="font-bold text-text text-sm">Total / yr</span>
-                <span className="text-lg font-black text-teal-600 bg-mintLight px-3 py-1 rounded-lg">
-                  {fmtUSD(totalCost)}
-                </span>
+                <div className="text-right">
+                  <span className="text-lg font-black text-teal-600 bg-mintLight px-3 py-1 rounded-lg block">
+                    {fmtINR(totalCost)}
+                  </span>
+                  <span className="text-[10px] text-muted mt-0.5 block">{fmtUSD(totalCost)}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -286,7 +300,7 @@ export default function UniversityDetail() {
           <div className="card p-5 space-y-3">
             <h2 className="font-bold text-text text-sm">Country Highlights</h2>
             {uni.grad_salary_usd && (
-              <StatRow icon={DollarSign} label="Avg grad salary" val={`${fmtUSD(uni.grad_salary_usd)}/yr`} color="text-teal-600" />
+              <StatRow icon={DollarSign} label="Avg grad salary" val={`${fmtINR(uni.grad_salary_usd)}/yr`} color="text-teal-600" />
             )}
             {uni.job_market_score && (
               <StatRow icon={Briefcase} label="Job market score" val={`${uni.job_market_score}/10`} color="text-lavender" />
@@ -319,11 +333,14 @@ function Req({ label, val, accent }) {
   );
 }
 
-function CostRow({ label, val }) {
+function CostRow({ label, val, sub }) {
   return (
     <div className="flex justify-between items-center pb-3 border-b border-dashed border-surfaceBorder last:border-0 last:pb-0">
       <span className="text-sm text-muted">{label}</span>
-      <span className="font-bold text-text">{val}</span>
+      <div className="text-right">
+        <span className="font-bold text-text block">{val}</span>
+        {sub && <span className="text-[10px] text-muted">{sub}</span>}
+      </div>
     </div>
   );
 }

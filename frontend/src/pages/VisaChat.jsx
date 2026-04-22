@@ -44,8 +44,8 @@ function makeSessionId(country) {
 // Simple markdown-lite renderer: bold **text**, bullet - item
 function renderAnswer(text) {
   if (!text) return null;
-  return text.split('\n').map((line, i) => {
-    // Bold **...**
+  const str = typeof text === 'string' ? text : JSON.stringify(text);
+  return str.split('\n').map((line, i) => {
     const parts = line.split(/(\*\*[^*]+\*\*)/g).map((part, j) => {
       if (part.startsWith('**') && part.endsWith('**')) {
         return <strong key={j}>{part.slice(2, -2)}</strong>;
@@ -375,8 +375,8 @@ export default function VisaChat() {
                   {msg.sources?.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-surfaceBorder/50 flex flex-wrap gap-1">
                       <span className="text-[10px] text-muted">Sources:</span>
-                      {[...new Set(msg.sources)].slice(0, 4).map((s, j) => (
-                        <span key={j} className="badge badge-lavender text-[10px]">{s}</span>
+                      {[...new Map(msg.sources.map(s => [s.doc, s])).values()].slice(0, 4).map((s, j) => (
+                        <span key={j} className="badge badge-lavender text-[10px]">{s.doc}</span>
                       ))}
                     </div>
                   )}

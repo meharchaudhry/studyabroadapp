@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { jobsAPI } from '../api/jobs';
 import {
   Briefcase, Search, MapPin, DollarSign, ExternalLink, Loader2,
-  Wifi, Building2, Clock, TrendingUp, Globe, ChevronDown
+  Wifi, Building2, Clock, TrendingUp, Globe, ChevronDown, BookOpen
 } from 'lucide-react';
+
+// ── Constants ──────────────────────────────────────────────────────────────────
 
 const LOCATIONS = [
   "London", "New York", "Berlin", "Toronto", "Sydney",
@@ -19,11 +21,11 @@ const FIELDS = [
 ];
 
 const JOB_TYPES = [
-  { value: "all",        label: "All Jobs"    },
-  { value: "graduate",   label: "Graduate"    },
-  { value: "internship", label: "Internship"  },
-  { value: "part-time",  label: "Part-time"   },
-  { value: "remote",     label: "Remote"      },
+  { value: "all",        label: "All Jobs"   },
+  { value: "graduate",   label: "Graduate"   },
+  { value: "internship", label: "Internship" },
+  { value: "part-time",  label: "Part-time"  },
+  { value: "remote",     label: "Remote"     },
 ];
 
 const TYPE_STYLES = {
@@ -34,7 +36,12 @@ const TYPE_STYLES = {
   "full-time":  "badge-peach",
 };
 
-// Salary range estimates by city (annual USD)
+const TYPE_PILL_COLORS = {
+  internship: "bg-lavendLight text-lavender border border-lavender/20",
+  graduate:   "bg-mintLight text-teal-600 border border-teal-200",
+  "part-time":"bg-amberLight text-amber-700 border border-amber-200",
+};
+
 const CITY_SALARY = {
   "London":        { min: 28000,  max: 65000,  currency: 'GBP', symbol: '£'  },
   "New York":      { min: 50000,  max: 110000, currency: 'USD', symbol: '$'  },
@@ -58,6 +65,39 @@ const CITY_SALARY = {
   "San Francisco": { min: 80000,  max: 160000, currency: 'USD', symbol: '$'  },
 };
 
+// Portal country tabs — ordered by popularity for Indian students
+const PORTAL_COUNTRIES = [
+  { name: "UK",          code: "GB", flag: "🇬🇧" },
+  { name: "USA",         code: "US", flag: "🇺🇸" },
+  { name: "Canada",      code: "CA", flag: "🇨🇦" },
+  { name: "Germany",     code: "DE", flag: "🇩🇪" },
+  { name: "Australia",   code: "AU", flag: "🇦🇺" },
+  { name: "Ireland",     code: "IE", flag: "🇮🇪" },
+  { name: "Netherlands", code: "NL", flag: "🇳🇱" },
+  { name: "Singapore",   code: "SG", flag: "🇸🇬" },
+  { name: "UAE",         code: "AE", flag: "🇦🇪" },
+  { name: "France",      code: "FR", flag: "🇫🇷" },
+  { name: "Sweden",      code: "SE", flag: "🇸🇪" },
+  { name: "Norway",      code: "NO", flag: "🇳🇴" },
+  { name: "Denmark",     code: "DK", flag: "🇩🇰" },
+  { name: "Finland",     code: "FI", flag: "🇫🇮" },
+  { name: "New Zealand", code: "NZ", flag: "🇳🇿" },
+  { name: "Japan",       code: "JP", flag: "🇯🇵" },
+  { name: "Switzerland", code: "CH", flag: "🇨🇭" },
+  { name: "Spain",       code: "ES", flag: "🇪🇸" },
+  { name: "South Korea", code: "KR", flag: "🇰🇷" },
+];
+
+// Domain → clearbit logo URL helper
+function logoUrl(url) {
+  try {
+    const domain = new URL(url).hostname.replace(/^www\./, '');
+    return `https://logo.clearbit.com/${domain}`;
+  } catch {
+    return null;
+  }
+}
+
 function timeAgo(dateStr) {
   if (!dateStr) return null;
   const ts = typeof dateStr === 'number' ? dateStr * 1000 : Date.parse(dateStr);
@@ -70,11 +110,144 @@ function timeAgo(dateStr) {
   return `${Math.floor(days / 30)}mo ago`;
 }
 
-function formatSalary(salaryStr) {
-  if (!salaryStr || salaryStr === 'Competitive') return null;
-  // Already formatted — return as-is
-  return salaryStr;
+// ── Job Portals section ───────────────────────────────────────────────────────
+
+function PortalLogo({ url, name, color }) {
+  const [imgErr, setImgErr] = useState(false);
+  const src = logoUrl(url);
+  const initial = (name || '?')[0].toUpperCase();
+
+  if (!src || imgErr) {
+    return (
+      <div
+        className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-sm flex-shrink-0"
+        style={{ backgroundColor: color || '#6366f1' }}
+      >
+        {initial}
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={name}
+      onError={() => setImgErr(true)}
+      className="w-10 h-10 rounded-xl object-contain bg-white border border-surfaceBorder flex-shrink-0 p-1"
+    />
+  );
 }
+
+function PortalCard({ portal }) {
+  return (
+    <a
+      href={portal.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="card p-4 hover:shadow-cardHov hover:border-lavender/30 transition-all flex items-start gap-3 group"
+    >
+      <PortalLogo url={portal.url} name={portal.name} color={portal.logo_color} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <h3 className="font-bold text-text text-sm group-hover:text-lavender transition-colors truncate">
+            {portal.name}
+          </h3>
+          <ExternalLink className="w-3 h-3 text-muted flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+        <p className="text-xs text-muted mt-0.5 leading-relaxed line-clamp-2">
+          {portal.description}
+        </p>
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {(portal.type || []).map(t => (
+            <span key={t} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${TYPE_PILL_COLORS[t] || 'bg-surfaceAlt text-textSoft border border-surfaceBorder'}`}>
+              {t}
+            </span>
+          ))}
+          {portal.student_friendly && (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-mintLight text-teal-600 border border-teal-100">
+              student-friendly
+            </span>
+          )}
+        </div>
+      </div>
+    </a>
+  );
+}
+
+function JobPortalsPanel() {
+  const [activeCountry, setActiveCountry] = useState('UK');
+  const [portals, setPortals] = useState({});
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (portals[activeCountry]) return;
+    setLoading(true);
+    fetch(`/api/v1/jobs/portals?country=${encodeURIComponent(activeCountry)}`)
+      .then(r => r.json())
+      .then(data => {
+        const list = (data.results || []).flatMap(r => r.portals);
+        setPortals(p => ({ ...p, [activeCountry]: list }));
+      })
+      .catch(() => setPortals(p => ({ ...p, [activeCountry]: [] })))
+      .finally(() => setLoading(false));
+  }, [activeCountry]);
+
+  const current = portals[activeCountry] || [];
+  const activeFlag = PORTAL_COUNTRIES.find(c => c.name === activeCountry)?.flag || '';
+
+  return (
+    <div className="card overflow-hidden">
+      {/* Header */}
+      <div className="px-5 py-4 border-b border-surfaceBorder bg-gradient-to-r from-lavendLight/40 to-skyLight/20">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-7 h-7 bg-lavendLight rounded-lg flex items-center justify-center">
+            <BookOpen className="w-4 h-4 text-lavender" />
+          </div>
+          <h2 className="text-base font-bold text-text">Job Portals by Country</h2>
+        </div>
+        <p className="text-xs text-muted">Student-friendly job boards and graduate platforms — click to visit</p>
+      </div>
+
+      {/* Country tabs (scrollable) */}
+      <div className="flex gap-1.5 px-4 py-3 overflow-x-auto border-b border-surfaceBorder scrollbar-none">
+        {PORTAL_COUNTRIES.map(c => (
+          <button
+            key={c.name}
+            onClick={() => setActiveCountry(c.name)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0
+              ${activeCountry === c.name
+                ? 'bg-lavender text-white shadow-sm'
+                : 'bg-surfaceAlt text-textSoft hover:bg-lavendLight hover:text-lavender border border-surfaceBorder'}`}
+          >
+            <span>{c.flag}</span>
+            {c.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Portal grid */}
+      <div className="p-4">
+        {loading ? (
+          <div className="flex items-center gap-2 py-6 justify-center text-muted text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" /> Loading portals…
+          </div>
+        ) : current.length === 0 ? (
+          <p className="text-muted text-sm text-center py-6">No portals available for {activeCountry} yet.</p>
+        ) : (
+          <>
+            <p className="text-xs text-muted mb-3 font-medium">
+              {activeFlag} <strong>{current.length} portals</strong> for students in {activeCountry}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {current.map(portal => <PortalCard key={portal.id} portal={portal} />)}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main Jobs page ────────────────────────────────────────────────────────────
 
 export default function Jobs() {
   const [location, setLocation]   = useState('London');
@@ -116,9 +289,12 @@ export default function Jobs() {
         <div className="page-icon bg-skyLight text-blue-600"><Briefcase className="w-5 h-5" /></div>
         <div>
           <h1 className="text-2xl font-black text-text">Jobs & Careers</h1>
-          <p className="text-muted text-sm">Live listings from Arbeitnow · Remotive · RemoteOK · The Muse — refreshed every 30 min</p>
+          <p className="text-muted text-sm">Live listings + job portals curated for international students</p>
         </div>
       </div>
+
+      {/* Job Portals by Country */}
+      <JobPortalsPanel />
 
       {/* Salary insight banner */}
       {salaryInfo && (
@@ -141,8 +317,13 @@ export default function Jobs() {
         </div>
       )}
 
-      {/* Search bar */}
+      {/* Live job search */}
       <div className="card p-4 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Search className="w-4 h-4 text-lavender" />
+          <h2 className="text-sm font-bold text-text">Search Live Listings</h2>
+          <span className="text-xs text-muted ml-1">Arbeitnow · Remotive · RemoteOK · The Muse — refreshed every 30 min</span>
+        </div>
         <div className="flex gap-3 flex-wrap">
           <div className="relative flex-1 min-w-48">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
@@ -175,7 +356,6 @@ export default function Jobs() {
           </button>
         </div>
 
-        {/* Expanded filters */}
         {showFilters && (
           <div className="pt-3 border-t border-surfaceBorder space-y-3">
             <div>
@@ -193,7 +373,6 @@ export default function Jobs() {
           </div>
         )}
 
-        {/* Job type chips */}
         <div className="flex gap-2 flex-wrap">
           {JOB_TYPES.map(t => (
             <button key={t.value} onClick={() => setJobType(t.value)}
@@ -207,7 +386,7 @@ export default function Jobs() {
 
       {/* Results */}
       {loading ? (
-        <div className="flex flex-col items-center py-20 gap-3">
+        <div className="flex flex-col items-center py-16 gap-3">
           <Loader2 className="w-8 h-8 text-lavender animate-spin" />
           <p className="text-muted text-sm">Fetching live jobs from multiple sources…</p>
         </div>
@@ -226,13 +405,15 @@ export default function Jobs() {
       ) : searched ? (
         <div className="card p-12 text-center">
           <Briefcase className="w-10 h-10 text-muted mx-auto mb-3 opacity-30" />
-          <p className="font-semibold text-text">No jobs found</p>
-          <p className="text-sm text-muted mt-1">Try different keywords or a different location</p>
+          <p className="font-semibold text-text">No live listings found</p>
+          <p className="text-sm text-muted mt-1">Try different keywords or use the Job Portals above to search directly</p>
         </div>
       ) : null}
     </div>
   );
 }
+
+// ── Job Card ──────────────────────────────────────────────────────────────────
 
 function JobCard({ job, locationSalary }) {
   const initials  = (job.company || 'Co').slice(0, 2).toUpperCase();
@@ -245,12 +426,11 @@ function JobCard({ job, locationSalary }) {
     'bg-amberLight text-amber-600',
   ];
   const posted    = timeAgo(job.posted);
-  const salary    = formatSalary(job.salary);
+  const salary    = (job.salary && job.salary !== 'Competitive') ? job.salary : null;
 
   return (
     <div className="card p-4 hover:shadow-cardHov transition-shadow">
       <div className="flex items-start gap-3">
-        {/* Company logo */}
         <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 ${colors[colorIdx]}`}>
           {initials}
         </div>

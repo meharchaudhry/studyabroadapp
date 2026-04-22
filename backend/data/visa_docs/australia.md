@@ -162,3 +162,22 @@ Indian students must demonstrate they can cover:
 - **Temporary Graduate Visa (485):** https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/temporary-graduate-485
 - **OSHC information:** https://www.studyaustralia.gov.au/en/life-in-australia/health-and-safety/overseas-student-health-cover
 - **VFS Global Australia (India):** https://www.vfsglobal.com/australia/india/
+
+---
+
+## FAQ — Quick Reference
+
+**Q: What is the Genuine Student (GS) requirement for an Australian student visa?**
+The Genuine Student (GS) requirement replaced the Genuine Temporary Entrant (GTE) requirement from 23 March 2024. You must provide a written statement explaining why you want to study in Australia, why you chose your specific course and institution, and your plans after completing your studies. The statement should demonstrate you are a genuine student and plan to comply with visa conditions. Key factors assessed: ties to your home country, immigration history, value of the course to your future, and whether your study plans are consistent with your circumstances.
+
+**Q: What is the Temporary Graduate visa (subclass 485) and how long can I stay?**
+The Temporary Graduate visa (subclass 485) allows international graduates to live, study and work in Australia temporarily after completing their studies. There are two streams:
+- **Graduate Work stream**: For students with skills and qualifications in an occupation on the Medium and Long-term Strategic Skills List (MLTSSL). Stay: 18 months.
+- **Post-Study Work stream**: For graduates of Australian higher education institutions (bachelor, honours, masters, doctorate). Stay: 2 years (bachelor/honours), 3 years (masters), 4 years (doctorate).
+To be eligible you must: hold a student visa when applying (or have held one within 6 months), have studied for at least 2 years in Australia, and meet English language requirements (IELTS 6.0 overall, no band below 5.0, OR equivalent).
+
+**Q: How many hours per week can international students work in Australia?**
+From 1 July 2023, the Australian government temporarily lifted the 40-hour-per-fortnight work limit for student visa holders. As of 2024, there is NO work hour cap for student visa holders — you can work unlimited hours. However, this policy is subject to review. Check the Department of Home Affairs website for the latest conditions. During study breaks and semester breaks, there has historically been no restriction.
+
+**Q: What is CRICOS and why does it matter?**
+CRICOS stands for Commonwealth Register of Institutions and Courses for Overseas Students. Only CRICOS-registered providers can enrol international students on student visas. Always verify your chosen institution and course are listed on CRICOS (cricos.teqsa.gov.au) before applying for a student visa — otherwise your visa application will be refused.

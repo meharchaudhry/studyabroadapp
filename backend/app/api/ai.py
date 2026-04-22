@@ -38,6 +38,7 @@ class TimelineRequest(BaseModel):
     intake: str = "Fall"
     countries: Optional[list] = []
     profile: Optional[dict] = {}
+    current_status: Optional[dict] = {}  # questionnaire answers
 
 
 class ProfileRequest(BaseModel):
@@ -79,7 +80,7 @@ def api_generate_timeline(
     current_user: User = Depends(get_current_user),
 ) -> Any:
     """Generate a month-by-month application timeline."""
-    result = generate_timeline(req.intake, req.countries or [], req.profile or {})
+    result = generate_timeline(req.intake, req.countries or [], req.profile or {}, req.current_status or {})
     return result
 
 

@@ -2,51 +2,68 @@ import os
 import csv
 import sys
 
-# Make sure we can import app modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.core.database import SessionLocal, Base, engine
 from app.models.university import University
 
-def str_to_bool(val: str) -> bool:
+
+def _safe_float(val):
+    try:
+        v = str(val).strip().strip('"')
+        return float(v) if v else None
+    except (ValueError, TypeError):
+        return None
+
+
+def _safe_int(val):
+    try:
+        v = str(val).strip().strip('"')
+        return int(float(v)) if v else None
+    except (ValueError, TypeError):
+        return None
+
+
+def _safe_bool(val):
     return str(val).strip().lower() in ("true", "1", "yes")
 
+
 def seed():
-    # Create tables if not exist
     Base.metadata.create_all(bind=engine)
-    
     db = SessionLocal()
-    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "universities.csv")
-    csv_path = os.path.normpath(csv_path)
+    csv_path = os.path.normpath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "universities.csv")
+    )
 
     try:
         with open(csv_path, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
-            inserted = 0
-            updated = 0
+            inserted = updated = 0
             for row in reader:
-                name = row["name"].strip()
+                name = row.get("name", "").strip().strip('"')
                 if not name:
                     continue
 
                 existing = db.query(University).filter(University.name == name).first()
                 obj = existing or University()
-                
-                obj.name = name
-                obj.country = row.get("country", "").strip()
-                obj.ranking = int(row["ranking"]) if row.get("ranking") else None
-                obj.qs_subject_ranking = int(row["qs_subject_ranking"]) if row.get("qs_subject_ranking") else None
-                obj.subject = row.get("subject", "").strip() or None
-                obj.tuition = float(row["tuition"]) if row.get("tuition") else None
-                obj.living_cost = float(row["living_cost"]) if row.get("living_cost") else None
-                obj.image_url = row.get("image_url", "").strip() or None
-                obj.website = row.get("website", "").strip() or None
-                obj.requirements_cgpa = float(row["requirements_cgpa"]) if row.get("requirements_cgpa") else None
-                obj.ielts = float(row["ielts"]) if row.get("ielts") else None
-                obj.toefl = int(row["toefl"]) if row.get("toefl") else None
-                obj.gre_required = str_to_bool(row["gre_required"]) if row.get("gre_required") else None
-                obj.scholarships = row.get("scholarships", "").strip() or None
-                obj.course_duration = int(row["course_duration"]) if row.get("course_duration") else None
+
+                obj.name           = name
+                obj.country        = row.get("country", "").strip().strip('"')
+                obj.ranking        = _safe_int(row.get("ranking"))
+                obj.qs_subject_ranking = _safe_int(row.get("qs_subject_ranking"))
+                obj.subject        = row.get("subject", "").strip().strip('"') or None
+                obj.tuition        = _safe_float(row.get("tuition"))
+                obj.living_cost    = _safe_float(row.get("living_cost"))
+                obj.image_url      = row.get("image_url", "").strip().strip('"') or None
+                obj.website        = row.get("website", "").strip().strip('"') or None
+                obj.description    = row.get("description", "").strip().strip('"') or None
+                obj.acceptance_rate = _safe_float(row.get("acceptance_rate"))
+                obj.requirements_cgpa = _safe_float(row.get("requirements_cgpa"))
+                obj.ielts          = _safe_float(row.get("ielts"))
+                obj.toefl          = _safe_int(row.get("toefl"))
+                obj.gre_required   = _safe_bool(row.get("gre_required")) if row.get("gre_required") else None
+                obj.scholarships   = row.get("scholarships", "").strip().strip('"') or None
+                obj.course_duration = _safe_int(row.get("course_duration"))
 
                 if not existing:
                     db.add(obj)
@@ -58,10 +75,13 @@ def seed():
             print(f"✅ Seeding complete: {inserted} inserted, {updated} updated")
     except Exception as e:
         db.rollback()
-        print(f"❌ Error during seeding: {e}")
+        print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
         raise
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     seed()

@@ -12,25 +12,123 @@ Three-stage retrieval pipeline:
 Collection: "visa_policies" (must match ingest_visa.py COLLECTION_NAME)
 """
 
+import html
 import os
 import re
+import time
 import logging
 from typing import Dict, List, Tuple, Optional
 
 from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+
+def _call_with_retry(fn, *args, max_retries=3, base_delay=2.0, **kwargs):
+    """Call fn(*args, **kwargs) with exponential backoff on 503/429 errors."""
+    last_exc = None
+    for attempt in range(max_retries):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as e:
+            msg = str(e)
+            # Retry on transient Gemini overload / rate-limit errors
+            if any(code in msg for code in ("503", "429", "UNAVAILABLE", "RESOURCE_EXHAUSTED")):
+                last_exc = e
+                delay = base_delay * (2 ** attempt)
+                logger.warning("Gemini transient error (attempt %d/%d): %s — retrying in %.1fs",
+                               attempt + 1, max_retries, msg[:120], delay)
+                time.sleep(delay)
+            else:
+                raise  # non-transient — re-raise immediately
+    raise last_exc
+
+
+class GeminiEmbeddings:
+    """
+    Langchain-compatible embeddings using the google.genai REST SDK.
+    Avoids the gRPC / numpy2 issues in langchain_google_genai and langchain_huggingface.
+    """
+    def __init__(self, api_key: str, model: str = "models/gemini-embedding-001"):
+        from google import genai as _genai
+        self._client = _genai.Client(api_key=api_key)
+        self._model  = model
+
+    def embed_documents(self, texts: list) -> list:
+        """Embed a list of documents in batches of 50."""
+        results = []
+        batch_size = 50
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i : i + batch_size]
+            resp  = _call_with_retry(
+                self._client.models.embed_content, model=self._model, contents=batch
+            )
+            results.extend([list(e.values) for e in resp.embeddings])
+        return results
+
+    def embed_query(self, text: str) -> list:
+        resp = _call_with_retry(
+            self._client.models.embed_content, model=self._model, contents=text
+        )
+        return list(resp.embeddings[0].values)
+
 # ── Configuration ─────────────────────────────────────────────────────────────
 COLLECTION_NAME  = "visa_policies"   # must match ingest_visa.py
 MAX_MEMORY_TURNS = 6
-HYBRID_FETCH_K   = 20   # candidates fetched from each retriever before RRF
-RERANK_TOP_K     = 6    # chunks passed to LLM after re-ranking
+HYBRID_FETCH_K   = 30   # candidates fetched from each retriever before RRF
+RERANK_TOP_K     = 8    # chunks passed to LLM after re-ranking
+MAX_QUERY_LEN    = 500
+
+# ── Country name → ChromaDB metadata value mapping ───────────────────────────
+# Used for query-time country detection + metadata pre-filtering
+_COUNTRY_ALIASES: dict[str, str] = {
+    "usa": "USA", "us": "USA", "united states": "USA", "america": "USA",
+    "uk": "UK", "united kingdom": "UK", "britain": "UK", "england": "UK",
+    "canada": "Canada", "canadian": "Canada",
+    "australia": "Australia", "australian": "Australia",
+    "germany": "Germany", "german": "Germany", "deutschland": "Germany",
+    "france": "France", "french": "France",
+    "netherlands": "Netherlands", "dutch": "Netherlands", "holland": "Netherlands",
+    "ireland": "Ireland", "irish": "Ireland",
+    "singapore": "Singapore",
+    "japan": "Japan", "japanese": "Japan",
+    "sweden": "Sweden", "swedish": "Sweden",
+    "norway": "Norway", "norwegian": "Norway",
+    "denmark": "Denmark", "danish": "Denmark",
+    "finland": "Finland", "finnish": "Finland",
+    "new zealand": "New Zealand", "nz": "New Zealand",
+    "uae": "UAE", "dubai": "UAE", "abu dhabi": "UAE", "united arab emirates": "UAE",
+    "portugal": "Portugal", "portuguese": "Portugal",
+    "italy": "Italy", "italian": "Italy",
+    "spain": "Spain", "spanish": "Spain", "spai": "Spain",
+    "south korea": "South Korea", "korea": "South Korea",
+    "switzerland": "Switzerland", "swiss": "Switzerland",
+    "belgium": "Belgium", "belgian": "Belgium",
+    "poland": "Poland", "polish": "Poland",
+}
+
+# Injection / jailbreak patterns
+_INJECTION_PATTERNS = re.compile(
+    r"ignore\s+(previous|all|above|prior|these|system)|"
+    r"act\s+as\s+(?!visa|study)|pretend\s+(you\s+are|to\s+be)|"
+    r"(DAN|jailbreak|prompt\s+injection|bypass)|reveal\s+(your\s+)?(instructions?|prompt)",
+    re.IGNORECASE,
+)
+
+_VISA_KEYWORDS = re.compile(
+    r"\b(visa|student|study|university|tuition|ielts|toefl|gre|gmat|scholarship|"
+    r"admission|permit|passport|embassy|consul|immigration|residence|work\s+permit|"
+    r"internship|graduate|phd|masters|bachelor|application|sop|lor|transcript|"
+    r"financial|bank\s+statement|blocked\s+account|health\s+insurance|document|"
+    r"requirement|fee|cost|process|time|duration|course|college|degree|"
+    r"post.?study\s+work|opt|sevis|f-1|f1|tier\s*4|pgwp|cricos|"
+    r"uk|usa|canada|australia|germany|france|netherlands|ireland|singapore|"
+    r"japan|sweden|norway|denmark|finland|zealand|uae|portugal|italy|spain|"
+    r"korea|switzerland|belgium|poland)\b",
+    re.IGNORECASE,
+)
 
 # ── Module-level lazy caches ──────────────────────────────────────────────────
 _vectorstore: Optional[Chroma]  = None
@@ -58,11 +156,11 @@ def _db_dir() -> str:
 def _get_embeddings():
     global _embeddings
     if _embeddings is None:
-        _embeddings = HuggingFaceEmbeddings(
-            model_name="all-MiniLM-L6-v2",
-            model_kwargs={"device": "cpu"},
-            encode_kwargs={"normalize_embeddings": True},
-        )
+        api_key = settings.GOOGLE_API_KEY
+        if not api_key:
+            logger.error("GOOGLE_API_KEY not set — embeddings unavailable")
+            return None
+        _embeddings = GeminiEmbeddings(api_key=api_key)
     return _embeddings
 
 
@@ -73,9 +171,13 @@ def _get_vectorstore() -> Optional[Chroma]:
         if not os.path.exists(db):
             logger.warning("ChromaDB not found at %s — run scripts/ingest_visa.py first", db)
             return None
+        emb = _get_embeddings()
+        if emb is None:
+            logger.error("Embeddings unavailable — cannot load vectorstore")
+            return None
         _vectorstore = Chroma(
             persist_directory=db,
-            embedding_function=_get_embeddings(),
+            embedding_function=emb,
             collection_name=COLLECTION_NAME,
         )
         try:
@@ -132,37 +234,103 @@ def _get_cross_encoder():
     return _cross_encoder
 
 
+def cleanse_query(raw: str) -> tuple[str, bool]:
+    """Strip HTML, control chars, and truncate. Returns (cleaned, was_truncated)."""
+    text = html.unescape(raw)
+    text = re.sub(r"<[^>]{0,200}>", "", text)
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
+    text = re.sub(r"[ \t]{3,}", "  ", text).strip()
+    truncated = len(text) > MAX_QUERY_LEN
+    return text[:MAX_QUERY_LEN] + ("…" if truncated else ""), truncated
+
+
+def is_visa_related(text: str) -> bool:
+    return bool(_VISA_KEYWORDS.search(text))
+
+
+def _detect_country(text: str) -> Optional[str]:
+    """Return the canonical country name if the query mentions one."""
+    lower = text.lower()
+    # Longer aliases first to avoid partial matches (e.g. 'uk' inside 'ukraine')
+    for alias in sorted(_COUNTRY_ALIASES, key=len, reverse=True):
+        if re.search(r"\b" + re.escape(alias) + r"\b", lower):
+            return _COUNTRY_ALIASES[alias]
+    return None
+
+
 def _reciprocal_rank_fusion(
-    dense_ids: List[str],
-    bm25_ids: List[str],
+    *ranked_lists: List[str],
     k: int = 60,
 ) -> List[str]:
-    """Merge two ranked lists with Reciprocal Rank Fusion (RRF)."""
+    """Merge any number of ranked lists with Reciprocal Rank Fusion (RRF)."""
     scores: Dict[str, float] = {}
-    for rank, doc_id in enumerate(dense_ids):
-        scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank + 1)
-    for rank, doc_id in enumerate(bm25_ids):
-        scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank + 1)
+    for ranked in ranked_lists:
+        for rank, doc_id in enumerate(ranked):
+            scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank + 1)
     return [doc_id for doc_id, _ in sorted(scores.items(), key=lambda x: x[1], reverse=True)]
+
+
+def _hyde_retrieve(query: str, genai_client, k: int = 10) -> List[Tuple[str, str, dict]]:
+    """
+    Hypothetical Document Embedding (HyDE).
+    Generate a short hypothetical answer → embed it → search ChromaDB.
+    """
+    vs = _get_vectorstore()
+    if vs is None or genai_client is None:
+        return []
+    try:
+        from google.genai import types as _gtypes
+        hyde_prompt = (
+            "You are a study abroad visa expert. Write a 2-3 sentence factual answer "
+            "to this student question. Be specific with exact numbers, fees, and requirements.\n\n"
+            f"Question: {query}"
+        )
+        resp    = genai_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=hyde_prompt,
+            config=_gtypes.GenerateContentConfig(temperature=0.1, max_output_tokens=200),
+        )
+        hyp_doc = resp.text
+        emb     = _get_embeddings()
+        if emb is None:
+            return []
+        hyp_vec = emb.embed_query(hyp_doc)
+        results = vs.similarity_search_by_vector(hyp_vec, k=k)
+        return [
+            (d.metadata.get("id", d.page_content[:40]), d.page_content, d.metadata)
+            for d in results
+        ]
+    except Exception as e:
+        logger.warning("HyDE retrieval failed: %s", e)
+        return []
 
 
 # ── Core Retrieval ────────────────────────────────────────────────────────────
 
-def hybrid_retrieve(query: str, k: int = HYBRID_FETCH_K) -> List[Tuple[str, str, dict]]:
+def hybrid_retrieve(
+    query: str,
+    k: int = HYBRID_FETCH_K,
+    country_filter: Optional[str] = None,
+    hyde_docs: Optional[List[Tuple[str, str, dict]]] = None,
+) -> List[Tuple[str, str, dict]]:
     """
-    BM25 + dense search merged with RRF.
+    4-leg retrieval merged with RRF:
+      Leg 1 — Dense semantic (all docs)
+      Leg 2 — BM25 keyword
+      Leg 3 — Country-filtered dense (when country detected in query)
+      Leg 4 — HyDE dense (pre-computed hypothetical doc embedding)
     Returns (id, text, metadata) tuples sorted by fused score.
     """
     vs = _get_vectorstore()
     if vs is None:
         return []
 
-    # 1. Dense semantic search
+    # Leg 1 — Dense semantic (unfiltered)
     dense_docs = vs.similarity_search(query, k=k)
     dense_ids  = [d.metadata.get("id", d.page_content[:40]) for d in dense_docs]
     dense_map  = {did: d for did, d in zip(dense_ids, dense_docs)}
 
-    # 2. BM25 keyword search
+    # Leg 2 — BM25 keyword
     bm25, corpus = _get_bm25()
     bm25_ids: List[str] = []
     bm25_map: Dict[str, Tuple[str, str, dict]] = {}
@@ -173,25 +341,52 @@ def hybrid_retrieve(query: str, k: int = HYBRID_FETCH_K) -> List[Tuple[str, str,
         bm25_ids = [corpus[i][0] for i in top_idx]
         bm25_map = {corpus[i][0]: corpus[i] for i in top_idx}
 
-    # 3. Reciprocal Rank Fusion
-    fused_ids = _reciprocal_rank_fusion(dense_ids, bm25_ids)
+    # Leg 3 — Country-filtered dense (strong signal when country is mentioned)
+    country_ids: List[str] = []
+    country_map: Dict[str, Tuple[str, str, dict]] = {}
+    if country_filter:
+        try:
+            cf_docs = vs.similarity_search(query, k=k // 2, filter={"country": country_filter})
+            for d in cf_docs:
+                did = d.metadata.get("id", d.page_content[:40])
+                country_ids.append(did)
+                country_map[did] = (did, d.page_content, d.metadata)
+        except Exception:
+            pass
 
-    # 4. Reconstruct ordered results
+    # Leg 4 — HyDE results
+    hyde_ids: List[str] = []
+    hyde_map: Dict[str, Tuple[str, str, dict]] = {}
+    if hyde_docs:
+        for did, text, meta in hyde_docs:
+            hyde_ids.append(did)
+            hyde_map[did] = (did, text, meta)
+
+    # RRF merge all legs (country + HyDE get double weight via duplication)
+    fused_ids = _reciprocal_rank_fusion(
+        dense_ids, bm25_ids, country_ids, country_ids, hyde_ids
+    )
+
+    # Reconstruct ordered results
+    all_maps = [dense_map, bm25_map, country_map, hyde_map]
     results: List[Tuple[str, str, dict]] = []
     seen: set = set()
     for did in fused_ids:
         if did in seen:
             continue
         seen.add(did)
-        if did in dense_map:
-            d = dense_map[did]
-            results.append((did, d.page_content, d.metadata))
-        elif did in bm25_map:
-            results.append(bm25_map[did])
+        for m in all_maps:
+            if did in m:
+                entry = m[did]
+                if isinstance(entry, tuple):
+                    results.append(entry)
+                else:
+                    results.append((did, entry.page_content, entry.metadata))
+                break
         if len(results) >= k:
             break
 
-    # Fill remainder from dense if RRF list is short
+    # Fill remainder from dense
     for did, d in zip(dense_ids, dense_docs):
         if did not in seen and len(results) < k:
             results.append((did, d.page_content, d.metadata))
@@ -245,16 +440,18 @@ You are an expert Study Abroad Visa Assistant specialising in helping Indian stu
 
 Use ONLY the context below — which contains official visa policy documents, scholarship guides, financial documentation requirements, and related resources — to answer the student's question.
 
-Guidelines:
-- Always cite the source document name when referencing specific information (e.g., "According to australia.md…").
-- Be specific and concrete: quote exact figures (fees, processing times, financial thresholds, work-hour limits).
-- If the country is specified, focus your answer on that country's visa rules.
-- If you reference a topic that spans multiple countries (e.g., IELTS requirements, bank statements), answer comprehensively.
-- If the answer is genuinely not present in the context below, say: "I don't have specific information on this in my knowledge base. I recommend checking the official embassy website for {country}."
+CRITICAL RULES:
+- Answer ONLY about the country the student asked about. If the student asks about Spain, answer about Spain only. Do NOT mix in information from other countries.
+- Always cite the exact source document (e.g., "According to spain.md…").
+- Be COMPREHENSIVE and DETAILED — include exact figures, fees in INR and local currency, processing times, work hour limits, specific thresholds, tips, common mistakes, and any warnings.
+- Use bullet points and numbered steps. For document lists, include WHY each document is needed and any India-specific notes (apostille, translation requirements, etc.).
+- Adapt response length to the question: simple factual questions → concise; "what documents do I need" or "explain the process" → full detailed breakdown.
+- For documents questions: list EVERY document, include the exact specification (validity period, format, who issues it, India-specific requirements like apostille/notarisation/translation).
+- For timeline questions: give exact week-by-week breakdown with all stages.
+- If something is NOT in the context, say so clearly and recommend the official embassy website — do NOT invent information.
 - Never fabricate visa policies, fees, or deadlines.
-- Format your response clearly — use bullet points or numbered steps where appropriate.
 
-Target country context: {country}
+Target country: {country}
 
 Retrieved context:
 {context}
@@ -263,17 +460,27 @@ Retrieved context:
     def __init__(self):
         api_key = settings.GOOGLE_API_KEY
         if not api_key or api_key == "your_gemini_api_key_here":
-            logger.error("GOOGLE_API_KEY not set — Gemini LLM unavailable. Set GOOGLE_API_KEY in backend/.env")
-            self.llm = None
+            logger.error("GOOGLE_API_KEY not set — Gemini LLM unavailable.")
+            self._client = None
             return
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            temperature=0.15,
-            google_api_key=api_key,
+        from google import genai as _genai
+        self._client = _genai.Client(api_key=api_key)
+        self._model  = "gemini-2.5-flash"
+
+    def _generate(self, prompt: str, max_tokens: int = 2048) -> str:
+        """Direct REST call to Gemini with retry on transient errors."""
+        from google.genai import types as _gt
+        config = _gt.GenerateContentConfig(temperature=0.1, max_output_tokens=max_tokens)
+        resp = _call_with_retry(
+            self._client.models.generate_content,
+            model=self._model,
+            contents=prompt,
+            config=config,
         )
+        return resp.text
 
     def invoke(self, input_dict: dict) -> dict:
-        if self.llm is None:
+        if self._client is None:
             return {
                 "answer": (
                     "The AI answer generator is not available because the GOOGLE_API_KEY "
@@ -283,25 +490,70 @@ Retrieved context:
                 "context": [],
             }
 
-        query      = input_dict["input"]
+        raw_query  = input_dict["input"]
         country    = input_dict.get("country", "the target country")
         session_id = input_dict.get("session_id", "default")
 
-        # ── Stage 1: Hybrid retrieval ─────────────────────────────────────────
-        candidates = hybrid_retrieve(query, k=HYBRID_FETCH_K)
+        # ── Stage 0: Input cleansing + guard rails ────────────────────────────
+        query, _ = cleanse_query(raw_query)
+
+        if _INJECTION_PATTERNS.search(query):
+            return {
+                "answer": "I can only assist with study abroad and visa-related questions.",
+                "context": [],
+            }
+        if len(query.strip()) > 10 and not is_visa_related(query):
+            return {
+                "answer": (
+                    "I'm a study abroad visa assistant and can only help with questions "
+                    "about student visas, university applications, scholarships, and related topics. "
+                    "Please ask a question related to studying abroad."
+                ),
+                "context": [],
+            }
+
+        # ── Stage 1a: Detect country from query text ──────────────────────────
+        detected_country = _detect_country(query)
+        # Query-mentioned country ALWAYS wins — user may ask "Spain visa" while
+        # the UI country selector still shows "UK". Fall back to the UI param.
+        ui_country = country if country not in ("the target country", "General", None) else None
+        effective_country = detected_country or ui_country
+        # For the LLM prompt, show the true focus country
+        prompt_country = effective_country or country
+
+        # ── Stage 1b: HyDE — generate hypothetical answer for better retrieval ─
+        # HyDE is best-effort; failure is already caught inside _hyde_retrieve
+        hyde_docs = _hyde_retrieve(query, self._client, k=10)
+
+        # ── Stage 1c: Hybrid retrieval (dense + BM25 + country-filter + HyDE) ─
+        try:
+            candidates = hybrid_retrieve(
+                query,
+                k=HYBRID_FETCH_K,
+                country_filter=effective_country,
+                hyde_docs=hyde_docs,
+            )
+        except Exception as e:
+            logger.error("Retrieval failed: %s", e)
+            return {
+                "answer": (
+                    "Gemini is experiencing high demand right now. "
+                    "Please wait a moment and try your question again — it should work shortly."
+                ),
+                "context": [],
+            }
 
         # ── Stage 2: Cross-encoder re-ranking ────────────────────────────────
         top_chunks = rerank(query, candidates, top_k=RERANK_TOP_K)
 
-        # ── Stage 2b: Country-specific guarantee ──────────────────────────────
-        # When a specific country is named AND the top chunks are missing that
-        # country's docs, inject up to 2 country-specific chunks from a
-        # filtered search. Skip the boost when ≥2 chunks from the target
-        # country are already present (they ranked high naturally).
-        if country and country not in ("the target country", "General"):
+        # ── Stage 2b: Hard country guarantee (belt-and-suspenders) ────────────
+        # If the effective country is known and fewer than 2 chunks come from
+        # it, forcibly inject 1–2 country chunks so the LLM always has at
+        # least some country-specific grounding.
+        if effective_country:
             existing_country_count = sum(
                 1 for _, _, meta in top_chunks
-                if meta.get("country") == country
+                if meta.get("country") == effective_country
             )
             if existing_country_count < 2:
                 vs = _get_vectorstore()
@@ -309,7 +561,7 @@ Retrieved context:
                     try:
                         country_docs = vs.similarity_search(
                             query, k=3,
-                            filter={"country": country},
+                            filter={"country": effective_country},
                         )
                         existing_texts = {t[:100] for _, t, _ in top_chunks}
                         guaranteed: List[Tuple[str, str, dict]] = []
@@ -322,7 +574,7 @@ Retrieved context:
                             n = min(len(guaranteed), 2 - existing_country_count)
                             top_chunks = guaranteed[:n] + top_chunks[:RERANK_TOP_K - n]
                     except Exception:
-                        pass  # filter unsupported — skip silently
+                        pass
 
         if not top_chunks:
             answer = (
@@ -339,18 +591,32 @@ Retrieved context:
 
         # ── Stage 3: Build prompt with conversation history ───────────────────
         history = _get_memory(session_id)
-        messages = [("system", self.SYSTEM_PROMPT.format(country=country, context=context_text))]
+        system_block = self.SYSTEM_PROMPT.format(
+            country=prompt_country, context=context_text
+        )
 
+        full_prompt = system_block + "\n\n"
         for prev_q, prev_a in history:
-            messages.append(("human", prev_q))
-            messages.append(("ai", prev_a))
+            full_prompt += f"Student: {prev_q}\nAssistant: {prev_a}\n\n"
+        full_prompt += f"Student: {query}\nAssistant:"
 
-        messages.append(("human", query))
+        # Longer questions (documents/process/timeline) get more tokens
+        is_detailed_q = any(w in query.lower() for w in
+                            ["document", "process", "timeline", "step", "all", "complete",
+                             "everything", "how to apply", "explain", "detail"])
+        max_tok = 4096 if is_detailed_q else 2048
 
-        prompt   = ChatPromptTemplate.from_messages(messages)
-        chain    = prompt | self.llm
-        response = chain.invoke({})
-        answer   = response.content
+        try:
+            answer = self._generate(full_prompt, max_tokens=max_tok)
+        except Exception as e:
+            logger.error("Gemini generation failed: %s", e)
+            return {
+                "answer": (
+                    "Gemini is experiencing high demand right now. "
+                    "Please wait a few seconds and ask your question again."
+                ),
+                "context": [],
+            }
 
         # ── Stage 4: Persist memory ───────────────────────────────────────────
         _add_to_memory(session_id, query, answer)
