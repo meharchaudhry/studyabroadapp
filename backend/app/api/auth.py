@@ -60,7 +60,9 @@ def send_otp_email(email: str, otp: str):
         """
         msg.attach(MIMEText(html, "html"))
         try:
-            with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
+            import ssl, certifi
+            ctx = ssl.create_default_context(cafile=certifi.where())
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, context=ctx) as server:
                 server.login(email_user, email_pass)
                 server.sendmail(email_user, email, msg.as_string())
             print(f"✅ OTP email sent to {email}")
