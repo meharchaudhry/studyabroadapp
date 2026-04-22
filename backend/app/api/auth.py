@@ -215,10 +215,6 @@ def register(user_in: UserCreate, background_tasks: BackgroundTasks, db: Session
 
     background_tasks.add_task(send_otp_email, user.email, otp)
     response: dict = {"email": user.email, "message": "OTP sent to your email. Please verify to activate your account."}
-    # Dev mode: return OTP in response when no email service is configured
-    if not os.getenv("EMAIL_USER"):
-        response["dev_otp"] = otp
-        response["dev_note"] = "No email configured — OTP returned here for development. Remove in production."
     return response
 
 
@@ -235,8 +231,6 @@ def send_otp(req: OTPRequest, background_tasks: BackgroundTasks, db: Session = D
     
     background_tasks.add_task(send_otp_email, user.email, otp)
     response: dict = {"message": "OTP sent to your email."}
-    if not os.getenv("EMAIL_USER"):
-        response["dev_otp"] = otp
     return response
 
 

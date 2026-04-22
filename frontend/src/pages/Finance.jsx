@@ -551,7 +551,7 @@ function INRInput({ label, value, onChange, hint }) {
       <div className="relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm font-semibold">₹</span>
         <input
-          type="number" className="input-field pl-7"
+          type="number" className="input-field !pl-8"
           value={value} onChange={e => onChange(e.target.value)}
           min="0"
         />

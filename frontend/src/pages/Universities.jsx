@@ -118,7 +118,7 @@ export default function Universities() {
             <div className="relative flex-1 min-w-48">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
               <input
-                className="input-field pl-10"
+                className="input-field !pl-10"
                 placeholder="Search by name…"
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(0); }}

@@ -22,6 +22,7 @@ export default function Dashboard() {
   const [profile, setProfile] = useState(null);
   const [topUnis, setTopUnis] = useState([]);
   const [uniError, setUniError] = useState(false);
+  const [fromShortlist, setFromShortlist] = useState(false);
   const [done, setDone]       = useState(() => {
     try { return JSON.parse(localStorage.getItem('sp_checklist') || '{}'); }
     catch { return {}; }
@@ -29,6 +30,21 @@ export default function Dashboard() {
 
   useEffect(() => {
     authAPI.getProfile().then(setProfile).catch(() => {});
+
+    // Prefer the user's Decision shortlist (localStorage) over generic API matches
+    try {
+      const raw = localStorage.getItem('decision_result');
+      if (raw) {
+        const { data, ts } = JSON.parse(raw);
+        const AGE_MS = 60 * 60 * 1000; // 1 hour
+        if (Date.now() - ts < AGE_MS && data?.top_universities?.length) {
+          setTopUnis(data.top_universities.slice(0, 3));
+          setFromShortlist(true);
+          return;
+        }
+      }
+    } catch { /* fall through to API */ }
+
     universitiesAPI.getRecommendations(3)
       .then(r => setTopUnis((r.recommendations || []).slice(0, 3)))
       .catch(() => setUniError(true));
@@ -102,9 +118,21 @@ export default function Dashboard() {
         {/* ── Top matches ── */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-text text-sm">Your Top Matches</h2>
-            <Link to="/universities" className="text-xs text-lavender font-medium hover:underline flex items-center gap-1">
-              See all <ArrowRight className="w-3 h-3" />
+            <div className="flex items-center gap-2">
+              <h2 className="font-semibold text-text text-sm">
+                {fromShortlist ? 'Your Shortlist' : 'Your Top Matches'}
+              </h2>
+              {fromShortlist && (
+                <span className="text-[10px] bg-mintLight text-green-700 font-semibold px-2 py-0.5 rounded-full">
+                  from AI analysis
+                </span>
+              )}
+            </div>
+            <Link
+              to={fromShortlist ? '/decision' : '/universities'}
+              className="text-xs text-lavender font-medium hover:underline flex items-center gap-1"
+            >
+              {fromShortlist ? 'View full shortlist' : 'See all'} <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           {topUnis.length > 0 ? (
@@ -114,8 +142,9 @@ export default function Dashboard() {
                 const flag = getCountryFlag(uni.country);
                 const pct  = uni.match_score ? Math.round(uni.match_score * 100) : null;
                 const rankColors = ['bg-amber-400', 'bg-slate-400', 'bg-orange-400'];
+                const linkTo = fromShortlist ? '/decision' : `/universities/${uni.id}`;
                 return (
-                  <Link key={uni.id} to={`/universities/${uni.id}`} className="group">
+                  <Link key={uni.name || uni.id} to={linkTo} className="group">
                     <div className="card-hover card overflow-hidden">
                       <div className="relative h-28 overflow-hidden bg-surfaceAlt">
                         <img src={img} alt={uni.name}
