@@ -2,7 +2,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { universitiesAPI } from '../api/universities';
 import { getUniversityImage, getCountryFlag } from '../utils/universityImages';
-import { GraduationCap, Search, Sparkles, Loader2, SlidersHorizontal, X, TrendingUp, Briefcase } from 'lucide-react';
+import { GraduationCap, Search, Sparkles, Loader2, SlidersHorizontal, X, TrendingUp, Briefcase, Trophy, RefreshCw } from 'lucide-react';
+
+const SHORTLIST_KEY = 'decision_result';
+const SHORTLIST_TTL = 60 * 60 * 1000; // 1 hour
+
+function loadShortlist() {
+  try {
+    const raw = localStorage.getItem(SHORTLIST_KEY);
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw);
+    if (Date.now() - ts > SHORTLIST_TTL) return null;
+    return data?.top_universities?.length ? data.top_universities : null;
+  } catch { return null; }
+}
 
 const COUNTRIES = [
   "United Kingdom","United States","Canada","Australia","Germany","France",
@@ -41,6 +54,7 @@ export default function Universities() {
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage]             = useState(0);
   const [total, setTotal]           = useState(0);
+  const [fromShortlist, setFromShortlist] = useState(false);
   // Match scores keyed by university id — fetched once for browse mode overlay
   const [matchScores, setMatchScores] = useState({});
   const PER_PAGE = 18;
@@ -62,6 +76,7 @@ export default function Universities() {
     setLoading(true); setError('');
     try {
       if (mode === 'browse') {
+        setFromShortlist(false);
         const params = { limit: PER_PAGE, offset: page * PER_PAGE };
         if (country) params.country = country;
         if (subject) params.subject = subject;
@@ -71,6 +86,17 @@ export default function Universities() {
         setUniversities(res.universities || []);
         setTotal(res.total || 0);
       } else {
+        // AI Matches: prefer the Decision page shortlist cache
+        const cached = loadShortlist();
+        if (cached) {
+          setUniversities(cached);
+          setTotal(cached.length);
+          setFromShortlist(true);
+          setLoading(false);
+          return;
+        }
+        // No shortlist yet — fall back to simple scoring
+        setFromShortlist(false);
         const res = await universitiesAPI.getRecommendations(15);
         setUniversities(res.recommendations || []);
         setTotal(res.recommendations?.length || 0);
@@ -178,35 +204,46 @@ export default function Universities() {
       )}
 
       {/* AI matches banner */}
-      {mode === 'matches' && !loading && !error && universities.length > 0 && (
-        <div className="bg-lavendLight border border-lavender/20 rounded-xl p-4 space-y-2">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-lavender shrink-0" />
-            <p className="text-sm text-lavender font-bold">
-              Personalised ranking — scored out of 100 across 8 factors specific to your profile
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-1.5 text-[10px]">
-            {[
-              { label: 'Subject match', pts: '35pts', color: 'bg-lavender/20 text-lavender' },
-              { label: 'Budget fit', pts: '20pts', color: 'bg-mintLight text-teal-700' },
-              { label: 'CGPA eligibility', pts: '15pts', color: 'bg-amberLight text-amber-700' },
-              { label: 'Ranking preference', pts: '10pts', color: 'bg-skyLight text-blue-700' },
-              { label: 'Country preference', pts: '10pts', color: 'bg-peachLight text-orange-700' },
-              { label: 'English score', pts: '5pts', color: 'bg-mintLight text-teal-700' },
-              { label: 'Profile bonus', pts: '+3pts', color: 'bg-lavendLight text-lavender' },
-              { label: 'Scholarships / work visa', pts: '+2pts', color: 'bg-lavendLight text-lavender' },
-            ].map(f => (
-              <span key={f.label} className={`px-2 py-0.5 rounded-full font-semibold flex items-center gap-1 ${f.color}`}>
-                {f.label} <span className="opacity-60">{f.pts}</span>
-              </span>
-            ))}
-          </div>
-          <p className="text-xs text-lavender/70">
-            Click any card → <strong>Why this for me?</strong> for a full factor-by-factor breakdown.
-            Hard exclusions (cost &gt;2× budget, CGPA gap &gt;2pts) are filtered out automatically.
-          </p>
-        </div>
+      {mode === 'matches' && !loading && !error && (
+        <>
+          {fromShortlist && universities.length > 0 ? (
+            <div className="bg-mintLight border border-green-200 rounded-xl p-4 flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <Trophy className="w-5 h-5 text-teal-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-teal-700 font-bold mb-0.5">
+                    Showing your AI shortlist — {universities.length} universities ranked across 4 dimensions
+                  </p>
+                  <p className="text-xs text-teal-600/80">
+                    Academic fit · Financial ROI · Job market · Visa confidence — run on your full profile
+                  </p>
+                </div>
+              </div>
+              <Link to="/decision"
+                className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-teal-700 bg-white border border-green-200 px-3 py-1.5 rounded-lg hover:bg-green-50 transition-colors">
+                <RefreshCw className="w-3.5 h-3.5" /> Re-run
+              </Link>
+            </div>
+          ) : !fromShortlist && universities.length > 0 ? (
+            <div className="bg-amberLight border border-amber-200 rounded-xl p-4 flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-amber-700 font-bold mb-0.5">
+                    Showing profile-based matches — no shortlist generated yet
+                  </p>
+                  <p className="text-xs text-amber-600/80">
+                    Run the full AI analysis on the Shortlist page to get ROI, job scores and visa confidence
+                  </p>
+                </div>
+              </div>
+              <Link to="/decision"
+                className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-white border border-amber-200 px-3 py-1.5 rounded-lg hover:bg-amber-50 transition-colors">
+                <Trophy className="w-3.5 h-3.5" /> Build Shortlist
+              </Link>
+            </div>
+          ) : null}
+        </>
       )}
 
       {/* Results */}
@@ -228,12 +265,14 @@ export default function Universities() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {universities.map((uni, i) => (
-              <UniCard
-                key={uni.id}
-                uni={uni}
-                rank={mode === 'matches' ? i + 1 : null}
-                browseMatchScore={mode === 'browse' ? matchScores[uni.id] : null}
-              />
+              mode === 'matches' && fromShortlist
+                ? <ShortlistCard key={uni.name || i} uni={uni} rank={i + 1} />
+                : <UniCard
+                    key={uni.id || i}
+                    uni={uni}
+                    rank={mode === 'matches' ? i + 1 : null}
+                    browseMatchScore={mode === 'browse' ? matchScores[uni.id] : null}
+                  />
             ))}
           </div>
           {mode === 'browse' && total > PER_PAGE && (
@@ -260,6 +299,82 @@ export default function Universities() {
         </>
       )}
     </div>
+  );
+}
+
+function fmtUSD(v) {
+  if (!v && v !== 0) return '—';
+  return `$${Math.round(v / 1000)}k`;
+}
+
+function ShortlistCard({ uni, rank }) {
+  const img  = getUniversityImage(uni);
+  const flag = getCountryFlag(uni.country);
+  const pct  = Math.round((uni.match_score || 0) * 100);
+  const rankColors = ['bg-amber-400', 'bg-slate-400', 'bg-orange-400'];
+  const rankLabels = ['1st', '2nd', '3rd'];
+  const scoreColor = pct >= 75 ? 'bg-teal-500' : pct >= 50 ? 'bg-lavender' : pct >= 30 ? 'bg-amber-400' : 'bg-slate-400';
+  const roi = uni.roi_5yr_pct;
+  const roiColor = roi >= 0 ? 'text-teal-600' : 'text-rose-500';
+
+  return (
+    <Link to="/decision" className="group block">
+      <div className="card-hover card overflow-hidden flex flex-col">
+        <div className="relative h-40 bg-surfaceAlt overflow-hidden">
+          <img src={img} alt={uni.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={e => {
+              e.target.style.display = 'none';
+              e.target.parentElement.classList.add('bg-gradient-to-br', 'from-lavendLight', 'to-mintLight');
+            }} />
+          {/* Rank badge */}
+          <div className="absolute top-3 left-3 flex gap-1.5">
+            {uni.ranking && (
+              <span className="badge bg-white/90 backdrop-blur-sm text-lavender border border-lavender/20 shadow-sm">
+                QS #{uni.ranking}
+              </span>
+            )}
+            {rank <= 3 && (
+              <span className={`badge ${rankColors[rank - 1]} text-white shadow-sm`}>
+                {rankLabels[rank - 1]}
+              </span>
+            )}
+          </div>
+          {/* Match score */}
+          <div className="absolute top-3 right-3">
+            <div className={`w-11 h-11 rounded-full flex flex-col items-center justify-center border-2 border-white shadow-md ${scoreColor} text-white`}>
+              <span className="text-[10px] font-black leading-none">{pct}%</span>
+              <span className="text-[7px] opacity-80">match</span>
+            </div>
+          </div>
+          {/* Country overlay */}
+          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-8">
+            <span className="text-sm">{flag}</span>
+            <span className="text-white/90 text-xs font-semibold ml-1">{uni.country}</span>
+          </div>
+        </div>
+
+        <div className="p-4 flex flex-col flex-1">
+          <h3 className="font-bold text-text text-sm leading-snug mb-3 group-hover:text-lavender transition-colors line-clamp-2">
+            {uni.name}
+          </h3>
+          <div className="grid grid-cols-2 gap-2 mt-auto">
+            {uni.total_cost_usd != null && (
+              <Chip label="Annual cost" val={fmtUSD(uni.total_cost_usd)} />
+            )}
+            {roi != null && (
+              <Chip label="5yr ROI" val={`${roi >= 0 ? '+' : ''}${roi?.toFixed(1)}%`} accent roiColor={roiColor} />
+            )}
+            {uni.break_even_years != null && (
+              <Chip label="Break-even" val={`${uni.break_even_years?.toFixed(1)} yrs`} />
+            )}
+            {uni.job_availability_score != null && (
+              <Chip label="Jobs score" val={`${uni.job_availability_score.toFixed(1)}/10`} accent />
+            )}
+          </div>
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -340,9 +455,9 @@ function UniCard({ uni, rank, browseMatchScore }) {
   );
 }
 
-const Chip = ({ label, val, accent }) => (
+const Chip = ({ label, val, accent, roiColor }) => (
   <div className={`rounded-lg p-2 ${accent ? 'bg-lavendLight' : 'bg-surfaceAlt'}`}>
     <p className="text-[10px] text-muted">{label}</p>
-    <p className={`text-xs font-bold ${accent ? 'text-lavender' : 'text-text'}`}>{val}</p>
+    <p className={`text-xs font-bold ${roiColor || (accent ? 'text-lavender' : 'text-text')}`}>{val}</p>
   </div>
 );
