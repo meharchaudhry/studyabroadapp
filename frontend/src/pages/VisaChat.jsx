@@ -1,122 +1,173 @@
 import { useState, useEffect, useRef } from 'react';
 import { visaAPI } from '../api/visa';
-import { aiAPI } from '../api/ai';
-import { authAPI } from '../api/auth';
-import { Link } from 'react-router-dom';
 import {
-  FileCheck, CheckSquare, Square, ChevronDown, Send, Bot, User,
-  Gauge, ExternalLink, Sparkles, RefreshCw, Zap, CheckCircle2, Loader2,
+  FileCheck, Send, Bot, User, Sparkles,
+  RefreshCw, Globe, ChevronDown,
 } from 'lucide-react';
 
 const COUNTRIES = [
-  'USA','UK','Canada','Australia','Germany','France','Netherlands',
+  'General','USA','UK','Canada','Australia','Germany','France','Netherlands',
   'Ireland','Singapore','Japan','Sweden','Norway','Denmark','Finland',
   'New Zealand','UAE','Portugal','Italy','Spain','South Korea','Switzerland',
 ];
 
 const SUGGESTED_QUESTIONS = {
-  UK:          ['What is the 28-day rule for funds?', 'How many hours can I work on a UK student visa?', 'What is the Immigration Health Surcharge?'],
-  USA:         ['What is OPT and STEM OPT extension?', 'How do I get an I-20 form?', 'What financial proof do I need for an F-1 visa?'],
-  Canada:      ['What is a GIC for Canada study permit?', 'What IELTS score do I need for Canada?', 'Can I work while studying in Canada?'],
-  Australia:   ['How much savings do I need for an Australian student visa?', 'What is the student visa processing time for Australia?', 'Can I bring my family to Australia?'],
-  Germany:     ['Do I need to learn German for a student visa?', 'What is the Blocked Account for Germany?', 'What are the health insurance requirements for Germany?'],
-  default:     ['What documents do I need for a student visa?', 'What is the IELTS score requirement?', 'How long does the visa processing take?'],
+  General:   [
+    'What documents do I need for a European student visa?',
+    'Do my parents need to be earning or can I use savings?',
+    'Compare tuition fees across European countries',
+    'Which country is best for Indian CS students?',
+  ],
+  UK:        [
+    'What is the 28-day rule for UK visa funds?',
+    'How many hours can I work on a UK student visa?',
+    'What is the Immigration Health Surcharge?',
+    'What is the Graduate Route visa?',
+  ],
+  USA:       [
+    'What is OPT and STEM OPT extension?',
+    'How do I get an I-20 form?',
+    'What financial proof do I need for an F-1 visa?',
+    'What is the SEVIS fee?',
+  ],
+  Canada:    [
+    'What is a GIC for Canada study permit?',
+    'What IELTS score do I need for Canada?',
+    'Can I work while studying in Canada?',
+    'What is the PGWP?',
+  ],
+  Germany:   [
+    'What is the Blocked Account for Germany?',
+    'What is APS and do Indian students need it?',
+    'Do I need German language skills for a student visa?',
+    'How much does it cost to study in Germany?',
+  ],
+  Australia: [
+    'How much savings do I need for an Australian student visa?',
+    'What is the GTE requirement?',
+    'Can I bring my family to Australia on a student visa?',
+    'What is the Subclass 485 visa?',
+  ],
+  default:   [
+    'What documents do I need for a student visa?',
+    'Do my parents need to earn or can I use savings?',
+    'How long does visa processing take?',
+    'Can I work while studying?',
+  ],
 };
 
-const CATEGORY_COLORS = {
-  'Admission':    'bg-lavendLight text-lavender',
-  'Application':  'bg-skyLight text-blue-600',
-  'Identity':     'bg-mintLight text-teal-600',
-  'Financial':    'bg-amberLight text-amber-700',
-  'Academic':     'bg-peachLight text-orange-600',
-  'Health':       'bg-roseLight text-rose',
-  'ATAS':         'bg-lavendLight text-lavender',
-  'Tuberculosis': 'bg-roseLight text-rose',
-  'Criminal':     'bg-amberLight text-amber-700',
-  'Interview':    'bg-skyLight text-blue-600',
-  'Other':        'bg-surfaceAlt text-textSoft',
-};
+const TOPIC_CHIPS = [
+  { label: '🛂 Visa Docs', q: 'What are all the documents I need?' },
+  { label: '💰 Financial Proof', q: 'Can I use savings or do my parents need to be earning?' },
+  { label: '🏠 Housing', q: 'How do I find student accommodation?' },
+  { label: '💼 Jobs', q: 'Can I work while studying and what post-study work options are available?' },
+  { label: '🎓 Scholarships', q: 'What scholarships are available for Indian students?' },
+  { label: '⏱️ Processing Time', q: 'How long does the visa process take from start to finish?' },
+  { label: '💳 Total Cost', q: 'What is the total cost including tuition and living expenses?' },
+];
 
-function makeSessionId(country) {
-  return `visa-${country}-${Date.now()}`;
+const QUICK_COUNTRIES = ['General','UK','USA','Canada','Australia','Germany','France','Netherlands'];
+
+function makeSessionId(c) {
+  return `visa-${c}-${Date.now()}`;
 }
 
-// Simple markdown-lite renderer: bold **text**, bullet - item
+// Markdown-lite renderer with table support
 function renderAnswer(text) {
   if (!text) return null;
   const str = typeof text === 'string' ? text : JSON.stringify(text);
-  return str.split('\n').map((line, i) => {
-    const parts = line.split(/(\*\*[^*]+\*\*)/g).map((part, j) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={j}>{part.slice(2, -2)}</strong>;
-      }
-      return part;
-    });
-    // Bullet
-    if (line.trimStart().startsWith('- ') || line.trimStart().startsWith('• ')) {
-      return <li key={i} className="ml-4 list-disc">{parts}</li>;
+  const lines = str.split('\n');
+  const elements = [];
+  let tableBuffer = [];
+
+  const flushTable = (key) => {
+    if (tableBuffer.length < 2) { tableBuffer = []; return; }
+    const cols = tableBuffer[0].split('|').filter(c => c.trim()).map(c => c.trim());
+    const bodyRows = tableBuffer.slice(2).map(r =>
+      r.split('|').filter(c => c.trim() !== undefined).map(c => c.trim())
+    ).filter(r => r.length > 0);
+    elements.push(
+      <div key={key} className="overflow-x-auto my-2 rounded-lg border border-surfaceBorder text-xs">
+        <table className="w-full min-w-full">
+          <thead className="bg-lavendLight">
+            <tr>{cols.map((c, i) => <th key={i} className="px-3 py-2 text-left font-semibold text-lavender whitespace-nowrap">{c}</th>)}</tr>
+          </thead>
+          <tbody>
+            {bodyRows.map((r, ri) => (
+              <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-surfaceAlt'}>
+                {r.slice(0, cols.length).map((c, ci) => (
+                  <td key={ci} className="px-3 py-1.5 text-textSoft">{c}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+    tableBuffer = [];
+  };
+
+  lines.forEach((line, i) => {
+    if (line.trim().startsWith('|')) {
+      tableBuffer.push(line);
+      return;
     }
-    if (line.match(/^\d+\.\s/)) {
-      return <li key={i} className="ml-4 list-decimal">{parts}</li>;
+    if (tableBuffer.length > 0) flushTable(`t${i}`);
+
+    const bold = line.split(/(\*\*[^*]+\*\*)/g).map((part, j) =>
+      part.startsWith('**') && part.endsWith('**')
+        ? <strong key={j}>{part.slice(2, -2)}</strong>
+        : part
+    );
+
+    if (line.startsWith('### ')) {
+      elements.push(<h4 key={i} className="font-bold text-text mt-3 mb-1 text-sm">{line.slice(4)}</h4>);
+    } else if (line.startsWith('## ')) {
+      elements.push(<h3 key={i} className="font-semibold text-text mt-4 mb-1">{line.slice(3)}</h3>);
+    } else if (line.trimStart().match(/^[-•]\s/)) {
+      elements.push(<li key={i} className="ml-4 list-disc leading-snug">{bold}</li>);
+    } else if (line.match(/^\d+\.\s/)) {
+      elements.push(<li key={i} className="ml-4 list-decimal leading-snug">{bold}</li>);
+    } else if (line.trim() === '' || line.trim() === '---') {
+      elements.push(<br key={i} />);
+    } else {
+      elements.push(<p key={i} className="leading-relaxed">{bold}</p>);
     }
-    if (line.trim() === '') return <br key={i} />;
-    return <p key={i}>{parts}</p>;
   });
+  if (tableBuffer.length > 0) flushTable('tf');
+  return elements;
 }
 
 export default function VisaChat() {
-  const [country, setCountry]         = useState('UK');
-  const [sessionId, setSessionId]     = useState(() => makeSessionId('UK'));
-  const [checklist, setChecklist]     = useState(null);
-  const [checked, setChecked]         = useState({});
-  const [expandedCats, setExpandedCats] = useState({});
-  const [messages, setMessages]       = useState([{
+  const [country, setCountry]           = useState('UK');
+  const [sessionId, setSessionId]       = useState(() => makeSessionId('UK'));
+  const [messages, setMessages]         = useState([{
     role: 'bot',
-    text: "Hello! I'm your Visa Assistant. Select a country and ask me anything about student visa requirements, documents, or the application process.",
+    text: "Hi! I'm your Study Abroad AI Assistant 🎓\n\nI can answer **any** question about student visas, documents, financial proof, housing, jobs, scholarships, or studying abroad — for any country.\n\nSelect a country above or just ask your question!",
   }]);
-  const [input, setInput]             = useState('');
-  const [chatLoading, setChatLoading] = useState(false);
-  const [lisLoading, setLisLoading]   = useState(false);
-  const [aiChecklist, setAiChecklist] = useState(null);
-  const [aiLoading, setAiLoading]     = useState(false);
-  const [aiChecked, setAiChecked]     = useState({});
-  const [userProfile, setUserProfile] = useState({});
-  const messagesEndRef                = useRef(null);
-  const inputRef                      = useRef(null);
-
-  useEffect(() => {
-    authAPI.getProfile().then(setUserProfile).catch(() => {});
-  }, []);
+  const [input, setInput]               = useState('');
+  const [chatLoading, setChatLoading]   = useState(false);
+  const [showMore, setShowMore]         = useState(false);
+  const messagesEndRef                  = useRef(null);
+  const inputRef                        = useRef(null);
 
   const suggestions = SUGGESTED_QUESTIONS[country] || SUGGESTED_QUESTIONS.default;
 
-  const fetchChecklist = async (c = country) => {
-    setLisLoading(true);
-    setChecked({});
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  const changeCountry = (c) => {
+    setCountry(c);
+    setShowMore(false);
     const sid = makeSessionId(c);
     setSessionId(sid);
     setMessages([{
       role: 'bot',
-      text: `I'm now your ${c} Visa Assistant. Ask me anything about the ${c} student visa process for Indian students!`,
+      text: c === 'General'
+        ? "I'm in **General** mode — ask me about any country or compare across countries!"
+        : `Switched to **${c}**. Ask me anything about the ${c} student visa, documents, housing, or jobs!`,
     }]);
-    try {
-      const data = await visaAPI.getChecklist(c);
-      setChecklist(data);
-      if (data.checklist?.length) {
-        setExpandedCats({ [data.checklist[0].category]: true });
-      }
-    } catch {
-      setChecklist(null);
-    } finally {
-      setLisLoading(false);
-    }
+    inputRef.current?.focus();
   };
-
-  useEffect(() => { fetchChecklist(country); }, [country]);
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
-
-  const toggleCheck = (id) => setChecked(prev => ({ ...prev, [id]: !prev[id] }));
-  const toggleCat   = (cat) => setExpandedCats(prev => ({ ...prev, [cat]: !prev[cat] }));
 
   const sendMessage = async (q = input.trim()) => {
     if (!q || chatLoading) return;
@@ -134,7 +185,7 @@ export default function VisaChat() {
     } catch {
       setMessages(prev => [...prev, {
         role: 'bot',
-        text: 'Sorry, the AI assistant is currently unavailable. Please ensure the Gemini API key is configured.',
+        text: 'Gemini is experiencing high demand right now. Please wait a moment and try again.',
       }]);
     } finally {
       setChatLoading(false);
@@ -142,311 +193,193 @@ export default function VisaChat() {
     }
   };
 
-  const generateAiChecklist = async () => {
-    setAiLoading(true);
-    setAiChecklist(null);
-    setAiChecked({});
-    try {
-      const data = await aiAPI.generateChecklist(country, userProfile);
-      setAiChecklist(data);
-    } catch {
-      setAiChecklist({ error: true });
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  const toggleAiCheck = (id) => setAiChecked(prev => ({ ...prev, [id]: !prev[id] }));
-
-  const grouped = (checklist?.checklist || []).reduce((acc, item) => {
-    (acc[item.category] = acc[item.category] || []).push(item);
-    return acc;
-  }, {});
-  const checkedCount = Object.values(checked).filter(Boolean).length;
-  const totalItems   = checklist?.checklist?.length || 0;
-  const progress     = totalItems ? Math.round((checkedCount / totalItems) * 100) : 0;
+  const isMoreSelected = !QUICK_COUNTRIES.includes(country);
 
   return (
-    <div className="animate-fade-in space-y-5">
+    <div className="animate-fade-in flex flex-col gap-4">
       {/* Header */}
       <div className="page-header">
-        <div className="page-icon bg-lavendLight"><FileCheck className="w-5 h-5 text-lavender" /></div>
+        <div className="page-icon bg-lavendLight">
+          <FileCheck className="w-5 h-5 text-lavender" />
+        </div>
         <div>
-          <h1 className="text-2xl font-bold text-text">Visa Guide + AI Assistant</h1>
+          <h1 className="text-2xl font-bold text-text">Visa & Study Abroad AI</h1>
           <p className="text-muted text-sm mt-0.5">
-            Document checklists · Hybrid RAG pipeline · 96.4% accuracy on standard queries
+            Hybrid RAG · 104 knowledge docs · Visas · Jobs · Housing · Scholarships · Gemini 2.5 Flash
           </p>
         </div>
       </div>
 
       {/* Country selector */}
-      <div className="card p-4 flex flex-wrap gap-2 items-center">
-        <span className="text-xs font-bold text-muted uppercase tracking-wide mr-1">Country:</span>
-        {COUNTRIES.map(c => (
-          <button key={c} onClick={() => setCountry(c)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-              country === c
-                ? 'bg-lavender text-white border-lavender shadow-sm'
-                : 'bg-surfaceAlt text-textSoft border-surfaceBorder hover:border-lavender hover:text-lavender'
-            }`}>{c}</button>
-        ))}
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-5">
-        {/* ── Checklist ── */}
-        <div className="space-y-4">
-          {lisLoading ? (
-            <div className="card p-10 flex justify-center">
-              <div className="w-7 h-7 border-2 border-lavender/30 border-t-lavender rounded-full animate-spin" />
-            </div>
-          ) : !checklist ? (
-            <div className="card p-8 text-center text-muted">No checklist data for this country yet.</div>
-          ) : (
-            <>
-              {/* Visa overview card */}
-              <div className="card p-5">
-                <h2 className="font-bold text-text mb-1">{checklist.visa_type}</h2>
-                <div className="grid grid-cols-2 gap-3 mt-3 text-xs">
-                  <div className="bg-surfaceAlt rounded-lg p-2.5">
-                    <p className="text-muted mb-0.5">Processing Time</p>
-                    <p className="font-semibold text-text">{checklist.processing_time}</p>
-                  </div>
-                  {checklist.visa_fee_inr > 0 && (
-                    <div className="bg-surfaceAlt rounded-lg p-2.5">
-                      <p className="text-muted mb-0.5">Visa Fee</p>
-                      <p className="font-semibold text-teal-600">₹{checklist.visa_fee_inr?.toLocaleString('en-IN')}</p>
-                    </div>
-                  )}
-                </div>
-                {/* Progress */}
-                <div className="mt-4">
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-textSoft font-medium">Documents ready</span>
-                    <span className="text-lavender font-bold">{checkedCount}/{totalItems}</span>
-                  </div>
-                  <div className="bg-lavendLight rounded-full h-2 overflow-hidden">
-                    <div className="bg-lavender h-2 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
-                  </div>
-                  {progress === 100 && (
-                    <p className="text-xs text-teal-600 font-semibold mt-1.5">🎉 All documents ready!</p>
-                  )}
-                </div>
-                {checklist.official_link && (
-                  <a href={checklist.official_link} target="_blank" rel="noreferrer"
-                    className="btn-ghost mt-3 text-xs py-1.5">
-                    <ExternalLink className="w-3.5 h-3.5" /> Official Visa Website
-                  </a>
-                )}
+      <div className="card p-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-muted uppercase tracking-wide mr-1">
+            <Globe className="w-3.5 h-3.5" /> Country:
+          </div>
+          {QUICK_COUNTRIES.map(c => (
+            <button key={c} onClick={() => changeCountry(c)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                country === c
+                  ? 'bg-lavender text-white border-lavender shadow-sm'
+                  : 'bg-surfaceAlt text-textSoft border-surfaceBorder hover:border-lavender hover:text-lavender'
+              }`}>{c}</button>
+          ))}
+          <div className="relative">
+            <button onClick={() => setShowMore(v => !v)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all flex items-center gap-1 ${
+                isMoreSelected
+                  ? 'bg-lavender text-white border-lavender'
+                  : 'bg-surfaceAlt text-textSoft border-surfaceBorder hover:border-lavender hover:text-lavender'
+              }`}>
+              {isMoreSelected ? country : 'More ▾'}
+              <ChevronDown className={`w-3 h-3 transition-transform ${showMore ? 'rotate-180' : ''}`} />
+            </button>
+            {showMore && (
+              <div className="absolute top-full left-0 mt-1 z-50 bg-white rounded-xl shadow-lg border border-surfaceBorder p-2 grid grid-cols-3 gap-1 w-60">
+                {COUNTRIES.filter(c => !QUICK_COUNTRIES.includes(c)).map(c => (
+                  <button key={c} onClick={() => changeCountry(c)}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-medium text-left transition-all ${
+                      country === c ? 'bg-lavender text-white' : 'hover:bg-lavendLight text-textSoft hover:text-lavender'
+                    }`}>{c}</button>
+                ))}
               </div>
-
-              {/* Checklist groups */}
-              {Object.entries(grouped).map(([cat, items]) => (
-                <div key={cat} className="card overflow-hidden">
-                  <button className="w-full flex items-center justify-between p-4 hover:bg-surfaceAlt transition-colors"
-                    onClick={() => toggleCat(cat)}>
-                    <div className="flex items-center gap-2">
-                      <span className={`badge text-[10px] ${CATEGORY_COLORS[cat] || 'bg-surfaceAlt text-muted'}`}>{cat}</span>
-                      <span className="text-xs text-muted">
-                        {items.filter(i => checked[i.id]).length}/{items.length} done
-                      </span>
-                    </div>
-                    <ChevronDown className={`w-4 h-4 text-muted transition-transform ${expandedCats[cat] ? 'rotate-180' : ''}`} />
-                  </button>
-                  {expandedCats[cat] && (
-                    <div className="px-4 pb-4 space-y-1 border-t border-surfaceBorder pt-3">
-                      {items.map(item => (
-                        <label key={item.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-surfaceAlt cursor-pointer select-none"
-                          onClick={() => toggleCheck(item.id)}>
-                          {checked[item.id]
-                            ? <CheckSquare className="w-4 h-4 text-lavender flex-shrink-0 mt-0.5" />
-                            : <Square className="w-4 h-4 text-muted flex-shrink-0 mt-0.5" />}
-                          <span className={`text-sm leading-snug ${checked[item.id] ? 'line-through text-muted' : 'text-text'}`}>
-                            {item.item}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </>
-          )}
-
-          {/* ── AI Personalised Checklist ── */}
-          <div className="card p-4 border-lavender/20 bg-gradient-to-br from-lavendLight/30 to-white">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 bg-lavender rounded-lg flex items-center justify-center">
-                  <Zap className="w-3.5 h-3.5 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-text">AI Personalised Checklist</p>
-                  <p className="text-[10px] text-muted">Claude analyses your profile and tailors the list</p>
-                </div>
-              </div>
-              <Link to="/ai-coach" className="text-[10px] text-lavender font-semibold hover:underline">Full AI Coach →</Link>
-            </div>
-
-            {!aiChecklist && (
-              <button onClick={generateAiChecklist} disabled={aiLoading}
-                className="btn-primary w-full py-2.5 gap-2 justify-center text-sm disabled:opacity-60">
-                {aiLoading
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating for {country}…</>
-                  : <><Zap className="w-4 h-4" /> Generate My {country} Checklist</>}
-              </button>
-            )}
-
-            {aiChecklist && !aiChecklist.error && (
-              <>
-                <div className="text-xs text-muted mb-2">
-                  {Object.values(aiChecked).filter(Boolean).length}/{aiChecklist.checklist?.length || 0} documents ready ·{' '}
-                  <button onClick={() => { setAiChecklist(null); setAiChecked({}); }}
-                    className="text-lavender hover:underline">Regenerate</button>
-                </div>
-                <div className="space-y-1 max-h-64 overflow-y-auto pr-1">
-                  {(aiChecklist.checklist || []).map(item => (
-                    <div key={item.id}
-                      className="flex items-start gap-2 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors group"
-                      onClick={() => toggleAiCheck(item.id)}>
-                      {aiChecked[item.id]
-                        ? <CheckCircle2 className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />
-                        : <div className="w-4 h-4 rounded-full border-2 border-muted flex-shrink-0 mt-0.5 group-hover:border-lavender transition-colors" />}
-                      <div className="flex-1 min-w-0">
-                        <span className={`text-xs leading-snug ${aiChecked[item.id] ? 'line-through text-muted' : 'text-text'}`}>
-                          {item.task}
-                        </span>
-                        {item.note && <p className="text-[10px] text-muted mt-0.5">{item.note}</p>}
-                      </div>
-                      <span className={`badge text-[9px] flex-shrink-0
-                        ${item.priority === 'critical' ? 'bg-rose/10 text-rose' :
-                          item.priority === 'high' ? 'bg-amberLight text-amber-700' : 'bg-skyLight text-blue-600'}`}>
-                        {item.priority}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {aiChecklist?.error && (
-              <p className="text-xs text-rose text-center py-2">Generation failed — check your API key.</p>
             )}
           </div>
         </div>
+      </div>
 
-        {/* ── Chatbot ── */}
-        <div className="card flex flex-col" style={{ height: '640px' }}>
-          {/* Chat header */}
-          <div className="p-4 border-b border-surfaceBorder flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-lavendLight rounded-lg flex items-center justify-center">
+      {/* Full-width chat */}
+      <div className="card flex flex-col" style={{ height: '68vh', minHeight: '500px' }}>
+        {/* Chat header */}
+        <div className="px-4 py-3 border-b border-surfaceBorder flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="relative">
+              <div className="w-8 h-8 bg-lavendLight rounded-xl flex items-center justify-center">
                 <Bot className="w-4 h-4 text-lavender" />
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-text">Visa AI Assistant</h3>
-                <p className="text-[10px] text-muted">{country} · Hybrid RAG · Gemini 2.5 Flash</p>
-              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-teal-400 rounded-full border-2 border-white" />
             </div>
-            <button onClick={() => fetchChecklist(country)}
-              className="text-muted hover:text-lavender transition-colors p-1.5 rounded-lg hover:bg-surfaceAlt"
-              title="New conversation">
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
+            <div>
+              <p className="text-sm font-bold text-text">StudyPathway Visa AI</p>
+              <p className="text-[11px] text-muted">{country} · Hybrid RAG · Gemini 2.5 Flash</p>
+            </div>
           </div>
+          <button onClick={() => changeCountry(country)} title="New conversation"
+            className="p-1.5 rounded-lg text-muted hover:text-lavender hover:bg-surfaceAlt transition-colors">
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                {msg.role === 'bot' && (
-                  <div className="w-6 h-6 bg-lavendLight rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                    <Bot className="w-3.5 h-3.5 text-lavender" />
-                  </div>
-                )}
-                <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
-                  msg.role === 'user'
-                    ? 'bg-lavender text-white rounded-tr-sm'
-                    : 'bg-surfaceAlt text-text rounded-tl-sm'
-                }`}>
-                  <div className="leading-relaxed space-y-1">
-                    {renderAnswer(msg.text)}
-                  </div>
-                  {/* Sources */}
-                  {msg.sources?.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-surfaceBorder/50 flex flex-wrap gap-1">
-                      <span className="text-[10px] text-muted">Sources:</span>
-                      {[...new Map(msg.sources.map(s => [s.doc, s])).values()].slice(0, 4).map((s, j) => (
-                        <span key={j} className="badge badge-lavender text-[10px]">{s.doc}</span>
-                      ))}
-                    </div>
-                  )}
-                  {/* Metrics */}
-                  {msg.metrics && (
-                    <div className="mt-1.5 flex gap-1.5 flex-wrap">
-                      {[
-                        ['Precision', msg.metrics.contextual_precision],
-                        ['Faithfulness', msg.metrics.faithfulness],
-                        ['Relevancy', msg.metrics.answer_relevancy],
-                      ].map(([k, v]) => v != null && (
-                        <span key={k} className="badge bg-teal-50 text-teal-700 text-[10px] border-0">
-                          {k}: {typeof v === 'number' ? (v * 100).toFixed(0) : v}%
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {msg.role === 'user' && (
-                  <div className="w-6 h-6 bg-lavender rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                    <User className="w-3.5 h-3.5 text-white" />
-                  </div>
-                )}
-              </div>
-            ))}
-            {chatLoading && (
-              <div className="flex gap-2">
-                <div className="w-6 h-6 bg-lavendLight rounded-full flex items-center justify-center">
+        {/* Topic chips */}
+        <div className="px-4 py-2.5 border-b border-surfaceBorder flex gap-1.5 flex-wrap flex-shrink-0 bg-surfaceAlt/30">
+          {TOPIC_CHIPS.map((chip, i) => (
+            <button key={i} onClick={() => sendMessage(chip.q)} disabled={chatLoading}
+              className="text-[11px] text-textSoft px-2.5 py-1 rounded-lg hover:bg-lavendLight hover:text-lavender transition-colors border border-surfaceBorder hover:border-lavender/40 bg-white disabled:opacity-50">
+              {chip.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {messages.map((msg, i) => (
+            <div key={i} className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+              {msg.role === 'bot' && (
+                <div className="w-7 h-7 bg-lavendLight rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                   <Bot className="w-3.5 h-3.5 text-lavender" />
                 </div>
-                <div className="bg-surfaceAlt rounded-2xl rounded-tl-sm px-4 py-3">
-                  <div className="flex gap-1">
-                    {[0, 0.15, 0.3].map((d, i) => (
-                      <div key={i} className="w-1.5 h-1.5 bg-lavender rounded-full animate-bounce"
-                        style={{ animationDelay: `${-d}s` }} />
+              )}
+              <div className={`rounded-2xl px-4 py-3 text-sm ${
+                msg.role === 'user'
+                  ? 'bg-lavender text-white rounded-tr-sm max-w-[70%]'
+                  : 'bg-surfaceAlt text-text rounded-tl-sm max-w-[92%] w-full'
+              }`}>
+                <div className="leading-relaxed space-y-1">
+                  {renderAnswer(msg.text)}
+                </div>
+                {/* Sources */}
+                {msg.sources?.length > 0 && (
+                  <div className="mt-3 pt-2 border-t border-surfaceBorder/40 flex flex-wrap gap-1 items-center">
+                    <span className="text-[10px] text-muted font-medium">Sources:</span>
+                    {[...new Map(msg.sources.map(s => [s.doc, s])).values()].slice(0, 5).map((s, j) => (
+                      <span key={j} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-lavendLight text-lavender rounded text-[10px] font-medium">
+                        📄 {s.doc}
+                      </span>
                     ))}
                   </div>
+                )}
+                {/* Metrics */}
+                {msg.metrics && (
+                  <div className="mt-1.5 flex gap-1.5 flex-wrap">
+                    {[
+                      ['Precision', msg.metrics.contextual_precision],
+                      ['Faithfulness', msg.metrics.faithfulness],
+                      ['Relevancy', msg.metrics.answer_relevancy],
+                    ].map(([k, v]) => v != null && (
+                      <span key={k} className="px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded text-[10px] font-medium">
+                        {k}: {typeof v === 'number' ? (v * 100).toFixed(0) : v}%
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {msg.role === 'user' && (
+                <div className="w-7 h-7 bg-lavender rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <User className="w-3.5 h-3.5 text-white" />
+                </div>
+              )}
+            </div>
+          ))}
+
+          {chatLoading && (
+            <div className="flex gap-2.5">
+              <div className="w-7 h-7 bg-lavendLight rounded-full flex items-center justify-center">
+                <Bot className="w-3.5 h-3.5 text-lavender" />
+              </div>
+              <div className="bg-surfaceAlt rounded-2xl rounded-tl-sm px-4 py-3">
+                <div className="flex gap-1 items-center">
+                  {[0, 0.15, 0.3].map((d, i) => (
+                    <div key={i} className="w-2 h-2 bg-lavender rounded-full animate-bounce"
+                      style={{ animationDelay: `${d}s` }} />
+                  ))}
+                  <span className="text-[10px] text-muted ml-2">Searching 104 knowledge docs…</span>
                 </div>
               </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Suggested questions (only when chat is idle) */}
-          {messages.length <= 1 && !chatLoading && (
-            <div className="px-4 pb-2 flex gap-2 flex-wrap">
-              {suggestions.map((q, i) => (
-                <button key={i} onClick={() => sendMessage(q)}
-                  className="text-[11px] bg-lavendLight text-lavender px-2.5 py-1.5 rounded-lg hover:bg-lavender hover:text-white transition-colors border border-lavender/20 flex items-center gap-1">
-                  <Sparkles className="w-2.5 h-2.5" /> {q}
-                </button>
-              ))}
             </div>
           )}
+          <div ref={messagesEndRef} />
+        </div>
 
-          {/* Input */}
-          <div className="p-3 border-t border-surfaceBorder flex gap-2">
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-              placeholder={`Ask about ${country} student visa…`}
-              className="input-field py-2 text-sm flex-1"
-            />
-            <button onClick={() => sendMessage()} disabled={chatLoading || !input.trim()}
-              className="btn-primary px-3 py-2 disabled:opacity-50">
-              <Send className="w-4 h-4" />
-            </button>
+        {/* Suggested questions (first message only) */}
+        {messages.length <= 1 && !chatLoading && (
+          <div className="px-4 pb-2 flex gap-2 flex-wrap flex-shrink-0">
+            {suggestions.map((q, i) => (
+              <button key={i} onClick={() => sendMessage(q)}
+                className="text-[11px] bg-lavendLight text-lavender px-2.5 py-1.5 rounded-lg hover:bg-lavender hover:text-white transition-colors border border-lavender/20 flex items-center gap-1">
+                <Sparkles className="w-2.5 h-2.5 flex-shrink-0" /> {q}
+              </button>
+            ))}
           </div>
+        )}
+
+        {/* Input */}
+        <div className="p-3 border-t border-surfaceBorder flex gap-2 flex-shrink-0">
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+            placeholder={
+              country === 'General'
+                ? 'Ask about any visa, housing, jobs, scholarships…'
+                : `Ask about ${country} visa, documents, housing, jobs…`
+            }
+            className="input-field py-2.5 text-sm flex-1"
+          />
+          <button onClick={() => sendMessage()} disabled={chatLoading || !input.trim()}
+            className="btn-primary px-4 py-2.5 disabled:opacity-50">
+            <Send className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>
