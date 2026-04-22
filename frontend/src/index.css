@@ -100,6 +100,27 @@
 .btn-primary:active { transform: scale(0.98); }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
+.btn-peach {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  background: var(--color-peach);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  text-decoration: none;
+  font-family: 'Inter', sans-serif;
+}
+.btn-peach:hover { opacity: 0.9; }
+.btn-peach:active { transform: scale(0.98); }
+.btn-peach:disabled { opacity: 0.6; cursor: not-allowed; }
+
 .btn-secondary {
   display: inline-flex;
   align-items: center;

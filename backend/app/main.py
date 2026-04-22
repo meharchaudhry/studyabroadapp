@@ -9,13 +9,13 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-from app.api import auth, visa, university, jobs, decision, housing, appointments, ai
+from app.api import auth, visa, university, jobs, decision, housing, appointments, ai, finance
 from app.core.config import settings
 
 app.include_router(auth.router,         prefix=f"{settings.API_V1_STR}/auth",         tags=["auth"])
@@ -26,6 +26,7 @@ app.include_router(decision.router,     prefix=f"{settings.API_V1_STR}/decision"
 app.include_router(housing.router,      prefix=f"{settings.API_V1_STR}/housing",      tags=["housing"])
 app.include_router(appointments.router, prefix=f"{settings.API_V1_STR}/appointments", tags=["appointments"])
 app.include_router(ai.router,           prefix=f"{settings.API_V1_STR}/ai",           tags=["ai"])
+app.include_router(finance.router,      prefix=f"{settings.API_V1_STR}/finance",      tags=["finance"])
 
 @app.get("/")
 def read_root():

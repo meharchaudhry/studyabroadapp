@@ -1,6 +1,42 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional
 
+
+class DegreeBase(BaseModel):
+    degree_level: str
+    specialization: str
+    cgpa: float
+    institution: Optional[str] = None
+    year_graduated: Optional[str] = None
+
+
+class DegreeCreate(DegreeBase):
+    pass
+
+
+class DegreeResponse(DegreeBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+class TestScoreBase(BaseModel):
+    test_name: str
+    score: float
+    test_date: Optional[str] = None
+
+
+class TestScoreCreate(TestScoreBase):
+    pass
+
+
+class TestScoreResponse(TestScoreBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
@@ -25,15 +61,16 @@ class UserCreate(BaseModel):
     # Goals & budget
     budget: Optional[int] = None            # USD/year (derived server-side from budget_inr)
     budget_inr: Optional[int] = None        # INR/year (user input)
-    target_countries: Optional[List[str]] = []
+    target_countries: Optional[List[str]] = None
     intake_preference: Optional[str] = None
     ranking_preference: Optional[str] = None
     scholarship_interest: Optional[bool] = None
     work_abroad_interest: Optional[bool] = None
-    budget_inr: Optional[int] = None
-    scholarship_interest: Optional[bool] = None
-    budget: Optional[int] = None
-    target_countries: Optional[List[str]] = None
+    career_goal: Optional[str] = None
+    preferred_environment: Optional[str] = None
+    study_priority: Optional[str] = None
+    learning_style: Optional[str] = None
+    living_preference: Optional[str] = None
     
     # Nested Collections
     degrees: Optional[List[DegreeCreate]] = Field(default_factory=list)
@@ -67,6 +104,7 @@ class UserUpdate(BaseModel):
     study_priority: Optional[str] = None
     learning_style: Optional[str] = None
     living_preference: Optional[str] = None
+    current_password: Optional[str] = None
     password: Optional[str] = None
     degrees: Optional[List[DegreeCreate]] = Field(default_factory=list)
     tests: Optional[List[TestScoreCreate]] = Field(default_factory=list)

@@ -476,8 +476,8 @@ export default function VisaChat() {
                   {msg.sources?.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-surfaceBorder/50 flex flex-wrap gap-1">
                       <span className="text-[10px] text-muted">Sources:</span>
-                      {[...new Map(msg.sources.map(s => [s.doc, s])).values(.map(s => (typeof s === 'string' ? s : s.doc)).filter(Boolean))].slice(0, 4).map((s, j) => (
-                        <span key={j} className="badge badge-lavender text-[10px]">{s.doc}</span>
+                      {[...new Set(msg.sources.map(s => (typeof s === 'string' ? s : s.doc)).filter(Boolean))].slice(0, 4).map((s, j) => (
+                        <span key={j} className="badge badge-lavender text-[10px]">{s}</span>
                       ))}
                     </div>
                   )}

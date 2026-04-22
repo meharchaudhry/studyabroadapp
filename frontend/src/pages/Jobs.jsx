@@ -9,12 +9,23 @@ import {
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const DEFAULT_LOCATIONS = [
-  "London", "New York", "Berlin", "Toronto", "Sydney",
-  "Singapore", "Dublin", "Amsterdam", "Paris", "Dubai",
-  "Los Angeles", "Tokyo", "Melbourne", "Edinburgh", "Munich",
-  "Vancouver", "Zurich", "Boston", "Chicago", "San Francisco",
-  "Hamburg", "Frankfurt", "Cologne", "Rotterdam", "Lyon", "Montreal", "Ottawa",
+const LOCATION_GROUPS = [
+  {
+    label: "Top Study Hubs",
+    cities: ["London", "New York", "Toronto", "Berlin", "Sydney", "Singapore", "Dublin", "Amsterdam"]
+  },
+  {
+    label: "North America",
+    cities: ["New York", "Los Angeles", "San Francisco", "Boston", "Chicago", "Toronto", "Vancouver", "Montreal", "Ottawa"]
+  },
+  {
+    label: "Europe",
+    cities: ["London", "Berlin", "Munich", "Frankfurt", "Hamburg", "Cologne", "Amsterdam", "Rotterdam", "Paris", "Lyon", "Dublin", "Zurich", "Edinburgh"]
+  },
+  {
+    label: "Asia-Pacific & Middle East",
+    cities: ["Singapore", "Tokyo", "Sydney", "Melbourne", "Dubai"]
+  },
 ];
 
 const FIELDS = [
@@ -81,12 +92,9 @@ const PORTAL_COUNTRIES = [
   { name: "France",      code: "FR", flag: "🇫🇷" },
   { name: "Sweden",      code: "SE", flag: "🇸🇪" },
   { name: "Norway",      code: "NO", flag: "🇳🇴" },
-  { name: "Denmark",     code: "DK", flag: "🇩🇰" },
-  { name: "Finland",     code: "FI", flag: "🇫🇮" },
   { name: "New Zealand", code: "NZ", flag: "🇳🇿" },
   { name: "Japan",       code: "JP", flag: "🇯🇵" },
   { name: "Switzerland", code: "CH", flag: "🇨🇭" },
-  { name: "Spain",       code: "ES", flag: "🇪🇸" },
   { name: "South Korea", code: "KR", flag: "🇰🇷" },
 ];
 
@@ -178,13 +186,13 @@ function PortalCard({ portal }) {
 function JobPortalsPanel() {
   const [activeCountry, setActiveCountry] = useState('UK');
   const [portals, setPortals] = useState({});
+  const [globalFallbackPortals, setGlobalFallbackPortals] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (portals[activeCountry]) return;
     setLoading(true);
-    fetch(`/api/v1/jobs/portals?country=${encodeURIComponent(activeCountry)}`)
-      .then(r => r.json())
+    jobsAPI.getPortals(activeCountry)
       .then(data => {
         const list = (data.results || []).flatMap(r => r.portals);
         setPortals(p => ({ ...p, [activeCountry]: list }));
@@ -193,8 +201,31 @@ function JobPortalsPanel() {
       .finally(() => setLoading(false));
   }, [activeCountry]);
 
+  useEffect(() => {
+    if (globalFallbackPortals.length) return;
+    jobsAPI.getPortals()
+      .then(data => {
+        const all = (data.results || []).flatMap(r =>
+          (r.portals || []).map(p => ({ ...p, _country: r.country }))
+        );
+        const seen = new Set();
+        const curated = all
+          .filter(p => p.student_friendly)
+          .filter(p => {
+            const key = (p.name || p.url || '').toLowerCase();
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          })
+          .slice(0, 12);
+        setGlobalFallbackPortals(curated);
+      })
+      .catch(() => setGlobalFallbackPortals([]));
+  }, [globalFallbackPortals.length]);
+
   const current = portals[activeCountry] || [];
   const activeFlag = PORTAL_COUNTRIES.find(c => c.name === activeCountry)?.flag || '';
+  const showFallback = !loading && current.length === 0 && globalFallbackPortals.length > 0;
 
   return (
     <div className="card overflow-hidden">
@@ -232,6 +263,25 @@ function JobPortalsPanel() {
           <div className="flex items-center gap-2 py-6 justify-center text-muted text-sm">
             <Loader2 className="w-4 h-4 animate-spin" /> Loading portals…
           </div>
+        ) : showFallback ? (
+          <>
+            <p className="text-xs text-muted mb-3 font-medium">
+              No curated list for {activeCountry} yet. Showing global student-friendly portals.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {globalFallbackPortals.map(portal => (
+                <PortalCard
+                  key={`fallback-${portal.id || portal.url}`}
+                  portal={{
+                    ...portal,
+                    description: portal._country
+                      ? `${portal.description} (${portal._country})`
+                      : portal.description,
+                  }}
+                />
+              ))}
+            </div>
+          </>
         ) : current.length === 0 ? (
           <p className="text-muted text-sm text-center py-6">No portals available for {activeCountry} yet.</p>
         ) : (
@@ -252,7 +302,7 @@ function JobPortalsPanel() {
 // ── Main Jobs page ────────────────────────────────────────────────────────────
 
 export default function Jobs() {
-  const [locations, setLocations] = useState(DEFAULT_LOCATIONS);
+  const [locationGroups, setLocationGroups] = useState(LOCATION_GROUPS);
   const [sources, setSources]     = useState([]);
   const [location, setLocation]   = useState('London');
   const [jobType, setJobType]     = useState('all');
@@ -269,6 +319,40 @@ export default function Jobs() {
   const [totalPages, setTotalPages] = useState(0);
   const PAGE_SIZE                 = 12;
   const [searchNonce, setSearchNonce] = useState(0);
+
+  const canonicalCity = (city) =>
+    String(city || '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/\b\w/g, ch => ch.toUpperCase());
+
+  const dedupeCities = (cities) => {
+    const seen = new Set();
+    const result = [];
+    cities.forEach((city) => {
+      const normalized = canonicalCity(city);
+      const key = normalized.toLowerCase();
+      if (!normalized || seen.has(key)) return;
+      seen.add(key);
+      result.push(normalized);
+    });
+    return result;
+  };
+
+  const mergeLocationGroups = (apiLocations = []) => {
+    const grouped = LOCATION_GROUPS.map(group => ({
+      label: group.label,
+      cities: dedupeCities(group.cities),
+    }));
+    const baseSet = new Set(grouped.flatMap(g => g.cities).map(c => c.toLowerCase()));
+    const apiUnique = dedupeCities(apiLocations).filter(c => !baseSet.has(c.toLowerCase()));
+    if (apiUnique.length) {
+      grouped.push({ label: "More Cities", cities: apiUnique.sort((a, b) => a.localeCompare(b)) });
+    }
+    return grouped;
+  };
+
+  const allLocations = locationGroups.flatMap(g => g.cities);
 
   const buildKeywords = () => {
     const parts = [keywords];
@@ -295,11 +379,12 @@ export default function Jobs() {
       .then((res) => {
         const fromApi = Array.isArray(res?.locations) ? res.locations.filter(Boolean) : [];
         const sourceList = Array.isArray(res?.sources) ? res.sources.filter(Boolean) : [];
-        if (fromApi.length) {
-          setLocations(fromApi);
-          if (!fromApi.includes(location)) {
-            setLocation(fromApi[0]);
-          }
+        const merged = mergeLocationGroups(fromApi);
+        setLocationGroups(merged);
+        const firstAvailable = merged.flatMap(g => g.cities)[0];
+        const currentExists = merged.some(g => g.cities.includes(location));
+        if (!currentExists && firstAvailable) {
+          setLocation(firstAvailable);
         }
         setSources(sourceList);
       })
@@ -358,38 +443,47 @@ export default function Jobs() {
 
       {/* Live job search */}
       <div className="card p-4 space-y-3">
-        <div className="flex items-center gap-2 mb-1">
-          <Search className="w-4 h-4 text-lavender" />
+        <div className="flex flex-wrap items-center gap-2 mb-1">
+          <Search className="w-4 h-4 text-lavender flex-shrink-0" />
           <h2 className="text-sm font-bold text-text">Search Live Listings</h2>
-          <span className="text-xs text-muted ml-1">Arbeitnow · Remotive · RemoteOK · The Muse — refreshed every 30 min</span>
+          <span className="text-xs text-muted basis-full sm:basis-auto sm:ml-1">
+            Arbeitnow · Remotive · RemoteOK · The Muse — refreshed every 30 min
+          </span>
         </div>
-        <div className="flex gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-48">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_180px_auto_auto] gap-3 items-stretch">
+          <div className="relative min-w-0">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
             <input
-              className="input-field pl-10"
+              className="input-field !pl-11 min-w-0"
               placeholder="Keywords: python, marketing, finance…"
               value={keywords}
               onChange={e => setKeywords(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && triggerSearch()}
             />
           </div>
-          <div className="relative w-44">
+          <div className="relative min-w-0">
             <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
             <select
-              className="input-field pl-10 w-full appearance-none"
+              className="input-field !pl-11 !pr-10 w-full appearance-none truncate"
               value={location}
               onChange={e => { setLocation(e.target.value); setPage(1); setSearchNonce(n => n + 1); }}
             >
-              {locations.map(l => <option key={l} value={l}>{l}</option>)}
+              {locationGroups.map(group => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.cities.map(city => (
+                    <option key={`${group.label}-${city}`} value={city}>{city}</option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </div>
-          <button onClick={triggerSearch} className="btn-primary px-6">
+          <button onClick={triggerSearch} className="btn-primary px-6 justify-center whitespace-nowrap">
             <Search className="w-4 h-4" /> Search
           </button>
           <button
             onClick={() => setShowFilters(f => !f)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-surfaceBorder text-sm text-textSoft font-medium hover:border-lavender/50 transition-colors"
+            className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl border border-surfaceBorder text-sm text-textSoft font-medium hover:border-lavender/50 transition-colors whitespace-nowrap"
           >
             Filters <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
           </button>
@@ -402,7 +496,7 @@ export default function Jobs() {
               <div className="flex gap-2 flex-wrap">
                 {FIELDS.map(f => (
                   <button key={f} onClick={() => { setField(f); setPage(1); setSearchNonce(n => n + 1); }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap leading-tight
                       ${field === f ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-textSoft border-surfaceBorder hover:border-blue-300'}`}>
                     {f}
                   </button>
@@ -415,7 +509,7 @@ export default function Jobs() {
                 <div className="flex gap-2 flex-wrap">
                   <button
                     onClick={() => { setSource('all'); setPage(1); setSearchNonce(n => n + 1); }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap leading-tight
                       ${source === 'all' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-textSoft border-surfaceBorder hover:border-blue-300'}`}
                   >
                     All Sources
@@ -424,7 +518,7 @@ export default function Jobs() {
                     <button
                       key={s}
                       onClick={() => { setSource(s); setPage(1); setSearchNonce(n => n + 1); }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap leading-tight
                         ${source === s ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-textSoft border-surfaceBorder hover:border-blue-300'}`}
                     >
                       {s}

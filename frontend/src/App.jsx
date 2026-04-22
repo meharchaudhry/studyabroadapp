@@ -15,11 +15,13 @@ import Housing from './pages/Housing';
 import BookingAppointments from './pages/BookingAppointments';
 import Decision from './pages/Decision';
 import AIAgent from './pages/AIAgent';
+import Profile from './pages/Profile';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/verify-otp" element={<OTPVerify />} />
@@ -36,10 +38,11 @@ function App() {
             <Route path="/finance" element={<Finance />} />
             <Route path="/decision" element={<Decision />} />
             <Route path="/ai-coach" element={<AIAgent />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
         </Route>
 
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );

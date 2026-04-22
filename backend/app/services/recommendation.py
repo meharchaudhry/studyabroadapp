@@ -30,8 +30,99 @@ Degree-type routing:
   • Bachelors → more permissive eligibility
 """
 
+from typing import Optional
+
 from app.models.user import User
 from app.models.university import University
+
+
+# Country-level graduate salary and job-market priors shared by APIs.
+GRAD_SALARY_USD: dict[str, int] = {
+    "United States": 85000,
+    "United Kingdom": 62000,
+    "Canada": 68000,
+    "Australia": 70000,
+    "Germany": 65000,
+    "France": 58000,
+    "Netherlands": 64000,
+    "Ireland": 66000,
+    "Singapore": 76000,
+    "Japan": 60000,
+    "Sweden": 61000,
+    "Norway": 67000,
+    "Denmark": 68000,
+    "Finland": 60000,
+    "New Zealand": 59000,
+    "UAE": 72000,
+    "Portugal": 48000,
+    "Italy": 50000,
+    "Spain": 51000,
+    "South Korea": 62000,
+    "Switzerland": 95000,
+}
+
+JOB_SCORE: dict[str, float] = {
+    "United States": 9.4,
+    "United Kingdom": 8.8,
+    "Canada": 8.9,
+    "Australia": 8.7,
+    "Germany": 8.8,
+    "France": 8.1,
+    "Netherlands": 8.5,
+    "Ireland": 8.6,
+    "Singapore": 9.1,
+    "Japan": 8.0,
+    "Sweden": 8.2,
+    "Norway": 8.3,
+    "Denmark": 8.4,
+    "Finland": 8.0,
+    "New Zealand": 7.9,
+    "UAE": 8.4,
+    "Portugal": 7.5,
+    "Italy": 7.4,
+    "Spain": 7.6,
+    "South Korea": 8.1,
+    "Switzerland": 9.2,
+}
+
+POST_STUDY_WORK: dict[str, float] = {
+    "United States": 0.80,
+    "United Kingdom": 0.92,
+    "Canada": 0.95,
+    "Australia": 0.90,
+    "Germany": 0.88,
+    "France": 0.80,
+    "Netherlands": 0.84,
+    "Ireland": 0.89,
+    "Singapore": 0.72,
+    "Japan": 0.68,
+    "Sweden": 0.78,
+    "Norway": 0.74,
+    "Denmark": 0.77,
+    "Finland": 0.76,
+    "New Zealand": 0.86,
+    "UAE": 0.65,
+    "Portugal": 0.73,
+    "Italy": 0.70,
+    "Spain": 0.71,
+    "South Korea": 0.67,
+    "Switzerland": 0.81,
+}
+
+CAREER_COUNTRIES: dict[str, list[str]] = {
+    "tech industry": ["united states", "canada", "united kingdom", "germany", "singapore", "netherlands"],
+    "finance": ["united states", "united kingdom", "singapore", "switzerland", "canada"],
+    "academia": ["united states", "united kingdom", "germany", "switzerland", "netherlands"],
+    "entrepreneurship": ["united states", "united kingdom", "singapore", "canada", "germany"],
+    "healthcare": ["united states", "united kingdom", "canada", "australia", "germany"],
+    "government": ["united kingdom", "canada", "germany", "netherlands", "france"],
+}
+
+PRIORITY_HUB_COUNTRIES: dict[str, list[str]] = {
+    "internships": ["united states", "united kingdom", "germany", "canada", "singapore", "netherlands"],
+    "startup ecosystem": ["united states", "united kingdom", "singapore", "canada", "germany"],
+    "networking": ["united states", "united kingdom", "canada", "singapore", "switzerland"],
+}
 
 
 def normalize_country(value: Optional[str]) -> str:

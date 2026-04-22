@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Resolve .env path relative to this file (backend/.env)
@@ -20,6 +21,7 @@ class Settings(BaseSettings):
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: str = "5432"
     POSTGRES_DB: str = "study_abroad_db"
+    DATABASE_URL: Optional[str] = None
 
     SECRET_KEY: str = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
     ALGORITHM: str = "HS256"
@@ -34,6 +36,8 @@ class Settings(BaseSettings):
 
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
+        if self.DATABASE_URL:
+            return self.DATABASE_URL
         return (
             f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
             f"@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"

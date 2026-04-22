@@ -11,6 +11,12 @@ export const jobsAPI = {
     const response = await apiClient.get('/jobs/filters');
     return response.data;
   },
+  getPortals: async (country) => {
+    const response = await apiClient.get('/jobs/portals', {
+      params: { country: country || undefined },
+    });
+    return response.data;
+  },
   saveJob: async (jobId) => {
     const response = await apiClient.post('/jobs/saved', { job_id: jobId });
     return response.data;

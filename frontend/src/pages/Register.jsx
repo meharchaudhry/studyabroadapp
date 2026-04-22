@@ -109,6 +109,8 @@ const BUDGET_PRESETS_INR = [
   { label: "₹40L",  value: 4000000  },
   { label: "₹60L+", value: 6000000  },
 ];
+const PASSWORD_COMPLEXITY_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const STEPS = [
   { id: 1, label: "Account",    icon: User          },
@@ -179,7 +181,10 @@ export default function Register() {
     if (step === 1) {
       if (!form.full_name.trim()) return err('Please enter your full name.');
       if (!form.email.trim()) return err('Please enter your email.');
-      if (form.password.length < 8) return err('Password must be at least 8 characters.');
+      if (!EMAIL_REGEX.test(form.email.trim())) return err('Please enter a valid email address.');
+      if (!PASSWORD_COMPLEXITY_REGEX.test(form.password)) {
+        return err('Password must be at least 8 characters and include both letters and numbers.');
+      }
     }
     if (step === 2) {
       if (!form.current_degree) return err('Please select your current degree.');
@@ -394,6 +399,7 @@ export default function Register() {
                   <label className="block text-sm font-semibold text-textSoft mb-1.5">Password</label>
                   <div className="relative">
                     <input type={showPwd ? 'text' : 'password'} required minLength={8}
+                      pattern="(?=.*[A-Za-z])(?=.*\\d).{8,}"
                       autoComplete="new-password"
                       className="input-field pr-11" placeholder="Min. 8 characters"
                       value={form.password} onChange={e => set('password', e.target.value)} />
@@ -402,6 +408,7 @@ export default function Register() {
                       {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                  <p className="mt-1 text-xs text-muted">Use at least 8 characters with at least one letter and one number.</p>
                 </div>
               </>
             )}

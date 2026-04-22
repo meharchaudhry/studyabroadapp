@@ -1,5 +1,6 @@
 import os
 import random
+import re
 import string
 from datetime import datetime, timedelta
 from typing import Any
@@ -20,6 +21,7 @@ from app.schemas.user import UserCreate, UserResponse, UserUpdate, Token
 from app.api.deps import get_current_user
 
 router = APIRouter()
+PASSWORD_COMPLEXITY_REGEX = re.compile(r"^(?=.*[A-Za-z])(?=.*\d).{8,}$")
 
 # ── OTP helpers ────────────────────────────────────────────────────────────────
 
@@ -108,6 +110,7 @@ def sync_tests(user: User, tests_payload) -> None:
 def apply_profile_payload(user: User, payload: UserUpdate) -> None:
     updates = payload.dict(exclude_unset=True)
 
+    updates.pop("current_password", None)
     password = updates.pop("password", None)
     if password:
         user.hashed_password = get_password_hash(password)
@@ -176,6 +179,11 @@ def register(user_in: UserCreate, background_tasks: BackgroundTasks, db: Session
         ranking_preference=user_in.ranking_preference,
         scholarship_interest=user_in.scholarship_interest,
         work_abroad_interest=user_in.work_abroad_interest,
+        career_goal=user_in.career_goal,
+        preferred_environment=user_in.preferred_environment,
+        study_priority=user_in.study_priority,
+        learning_style=user_in.learning_style,
+        living_preference=user_in.living_preference,
     )
 
     if existing:
@@ -293,6 +301,17 @@ def update_user_me(
     )
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
+
+    if user_in.password is not None:
+        if not user_in.current_password:
+            raise HTTPException(status_code=400, detail="Current password is required to set a new password.")
+        if not verify_password(user_in.current_password, user.hashed_password):
+            raise HTTPException(status_code=400, detail="Current password is incorrect.")
+        if not PASSWORD_COMPLEXITY_REGEX.match(user_in.password):
+            raise HTTPException(
+                status_code=400,
+                detail="New password must be at least 8 characters and include both letters and numbers.",
+            )
 
     apply_profile_payload(user, user_in)
     db.add(user)
