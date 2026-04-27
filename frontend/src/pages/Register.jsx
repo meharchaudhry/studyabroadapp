@@ -246,7 +246,7 @@ export default function Register() {
         scholarship_interest: form.scholarship_interest,
       });
       navigate('/verify-otp', {
-        state: { email: form.email, devOtp: res.dev_otp || null },
+        state: { email: form.email },
       });
     } catch (e) {
       setError(e.response?.data?.detail || 'Registration failed. Please try again.');
