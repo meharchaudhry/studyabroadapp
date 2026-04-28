@@ -42,13 +42,13 @@ udaan consolidates this entire journey into one intelligent platform. A student 
 
 ### Who It Is For
 
-The platform targets Indian undergraduate and postgraduate students planning to study in 21 countries: the United States, United Kingdom, Canada, Australia, Germany, France, Netherlands, Ireland, Singapore, Japan, Sweden, Norway, Denmark, Finland, New Zealand, UAE, Portugal, Italy, Spain, South Korea, and Switzerland.
+The platform targets Indian undergraduate and postgraduate students planning to study in 20+ countries: the United States, United Kingdom, Canada, Australia, Germany, France, Netherlands, Ireland, Singapore, Japan, Sweden, Norway, Denmark, Finland, New Zealand, UAE, Portugal, Italy, Spain, South Korea, Switzerland, Belgium, Poland, and more.
 
 ### The Generative AI Angle
 
 The project is built around several distinct generative AI and information retrieval components:
 
-- A **three-stage RAG pipeline** (Hybrid Retrieval → Gemini Re-ranking → Gemini LLM) powering the Visa Assistant chatbot across 15 countries.
+- A **four-stage RAG pipeline** (Guard Rails → Hybrid Retrieval → Gemini Re-ranking → Gemini LLM) powering the Visa Assistant chatbot across 20+ countries.
 - A **thirteen-factor rule-based recommendation engine** for university matching, designed to produce explainable, personalized scores.
 - A **five-agent sequential decision chain** using LangChain and Gemini to synthesize profile fit, visa difficulty, financial ROI, and job market data into a final recommendation.
 - **Gemini-powered generative tools** for SOP drafting, document checklists, application timelines, and profile gap analysis.
@@ -222,7 +222,7 @@ This section is the core of the report. The system contains four distinct AI sub
 
 ### 6.1 RAG Pipeline — Visa & Study Abroad Assistant
 
-The Visa Assistant is the most technically sophisticated component. It uses a three-stage Retrieval-Augmented Generation pipeline to answer natural-language questions about student visas, documents, finances, housing, and post-study work across 15 countries.
+The Visa Assistant is the most technically sophisticated component. It uses a four-stage Retrieval-Augmented Generation pipeline to answer natural-language questions about student visas, documents, finances, housing, and post-study work across 20+ countries.
 
 #### Why RAG?
 
@@ -231,11 +231,22 @@ A plain LLM approach was considered and rejected for two reasons. First, visa re
 #### Knowledge Base
 
 The corpus consists of **104 Markdown documents** covering:
-- Country-specific visa guides (15 countries: UK, USA, Canada, Australia, Germany, France, Netherlands, Ireland, Singapore, Japan, and more)
+- Country-specific visa guides (20+ countries: UK, USA, Canada, Australia, Germany, France, Netherlands, Ireland, Singapore, Japan, Sweden, Norway, Denmark, Finland, New Zealand, UAE, Portugal, Italy, Spain, South Korea, and more)
 - Specialist guides: Graduate Route (UK), OPT/CPT (USA), GIC (Canada), Blocked Account (Germany), Subclass 485 (Australia)
 - Cross-cutting guides: bank statements, English tests (IELTS vs TOEFL), health insurance, post-study work visas, SOP writing, visa rejection reasons, document attestation
 
-Documents are chunked and ingested into a **ChromaDB** vector database (collection: `visa_policies`) using **Gemini Embedding model** (`models/gemini-embedding-001`, 1,536 dimensions). The ingestion script processes documents in batches of 50 to respect API rate limits.
+Documents are split into **3,720 chunks** (chunk size: 600 characters, overlap: 200 characters) and ingested into a **ChromaDB** vector database (collection: `visa_policies`) using **Gemini Embedding model** (`models/gemini-embedding-001`). The ingestion script processes embeddings in batches of 50 to respect API rate limits.
+
+#### Stage 0 — Guard Rails
+
+Before any retrieval begins, all queries pass through an input validation layer:
+
+- **HTML cleanse:** HTML tags and invisible control characters stripped; queries truncated to 500 characters.
+- **Injection detection:** A regex pattern blocks queries containing prompt-injection phrases ("ignore previous instructions", "DAN", "jailbreak", "bypass", "act as").
+- **Off-topic filter (`is_visa_related()`):** Two-tier check — a primary keyword regex (60+ study-abroad terms) and a secondary loose country-prefix regex (`_COUNTRY_NAMES_LOOSE`) that handles typos like "germny" or "nethrlnds".
+- **Follow-up bypass:** If a session has existing conversation history and the query is 8 words or fewer, the off-topic check is skipped — short follow-ups like "what about the fee?" are assumed to be in-context.
+
+Empty queries return a friendly greeting; blocked queries return the standard refusal without touching the retrieval pipeline.
 
 #### Stage 1 — Hybrid Retrieval (Four Legs + RRF)
 
@@ -275,16 +286,18 @@ This approach has a practical advantage: Gemini's re-ranking prompt can include 
 
 #### Stage 3 — LLM Answer Generation with Conversation Memory
 
-The top-8 re-ranked chunks are formatted as context and passed to `gemini-2.5-flash` with a carefully engineered system prompt. The prompt enforces eight rules:
+The top-8 re-ranked chunks are formatted as context and passed to `gemini-2.5-flash` with a carefully engineered system prompt. The prompt enforces ten explicit rules:
 
 1. Answer only for the country asked — never mix UK information into Germany responses.
 2. Match response length to question complexity.
-3. Always extract and use the retrieved context — never say "I don't have information" when the context contains relevant passages.
-4. Do not cite filenames inline — sources are shown separately in the UI.
-5. Include exact URLs from context for jobs, housing, and scholarship questions.
-6. For genuinely out-of-scope questions, respond with the standard refusal phrase.
-7. Use bold, bullet points, numbered steps, and markdown tables for formatting.
-8. State facts as facts — avoid "might", "could", "possibly" unless the source document itself is uncertain.
+3. **Forbidden phrases:** the model is explicitly prohibited from saying "I don't have information about this", "this topic is not covered", or "the provided context does not contain" — these phrases are banned if any relevant context exists at all.
+4. Partial knowledge rule: answer what is known from context, then redirect to the official government URL for the rest.
+5. Never role-play as a visa officer or embassy official.
+6. Do not cite filenames inline — sources are shown separately in the UI.
+7. Include exact URLs from context for jobs, housing, and scholarship questions.
+8. Out-of-scope refusal is a last resort — only when every single retrieved passage is completely irrelevant.
+9. Use bold, bullet points, numbered steps, and markdown tables for formatting.
+10. Deterministic: same question must produce the same answer (temperature is set low).
 
 **Conversation Memory:** Each user session gets a `session_id`. A server-side dictionary maps session IDs to the last six question-answer pairs. These are injected into the LLM context as prior conversation turns, enabling follow-up questions. Memory is automatically pruned to the most recent six exchanges to stay within context limits and can be explicitly cleared to start a fresh topic.
 
@@ -666,7 +679,7 @@ The guard-rail table presents the four adversarial queries, their expected behav
 All LLM and embedding calls go through Google Gemini:
 - **`gemini-2.5-flash`:** Primary model for RAG answer generation, re-ranking, decision chain synthesis, and all Study Coach generative tasks. Temperature 0.0–0.3 for deterministic, factual outputs.
 - **`gemini-2.5-flash-lite`:** Automatic fallback when the primary model exhausts its quota (HTTP 429). Triggered once per call, with retries on the lite model before failing.
-- **`gemini-embedding-001`:** Generates 1,536-dimensional dense embeddings for both document ingestion into ChromaDB and query-time retrieval.
+- **`gemini-embedding-001`:** Generates dense embeddings for both document ingestion into ChromaDB (3,720 chunks from 104 documents) and query-time retrieval.
 
 The retry-with-backoff logic handles two failure modes: transient overload (503, same model, exponential wait) and quota exhaustion (429, model downgrade, retry). This makes the system robust to short-term API instability.
 
@@ -676,7 +689,7 @@ An embedded vector database that stores the 104 visa and study documents as dens
 
 ### LangChain
 
-Used for the five-agent decision chain via `langchain-chroma` (ChromaDB integration), `langchain-google-genai` (ChatGoogleGenerativeAI for synthesis), and `langchain-core` (prompts, output parsers). LangChain provides the abstraction layer that makes the sequential agent chain readable and maintainable.
+Used for ChromaDB integration (`langchain-chroma`) and document handling (`langchain-core`). The five-agent decision chain itself is implemented as pure Python functions using the `google.genai` SDK directly — this was a deliberate choice to avoid the overhead of LangChain agent abstractions for a sequential, deterministic pipeline where full control over each step was required.
 
 ### Rank-BM25
 
@@ -686,7 +699,7 @@ The `rank_bm25` Python library provides the BM25Okapi implementation for the key
 
 The knowledge base was built from the following sources:
 - **Visa documents (104 Markdown files):** Written from official embassy and immigration authority sources (UKVI, USCIS, IRCC, DIBP, BAMF) and structured to cover documents, financial requirements, timelines, post-study options, and India-specific notes.
-- **University database (PostgreSQL):** Populated from a curated CSV (`universities.csv`) with 600+ universities across 21 countries, including QS ranking, subject areas, financial data, admission requirements, and intake months.
+- **University database (PostgreSQL):** Populated from a curated CSV (`universities.csv`) with **2,942 universities** across 20+ countries, including QS ranking, subject areas, financial data, admission requirements, and intake months.
 - **Visa metadata (`visa_data.json`):** Structured JSON covering 15 countries with checklist items, visa fees, processing times, and official links.
 - **Job portals (`job_portals.json`):** Country-to-portal mappings with student-friendliness scores.
 - **Housing data (`housing_data.json`):** Living cost estimates and accommodation types by country.
