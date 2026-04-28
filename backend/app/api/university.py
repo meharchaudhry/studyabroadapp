@@ -9,7 +9,14 @@ from pydantic import BaseModel
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.models.university import University
-from app.services.recommendation import calculate_score, explain_match, GRAD_SALARY_USD, JOB_SCORE
+from app.services.recommendation import (
+    calculate_score,
+    explain_match,
+    explain_match_enhanced,
+    enhanced_score,
+    GRAD_SALARY_USD,
+    JOB_SCORE,
+)
 
 router = APIRouter()
 
@@ -60,6 +67,8 @@ class UniDetail(BaseModel):
     match_score: Optional[float] = None
     grad_salary_usd: Optional[int] = None
     job_market_score: Optional[float] = None
+    top_reason: Optional[str] = None        # best single-sentence match reason
+    match_label: Optional[str] = None       # e.g. "Excellent match"
 
     class Config:
         from_attributes = True
@@ -76,7 +85,6 @@ class RecommendationResponse(BaseModel):
 
 class ExplainResponse(BaseModel):
     match_score: float
-    summary: str
     reasons: dict
     financial: dict
     summary: str
@@ -130,6 +138,8 @@ def _enrich(uni: University) -> UniDetail:
         scholarships=getattr(uni, "scholarships", None),
         course_duration=getattr(uni, "course_duration", None),
         intake_months=getattr(uni, "intake_months", None),
+        grad_salary_usd=GRAD_SALARY_USD.get(uni.country),
+        job_market_score=JOB_SCORE.get(uni.country),
     )
 
 
@@ -286,43 +296,79 @@ def list_universities(
     return {"total": total, "universities": [_enrich(u) for u in unis]}
 
 
+def _pick_top_reason(reasons: dict, score: float) -> tuple[str, str]:
+    """Return (top_reason_sentence, match_label) from a reasons dict."""
+    if score >= 80:   label = "Excellent match"
+    elif score >= 65: label = "Strong match"
+    elif score >= 45: label = "Good match"
+    elif score >= 25: label = "Possible match"
+    else:             label = "Stretch target"
+
+    # Priority order: field > country > budget > cgpa > career > ielts
+    priority = ["field", "country", "budget", "cgpa", "career", "ielts", "ranking", "work_visa", "tier"]
+    for key in priority:
+        v = reasons.get(key, "")
+        if v and len(v) > 10:
+            # Trim very long reasons to 120 chars
+            return (v[:120] + "…" if len(v) > 120 else v), label
+    return label, label
+
+
 @router.get("/recommendations", response_model=RecommendationResponse)
 def recommend_universities(
     limit: int = Query(15, le=50),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Any:
+    """
+    Fast rule-based recommendations with personalised reason snippets.
+    Scores 13 factors (subject, budget, CGPA, ranking, country, language,
+    career outcome, study environment, safety tier + bonuses).
+    """
+    from app.services.recommendation import _score_with_reasons
     unis = db.query(University).all()
 
-    results = []
+    scored = []
     for uni in unis:
         try:
-            raw_score = calculate_score(current_user, uni)
+            raw_score, reasons = _score_with_reasons(current_user, uni)
         except Exception:
-            raw_score = 5.0   # neutral fallback so one bad row never breaks the list
+            raw_score, reasons = 5.0, {}
+        scored.append((raw_score, uni.ranking or 9999, uni, reasons))
+
+    scored.sort(key=lambda x: (-x[0], x[1]))
+    top_scored = scored[:limit * 2]
+
+    results = []
+    for raw_score, rank_order, uni, reasons in top_scored:
         d = _enrich(uni)
         d.match_score = round(raw_score / 100.0, 3)
-        results.append((raw_score, uni.ranking or 9999, d))
+        d.top_reason, d.match_label = _pick_top_reason(reasons, raw_score)
+        results.append((raw_score, rank_order, d))
 
-    results.sort(key=lambda x: (-x[0], x[1]))
-
-    # Return top results — always fall back to ranking-sorted list when too few
-    # qualify above the quality threshold so the dashboard is never empty.
     good = [d for s, _, d in results if s > 8.0]
     top  = good[:limit] if len(good) >= limit else [d for _, _, d in results[:limit]]
 
     return {"recommendations": top}
 
 
-@router.get("/{uni_id}/explain", response_model=ExplainResponse)
+@router.get("/{uni_id}/explain")
 def explain_university_match(
     uni_id: int,
+    llm: bool = Query(True, description="Include Gemini AI analysis"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    Enhanced match explanation with Gemini semantic analysis.
+    Returns rule-based reasons + AI insight + financial ROI.
+    """
     uni = db.query(University).filter(University.id == uni_id).first()
     if not uni:
         raise HTTPException(status_code=404, detail="University not found")
+
+    if llm:
+        return explain_match_enhanced(current_user, uni)
     return explain_match(current_user, uni)
 
 

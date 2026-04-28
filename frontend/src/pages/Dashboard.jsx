@@ -45,7 +45,7 @@ export default function Dashboard() {
       }
     } catch { /* fall through to API */ }
 
-    universitiesAPI.getRecommendations(3)
+    universitiesAPI.getRecommendations(6)
       .then(r => setTopUnis((r.recommendations || []).slice(0, 3)))
       .catch(() => setUniError(true));
   }, []);
@@ -99,7 +99,7 @@ export default function Dashboard() {
       {/* ── Stats ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { icon: GraduationCap, label: 'Universities',  value: '600+', sub: 'across 21 countries',    color: 'bg-lavendLight text-lavender'  },
+          { icon: GraduationCap, label: 'Universities',  value: '2,900+', sub: 'across 21 countries',    color: 'bg-lavendLight text-lavender'  },
           { icon: Globe,          label: 'Countries',     value: '21',   sub: 'with visa guidance',     color: 'bg-blue-50 text-blue-600'      },
           { icon: Briefcase,      label: 'Job Listings',  value: 'Live', sub: 'updated daily',          color: 'bg-mintLight text-green-600'   },
           { icon: TrendingUp,     label: 'ROI Analysis',  value: 'Free', sub: 'salary + cost model',    color: 'bg-amberLight text-amber-600'  },
@@ -142,18 +142,21 @@ export default function Dashboard() {
                 const pct  = uni.match_score ? Math.round(uni.match_score * 100) : null;
                 const rankColors = ['bg-amber-400', 'bg-slate-400', 'bg-orange-400'];
                 const linkTo = fromShortlist ? '/decision' : `/universities/${uni.id}`;
+                const scoreColor = pct >= 75 ? 'bg-teal-500' : pct >= 50 ? 'bg-lavender' : 'bg-amber-400';
+                const reason = uni.top_reason || null;
                 return (
                   <Link key={uni.name || uni.id} to={linkTo} className="group">
-                    <div className="card-hover card overflow-hidden">
-                      <div className="relative h-28 overflow-hidden"
+                    <div className="card-hover card overflow-hidden flex flex-col">
+                      <div className="relative h-24 flex-shrink-0 overflow-hidden"
                         style={{ background: 'linear-gradient(135deg, #1E40AF 0%, #2563EB 60%, #3B82F6 100%)' }}>
-                        <div className="absolute top-2 left-2">
+                        <div className="absolute top-2 left-2 flex gap-1">
                           <span className={`badge ${rankColors[i]} text-white text-[9px]`}>#{i + 1}</span>
+                          {uni.ranking && <span className="badge bg-white/80 text-lavender text-[9px]">QS {uni.ranking}</span>}
                         </div>
                         {pct && (
                           <div className="absolute top-2 right-2">
-                            <div className="w-8 h-8 rounded-full text-[10px] font-bold flex items-center justify-center bg-white/20 backdrop-blur-sm text-white border-2 border-white/40">
-                              {pct}%
+                            <div className={`w-9 h-9 rounded-full text-[10px] font-black flex flex-col items-center justify-center ${scoreColor} text-white border-2 border-white shadow`}>
+                              <span className="leading-none">{pct}%</span>
                             </div>
                           </div>
                         )}
@@ -161,16 +164,11 @@ export default function Dashboard() {
                           <span className="text-white/90 text-[10px]">{flag} {uni.country}</span>
                         </div>
                       </div>
-                      <div className="p-3">
-                        <p className="font-semibold text-text text-xs line-clamp-2 group-hover:text-lavender transition-colors">{uni.name}</p>
-                        <div className="flex gap-2 mt-1">
-                          {uni.tuition && <span className="text-[10px] text-muted">${(uni.tuition / 1000).toFixed(0)}k/yr</span>}
-                          {uni.grad_salary_usd && (
-                            <span className="text-[10px] text-green-600 font-medium">
-                              Grad ${(uni.grad_salary_usd / 1000).toFixed(0)}k
-                            </span>
-                          )}
-                        </div>
+                      <div className="p-3 flex flex-col flex-1">
+                        <p className="font-semibold text-text text-xs line-clamp-1 group-hover:text-lavender transition-colors mb-1">{uni.name}</p>
+                        {reason && (
+                          <p className="text-[10px] text-textSoft line-clamp-2 leading-relaxed">{reason}</p>
+                        )}
                       </div>
                     </div>
                   </Link>

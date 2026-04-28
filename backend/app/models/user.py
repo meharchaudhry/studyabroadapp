@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, ARRAY, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, Float, ARRAY, DateTime, Text
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -45,6 +45,10 @@ class User(Base):
     study_priority = Column(String, nullable=True)
     learning_style = Column(String, nullable=True)
     living_preference = Column(String, nullable=True)
+
+    # ── Resume / portfolio ──────────────────────────────────────────────────────
+    resume_text = Column(Text, nullable=True)   # Full extracted text of uploaded résumé
+    resume_filename = Column(String, nullable=True)  # Original filename for display
 
     # OTP fields
     otp = Column(String, nullable=True)

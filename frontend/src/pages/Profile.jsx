@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { authAPI } from '../api/auth';
-import { 
+import api from '../api/client';
+import {
   User, GraduationCap, Save, Loader2, CheckCircle2, ShieldCheck, Key,
-  Target, Sparkles, History, ClipboardList
+  Target, Sparkles, History, ClipboardList, Upload, FileText, X, Zap
 } from 'lucide-react';
 
 const APP_COUNTRIES = [
@@ -60,6 +61,187 @@ const LIVING_OPTIONS = [
 ];
 const PASSWORD_COMPLEXITY_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
 
+// ── CV Upload + AI Extraction Component ───────────────────────────────────────
+function CVUploadBanner({ onExtracted }) {
+  const [file, setFile]         = useState(null);
+  const [loading, setLoading]   = useState(false);
+  const [result, setResult]     = useState(null);
+  const [error, setError]       = useState('');
+  const [applied, setApplied]   = useState(false);
+  const inputRef                = useRef(null);
+
+  const handleFile = (f) => {
+    if (!f) return;
+    setFile(f);
+    setResult(null);
+    setError('');
+    setApplied(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const f = e.dataTransfer.files?.[0];
+    if (f) handleFile(f);
+  };
+
+  const extract = async () => {
+    if (!file) return;
+    setLoading(true);
+    setError('');
+    setResult(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const resp = await api.post('/cv/extract', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setResult(resp.data.extracted);
+    } catch (e) {
+      setError(e?.response?.data?.detail || 'Extraction failed. Try a text-based PDF.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const apply = () => {
+    if (!result) return;
+    onExtracted(result);
+    setApplied(true);
+  };
+
+  const FIELD_LABELS = {
+    field_of_study: 'Field of Study',
+    preferred_degree: 'Target Degree',
+    cgpa: 'CGPA',
+    english_test: 'English Test',
+    english_score: 'English Score',
+    toefl_score: 'TOEFL Score',
+    gre_score: 'GRE Score',
+    gmat_score: 'GMAT Score',
+    work_experience_years: 'Work Experience (yrs)',
+    career_goal: 'Career Goal',
+    target_countries: 'Target Countries',
+    education_summary: 'Education',
+    experience_summary: 'Experience',
+    projects_summary: 'Projects',
+  };
+
+  const displayFields = result
+    ? Object.entries(result).filter(([k, v]) =>
+        FIELD_LABELS[k] && v !== null && v !== undefined && v !== '' &&
+        !(Array.isArray(v) && v.length === 0)
+      )
+    : [];
+
+  return (
+    <div className="mb-8 rounded-2xl border-2 border-dashed border-lavender/30 bg-lavendLight/20 overflow-hidden">
+      {/* Header */}
+      <div className="px-5 py-4 flex items-center gap-3 border-b border-lavender/10">
+        <div className="w-8 h-8 bg-lavender/10 rounded-xl flex items-center justify-center">
+          <Zap className="w-4 h-4 text-lavender" />
+        </div>
+        <div>
+          <p className="text-sm font-bold text-text">AI CV Autofill</p>
+          <p className="text-[11px] text-muted">Upload your resume — Gemini extracts and fills your profile automatically</p>
+        </div>
+      </div>
+
+      <div className="p-5 space-y-4">
+        {/* Drop zone */}
+        {!result && (
+          <div
+            onDrop={handleDrop}
+            onDragOver={e => e.preventDefault()}
+            onClick={() => inputRef.current?.click()}
+            className="border border-dashed border-lavender/40 rounded-xl p-6 text-center cursor-pointer hover:bg-lavendLight/30 transition-colors"
+          >
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".pdf,.docx,.doc,.txt"
+              className="hidden"
+              onChange={e => handleFile(e.target.files?.[0])}
+            />
+            {file ? (
+              <div className="flex items-center justify-center gap-3">
+                <FileText className="w-5 h-5 text-lavender" />
+                <span className="text-sm font-medium text-text">{file.name}</span>
+                <button
+                  onClick={e => { e.stopPropagation(); setFile(null); setResult(null); }}
+                  className="text-muted hover:text-rose transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div>
+                <Upload className="w-6 h-6 text-lavender/60 mx-auto mb-2" />
+                <p className="text-sm text-muted">Drop your CV here or <span className="text-lavender font-semibold">browse</span></p>
+                <p className="text-[11px] text-muted mt-1">PDF, DOCX, or TXT · max 5 MB</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="text-sm text-rose bg-rose/10 rounded-xl px-4 py-3 border border-rose/20">{error}</div>
+        )}
+
+        {/* Extract button */}
+        {file && !result && (
+          <button
+            onClick={extract}
+            disabled={loading}
+            className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
+          >
+            {loading
+              ? <><Loader2 className="w-4 h-4 animate-spin"/> Extracting with Gemini AI…</>
+              : <><Sparkles className="w-4 h-4"/> Extract Profile from CV</>}
+          </button>
+        )}
+
+        {/* Extracted fields preview */}
+        {result && (
+          <div className="space-y-3">
+            <p className="text-xs font-bold text-muted uppercase tracking-wide">
+              Extracted {displayFields.length} fields — review before applying
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+              {displayFields.map(([key, val]) => (
+                <div key={key} className="bg-surface rounded-xl px-3 py-2 border border-surfaceBorder">
+                  <p className="text-[10px] font-bold text-muted uppercase">{FIELD_LABELS[key]}</p>
+                  <p className="text-sm text-text font-medium truncate">
+                    {Array.isArray(val) ? val.join(', ') : String(val)}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {applied ? (
+              <div className="flex items-center gap-2 text-sm text-teal-600 font-semibold">
+                <CheckCircle2 className="w-4 h-4" /> Applied to profile! Review and save below.
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <button onClick={apply} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                  <CheckCircle2 className="w-4 h-4"/> Apply to Profile
+                </button>
+                <button
+                  onClick={() => { setFile(null); setResult(null); }}
+                  className="btn-ghost px-4"
+                >
+                  Discard
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SaveChangesButton({ variant = 'primary', saving, onClick, type = 'button', label = 'Save Changes' }) {
   const variantClass = variant === 'peach' ? 'btn-peach' : 'btn-primary';
   return (
@@ -85,6 +267,7 @@ export default function Profile() {
     is_verified: false,
     email: '',
     full_name: '',
+    resume_filename: null,
     current_degree: '',
     home_university: '',
     field_of_study: '',
@@ -120,6 +303,30 @@ export default function Profile() {
     confirmPassword: ''
   });
   const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+
+  // Apply CV-extracted fields to the form
+  const applyExtracted = (extracted) => {
+    setForm(prev => {
+      const next = { ...prev };
+      if (extracted.field_of_study)       next.field_of_study       = extracted.field_of_study;
+      if (extracted.preferred_degree)     next.preferred_degree     = extracted.preferred_degree;
+      if (extracted.cgpa)                 next.cgpa                 = String(extracted.cgpa);
+      if (extracted.english_test)         next.english_test         = extracted.english_test;
+      if (extracted.english_score)        next.english_score        = String(extracted.english_score);
+      if (extracted.toefl_score)          next.toefl_score          = String(extracted.toefl_score);
+      if (extracted.gre_score)            next.gre_score            = String(extracted.gre_score);
+      if (extracted.gmat_score)           next.gmat_score           = String(extracted.gmat_score);
+      if (extracted.work_experience_years) next.work_experience_years = String(extracted.work_experience_years);
+      if (extracted.career_goal)          next.career_goal          = extracted.career_goal;
+      if (extracted.target_countries?.length) next.target_countries = extracted.target_countries;
+      if (extracted.intake_preference)    next.intake_preference    = extracted.intake_preference;
+      if (extracted.budget_inr)           next.budget_inr           = String(extracted.budget_inr);
+      if (extracted.name && !prev.full_name) next.full_name         = extracted.name;
+      return next;
+    });
+    setSuccess('CV data applied! Review the fields below and click Save Profile.');
+    setTimeout(() => setSuccess(''), 5000);
+  };
 
   const buildProfilePayload = () => {
     const budgetInr = form.budget_inr ? parseInt(form.budget_inr, 10) : null;
@@ -167,6 +374,7 @@ export default function Profile() {
         is_verified: Boolean(data.is_verified),
         email: data.email || '',
         full_name: data.full_name || '',
+        resume_filename: data.resume_filename || null,
         current_degree: data.current_degree || '',
         home_university: data.home_university || '',
         field_of_study: data.field_of_study || '',
@@ -334,6 +542,15 @@ export default function Profile() {
 
             {activeTab === 'personal' && (
               <form onSubmit={handleUpdateProfile} className="space-y-10 flex-1">
+                {/* ── CV Autofill ── */}
+                <CVUploadBanner onExtracted={applyExtracted} />
+                {form.resume_filename && (
+                  <div className="flex items-center gap-2 text-xs text-teal-700 bg-mintLight border border-mint/20 rounded-xl px-4 py-2.5 -mt-4">
+                    <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>Resume saved for AI recommendations: <strong>{form.resume_filename}</strong></span>
+                  </div>
+                )}
+
                 {/* ── Section: Profile Basics ── */}
                 <section className="space-y-6">
                   <div className="flex items-center gap-2">

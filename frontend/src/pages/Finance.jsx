@@ -13,6 +13,7 @@ import {
 import { universitiesAPI } from '../api/universities';
 import { financeAPI } from '../api/finance';
 import Markdown from 'react-markdown';
+import { saveAs } from 'file-saver';
 
 ChartJS.register(
   ArcElement, Tooltip, Legend,

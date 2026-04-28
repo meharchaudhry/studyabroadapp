@@ -151,6 +151,9 @@ class UserResponse(BaseModel):
     learning_style: Optional[str] = None
     living_preference: Optional[str] = None
     
+    # Resume
+    resume_filename: Optional[str] = None   # filename of uploaded CV (never send full text)
+
     # Nested Collections
     degrees: List[DegreeResponse] = Field(default_factory=list)
     tests: List[TestScoreResponse] = Field(default_factory=list)

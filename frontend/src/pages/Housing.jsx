@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { housingAPI } from '../api/visa';
+import { housingAPI } from '../api/housing';
 import {
   Home, MapPin, ExternalLink, Loader2, RefreshCw,
   IndianRupee, AlertCircle, GraduationCap, Globe,

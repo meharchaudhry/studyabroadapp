@@ -207,7 +207,7 @@ export default function UniversityDetail() {
                     { key: 'cgpa',       label: 'CGPA Eligibility',     good: ['Strong fit','comfortably meets','competitive'], bad: ['below the minimum','significant gap','stretch'] },
                     { key: 'budget',     label: 'Budget Fit',           good: ['Affordable','Fits budget','well under'], bad: ['double your budget','significantly exceeds'] },
                     { key: 'ranking',    label: 'Ranking Preference',   good: ['fits your','perfectly','Highly ranked'], bad: ['does not meet','outside'] },
-                    { key: 'country',    label: 'Country Preference',   good: ['in your target list','geographic alignment'], bad: ['not in your target'] },
+                    { key: 'country',    label: 'Country Preference',   good: ['great geographic alignment', 'target list —'], bad: ['not in your target'] },
                     { key: 'ielts',      label: 'English Eligibility',  good: ['comfortably meets','meets the'], bad: ['below the','below the minimum'] },
                     { key: 'bonus',      label: 'Profile Bonus',        good: ['excellent','Strong profile','World-class'], bad: [] },
                     { key: 'work_visa',  label: 'Post-Study Work Visa', good: ['excellent post','good post'], bad: [] },
@@ -223,12 +223,41 @@ export default function UniversityDetail() {
                   })}
                 </div>
 
+                {/* AI Semantic Analysis */}
+                {explain.ai_analysis?.insight && (
+                  <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="white">
+                          <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+                        </svg>
+                      </div>
+                      <span className="text-xs font-bold text-blue-800 uppercase tracking-wide">Gemini AI Analysis</span>
+                      {explain.ai_analysis.fit_label && (
+                        <span className="ml-auto text-[10px] font-bold bg-blue-600 text-white px-2 py-0.5 rounded-full">
+                          {explain.ai_analysis.fit_label}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-blue-900 leading-relaxed">{explain.ai_analysis.insight}</p>
+                    {explain.llm_score != null && explain.rule_score != null && (
+                      <div className="flex gap-3 text-[11px] text-blue-700 pt-1">
+                        <span>AI score: <strong>{Math.round(explain.llm_score * 100)}%</strong></span>
+                        <span>·</span>
+                        <span>Rule score: <strong>{Math.round(explain.rule_score * 100)}%</strong></span>
+                        <span>·</span>
+                        <span>Blended: <strong>{Math.round(explain.match_score * 100)}%</strong></span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Financial snapshot */}
                 {explain.financial && (
                   <div className="bg-surfaceAlt rounded-xl p-4 space-y-2 text-xs">
                     <p className="font-bold text-text text-sm mb-2">Financial Snapshot</p>
                     {[
-                      { label: 'Est. grad salary', val: fmtUSD(explain.financial.estimated_grad_salary_usd) + '/yr' },
+                      { label: 'Est. grad salary', val: fmtSalaryUSD(explain.financial.estimated_grad_salary_usd) },
                       { label: '5-yr ROI', val: explain.financial.roi_5yr_pct != null ? `+${explain.financial.roi_5yr_pct}%` : '—' },
                       { label: 'Break-even', val: explain.financial.break_even_years != null ? `${explain.financial.break_even_years} yrs` : '—' },
                       { label: 'Job market', val: `${explain.financial.job_market_score}/10` },
@@ -312,9 +341,15 @@ export default function UniversityDetail() {
 
           {/* CTA */}
           <div className="space-y-3">
-            <a href={uni.website} target="_blank" rel="noreferrer" className="btn-primary w-full shadow-cardHov flex items-center justify-center gap-2">
-              Visit Official Website <ExternalLink className="w-4 h-4" />
-            </a>
+            {uni.website ? (
+              <a href={uni.website} target="_blank" rel="noreferrer" className="btn-primary w-full shadow-cardHov flex items-center justify-center gap-2">
+                Visit Official Website <ExternalLink className="w-4 h-4" />
+              </a>
+            ) : (
+              <button disabled className="btn-primary w-full opacity-50 cursor-not-allowed flex items-center justify-center gap-2">
+                Website Not Available
+              </button>
+            )}
             <button onClick={loadExplanation} className="btn-secondary w-full">
               {explain ? 'View Match Details' : 'Why this for me?'}
             </button>

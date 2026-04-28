@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { visaAPI } from '../api/visa';
 import {
   FileCheck, Send, Bot, User, Sparkles,
-  RefreshCw, Globe, ChevronDown,
+  RefreshCw, Globe, ChevronDown, ChevronRight,
+  Database, Cpu, Search, Layers, BookOpen, Info,
 } from 'lucide-react';
 
 const COUNTRIES = [
@@ -67,6 +68,14 @@ const TOPIC_CHIPS = [
 ];
 
 const QUICK_COUNTRIES = ['General','UK','USA','Canada','Australia','Germany','France','Netherlands'];
+
+// RAG pipeline stages shown during loading
+const RAG_STAGES = [
+  { icon: Search,   label: 'Searching 104 knowledge documents…',      color: 'text-blue-500'   },
+  { icon: Database, label: 'Hybrid BM25 + vector retrieval…',          color: 'text-indigo-500' },
+  { icon: Layers,   label: 'Cross-encoder re-ranking top results…',    color: 'text-purple-500' },
+  { icon: Cpu,      label: 'Gemini 2.5 Flash generating answer…',      color: 'text-teal-500'   },
+];
 
 function makeSessionId(c) {
   return `visa-${c}-${Date.now()}`;
@@ -147,6 +156,77 @@ function renderAnswer(text) {
   return elements;
 }
 
+// RAG Pipeline info badge (collapsible)
+function RagPipelineBanner() {
+  const [open, setOpen] = useState(false);
+  const steps = [
+    { icon: Search,   label: 'HyDE',             desc: 'Hypothetical Document Embedding for better semantic match' },
+    { icon: Database, label: 'Hybrid Retrieval',  desc: 'BM25 keyword + dense vector search across 104 docs'       },
+    { icon: Layers,   label: 'Cross-Encoder',     desc: 'Re-ranks top-20 candidates for maximum precision'          },
+    { icon: Cpu,      label: 'Gemini 2.5 Flash',  desc: 'Synthesises grounded answer from retrieved context'        },
+  ];
+  return (
+    <div className="border border-blue-100 bg-blue-50/60 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-blue-700 font-semibold hover:bg-blue-50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Cpu className="w-3.5 h-3.5" />
+          <span>RAG Pipeline: HyDE → Hybrid Retrieval → Cross-Encoder → Gemini</span>
+          <span className="bg-blue-600 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">LIVE</span>
+        </div>
+        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-90' : ''}`} />
+      </button>
+      {open && (
+        <div className="px-4 pb-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {steps.map((s, i) => (
+            <div key={i} className="bg-white rounded-xl p-3 border border-blue-100">
+              <div className="flex items-center gap-1.5 mb-1">
+                <div className="w-5 h-5 bg-blue-100 rounded-md flex items-center justify-center">
+                  <s.icon className="w-3 h-3 text-blue-600" />
+                </div>
+                <span className="text-[10px] font-bold text-blue-700">{s.label}</span>
+              </div>
+              <p className="text-[10px] text-blue-500 leading-snug">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Animated RAG loading indicator
+function RagLoadingIndicator({ stage }) {
+  const s = RAG_STAGES[stage] || RAG_STAGES[0];
+  const Icon = s.icon;
+  return (
+    <div className="flex gap-2.5">
+      <div className="w-7 h-7 bg-lavendLight rounded-full flex items-center justify-center flex-shrink-0">
+        <Bot className="w-3.5 h-3.5 text-lavender" />
+      </div>
+      <div className="bg-surfaceAlt rounded-2xl rounded-tl-sm px-4 py-3 max-w-xs">
+        {/* Stage pipeline dots */}
+        <div className="flex items-center gap-1 mb-2">
+          {RAG_STAGES.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1 rounded-full transition-all duration-500 ${
+                i <= stage ? 'bg-lavender' : 'bg-surfaceBorder'
+              } ${i === stage ? 'w-6 animate-pulse' : 'w-3'}`}
+            />
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <Icon className={`w-3.5 h-3.5 ${s.color} animate-pulse flex-shrink-0`} />
+          <span className="text-[11px] text-textSoft font-medium">{s.label}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function VisaChat() {
   const [country, setCountry]           = useState('UK');
   const [sessionId, setSessionId]       = useState(() => makeSessionId('UK'));
@@ -156,13 +236,28 @@ export default function VisaChat() {
   }]);
   const [input, setInput]               = useState('');
   const [chatLoading, setChatLoading]   = useState(false);
+  const [ragStage, setRagStage]         = useState(0);
   const [showMore, setShowMore]         = useState(false);
   const messagesEndRef                  = useRef(null);
   const inputRef                        = useRef(null);
+  const stageTimerRef                   = useRef(null);
 
   const suggestions = SUGGESTED_QUESTIONS[country] || SUGGESTED_QUESTIONS.default;
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  // Advance RAG stage indicator every ~1.8s when loading
+  useEffect(() => {
+    if (chatLoading) {
+      setRagStage(0);
+      stageTimerRef.current = setInterval(() => {
+        setRagStage(prev => Math.min(prev + 1, RAG_STAGES.length - 1));
+      }, 1800);
+    } else {
+      clearInterval(stageTimerRef.current);
+    }
+    return () => clearInterval(stageTimerRef.current);
+  }, [chatLoading]);
 
   const changeCountry = (c) => {
     setCountry(c);
@@ -190,6 +285,7 @@ export default function VisaChat() {
         text: res.answer,
         metrics: res.metrics,
         sources: res.sources,
+        retrieval_count: res.retrieval_count,
       }]);
     } catch {
       setMessages(prev => [...prev, {
@@ -214,10 +310,13 @@ export default function VisaChat() {
         <div>
           <h1 className="text-2xl font-bold text-text">Visa Assistant</h1>
           <p className="text-muted text-sm mt-0.5">
-            Visa requirements · Jobs · Housing · Scholarships
+            Powered by RAG · 104 visa knowledge docs · Gemini 2.5 Flash
           </p>
         </div>
       </div>
+
+      {/* RAG Pipeline Banner */}
+      <RagPipelineBanner />
 
       {/* Country selector */}
       <div className="card p-3">
@@ -269,8 +368,11 @@ export default function VisaChat() {
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-teal-400 rounded-full border-2 border-white" />
             </div>
             <div>
-              <p className="text-sm font-bold text-text">PathPilot Visa Assistant</p>
-              <p className="text-[11px] text-muted">{country} · Visa guidance</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold text-text">PathPilot Visa Assistant</p>
+                <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">RAG</span>
+              </div>
+              <p className="text-[11px] text-muted">{country} · 104 knowledge docs · Cross-encoder ranked</p>
             </div>
           </div>
           <button onClick={() => changeCountry(country)} title="New conversation"
@@ -306,29 +408,58 @@ export default function VisaChat() {
                 <div className="leading-relaxed space-y-1">
                   {renderAnswer(msg.text)}
                 </div>
-                {/* Sources */}
+
+                {/* Sources — shown as document cards */}
                 {msg.sources?.length > 0 && (
-                  <div className="mt-3 pt-2 border-t border-surfaceBorder/40 flex flex-wrap gap-1 items-center">
-                    <span className="text-[10px] text-muted font-medium">Sources:</span>
-                    {[...new Map(msg.sources.map(s => [s.doc, s])).values()].slice(0, 5).map((s, j) => (
-                      <span key={j} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-lavendLight text-lavender rounded text-[10px] font-medium">
-                        📄 {s.doc}
+                  <div className="mt-3 pt-2.5 border-t border-surfaceBorder/50">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <BookOpen className="w-3 h-3 text-lavender" />
+                      <span className="text-[10px] text-lavender font-bold uppercase tracking-wide">
+                        Retrieved Sources ({[...new Map(msg.sources.map(s => [s.doc, s])).values()].length})
                       </span>
-                    ))}
+                      {msg.retrieval_count && (
+                        <span className="text-[9px] text-muted">· from {msg.retrieval_count} candidates</span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[...new Map(msg.sources.map(s => [s.doc, s])).values()].slice(0, 6).map((s, j) => (
+                        <div key={j} className="flex items-center gap-1 bg-white border border-lavender/20 rounded-lg px-2 py-1">
+                          <Database className="w-2.5 h-2.5 text-lavender flex-shrink-0" />
+                          <span className="text-[10px] text-lavender font-medium">{s.doc}</span>
+                          {s.score != null && (
+                            <span className="text-[9px] text-muted ml-0.5">
+                              {(s.score * 100).toFixed(0)}%
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
-                {/* Metrics */}
+
+                {/* RAG Quality Metrics */}
                 {msg.metrics && (
-                  <div className="mt-1.5 flex gap-1.5 flex-wrap">
-                    {[
-                      ['Precision', msg.metrics.contextual_precision],
-                      ['Faithfulness', msg.metrics.faithfulness],
-                      ['Relevancy', msg.metrics.answer_relevancy],
-                    ].map(([k, v]) => v != null && (
-                      <span key={k} className="px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded text-[10px] font-medium">
-                        {k}: {typeof v === 'number' ? (v * 100).toFixed(0) : v}%
-                      </span>
-                    ))}
+                  <div className="mt-2.5 pt-2 border-t border-surfaceBorder/40">
+                    <p className="text-[9px] text-muted font-bold uppercase tracking-wide mb-1.5">RAG Quality Metrics</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {[
+                        { label: 'Precision',    key: 'contextual_precision', color: 'bg-blue-50 text-blue-700 border-blue-100' },
+                        { label: 'Faithfulness', key: 'faithfulness',         color: 'bg-teal-50 text-teal-700 border-teal-100' },
+                        { label: 'Relevancy',    key: 'answer_relevancy',     color: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
+                      ].map(({ label, key, color }) => {
+                        const v = msg.metrics[key];
+                        if (v == null) return null;
+                        const pct = typeof v === 'number' ? Math.round(v * 100) : v;
+                        return (
+                          <div key={key} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-semibold ${color}`}>
+                            <div className="w-12 h-1.5 bg-white/60 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full bg-current opacity-60" style={{ width: `${pct}%` }} />
+                            </div>
+                            {label}: {pct}%
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -340,22 +471,9 @@ export default function VisaChat() {
             </div>
           ))}
 
-          {chatLoading && (
-            <div className="flex gap-2.5">
-              <div className="w-7 h-7 bg-lavendLight rounded-full flex items-center justify-center">
-                <Bot className="w-3.5 h-3.5 text-lavender" />
-              </div>
-              <div className="bg-surfaceAlt rounded-2xl rounded-tl-sm px-4 py-3">
-                <div className="flex gap-1 items-center">
-                  {[0, 0.15, 0.3].map((d, i) => (
-                    <div key={i} className="w-2 h-2 bg-lavender rounded-full animate-bounce"
-                      style={{ animationDelay: `${d}s` }} />
-                  ))}
-                  <span className="text-[10px] text-muted ml-2">Searching 104 knowledge docs…</span>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Animated RAG loading */}
+          {chatLoading && <RagLoadingIndicator stage={ragStage} />}
+
           <div ref={messagesEndRef} />
         </div>
 

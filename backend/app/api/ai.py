@@ -29,6 +29,7 @@ from app.services.ai_agent import (
     ai_coach_chat,
     generate_sop_outline,
 )
+from app.services.agent_service import agent_coach_chat
 
 router = APIRouter()
 
@@ -185,9 +186,29 @@ def api_analyze_profile(
 def api_chat(
     req: ChatRequest,
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> Any:
+    """
+    AI Study Coach — now powered by a LangChain ReAct agent with real tools.
+    Falls back to structured prompts if the agent cannot run.
+    """
+    result = agent_coach_chat(
+        message=req.message,
+        profile=req.profile or {},
+        history=req.history or [],
+        db=db,
+    )
+    return result
+
+
+@router.post("/chat/simple")
+def api_chat_simple(
+    req: ChatRequest,
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """Legacy endpoint — structured prompt only, no tool use."""
     reply = ai_coach_chat(req.message, req.profile or {}, req.history or [])
-    return {"reply": reply}
+    return {"reply": reply, "tool_calls": [], "agent_used": False}
 
 
 @router.post("/generate-sop")

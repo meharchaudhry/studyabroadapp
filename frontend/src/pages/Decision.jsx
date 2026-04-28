@@ -1,11 +1,92 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   GraduationCap, TrendingUp, Briefcase, FileCheck,
   MapPin, Loader2, AlertCircle, Trophy, RefreshCw,
   DollarSign, Clock, Star, ChevronDown, ChevronUp,
-  CheckCircle, XCircle, Info,
+  CheckCircle, XCircle, Info, Sparkles, Bot, Cpu,
+  BarChart3, Globe,
 } from 'lucide-react';
 import { decisionAPI } from '../api/decision';
+
+// ── Agent chain definition ────────────────────────────────────────────────────
+const AGENT_STEPS = [
+  { id: 'profile', icon: GraduationCap, label: 'Profile Agent',   desc: 'Matching CGPA, field & degree requirements',  color: 'text-lavender',   bg: 'bg-lavendLight'  },
+  { id: 'finance', icon: DollarSign,    label: 'Finance Agent',    desc: 'Calculating ROI, break-even & total costs',   color: 'text-teal-600',   bg: 'bg-mintLight'    },
+  { id: 'jobs',    icon: Briefcase,     label: 'Jobs Agent',       desc: 'Scoring grad employment & post-study work',   color: 'text-blue-600',   bg: 'bg-blue-50'      },
+  { id: 'visa',    icon: FileCheck,     label: 'Visa Agent',       desc: 'Assessing student visa ease for Indians',     color: 'text-amber-600',  bg: 'bg-amberLight'   },
+  { id: 'synth',   icon: Sparkles,      label: 'Synthesis Agent',  desc: 'Gemini AI ranking & final recommendation',    color: 'text-purple-600', bg: 'bg-purple-50'    },
+];
+
+// Animated agent progress during loading
+function AgentChainProgress({ step }) {
+  return (
+    <div className="card p-6 space-y-3">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-8 h-8 bg-lavendLight rounded-xl flex items-center justify-center">
+          <Bot className="w-4 h-4 text-lavender" />
+        </div>
+        <div>
+          <p className="font-bold text-text text-sm">Multi-Agent Analysis Running</p>
+          <p className="text-[11px] text-muted">5 specialised AI agents working in sequence</p>
+        </div>
+        <span className="ml-auto text-[10px] bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-bold">
+          LANGCHAIN
+        </span>
+      </div>
+
+      <div className="space-y-2">
+        {AGENT_STEPS.map((s, i) => {
+          const done    = i < step;
+          const active  = i === step;
+          const pending = i > step;
+          const Icon    = s.icon;
+          return (
+            <div key={s.id}
+              className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-500 ${
+                done    ? 'bg-teal-50 border-teal-200'      :
+                active  ? `${s.bg} border-current/20 shadow-sm` :
+                          'bg-surfaceAlt border-surfaceBorder opacity-40'
+              }`}
+            >
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                done   ? 'bg-teal-500'     :
+                active ? s.bg              :
+                         'bg-surfaceBorder'
+              }`}>
+                {done ? (
+                  <CheckCircle className="w-3.5 h-3.5 text-white" />
+                ) : active ? (
+                  <Loader2 className={`w-3.5 h-3.5 ${s.color} animate-spin`} />
+                ) : (
+                  <Icon className="w-3.5 h-3.5 text-muted" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`text-xs font-bold ${done ? 'text-teal-700' : active ? s.color : 'text-muted'}`}>
+                  {s.label}
+                </p>
+                <p className={`text-[10px] ${done ? 'text-teal-600' : active ? 'text-textSoft' : 'text-muted'}`}>
+                  {done ? 'Complete ✓' : active ? s.desc : s.desc}
+                </p>
+              </div>
+              {active && (
+                <div className="flex gap-0.5 flex-shrink-0">
+                  {[0, 0.2, 0.4].map((d, j) => (
+                    <div key={j} className={`w-1.5 h-1.5 rounded-full ${s.bg} border border-current/30 animate-bounce`}
+                      style={{ animationDelay: `${d}s` }} />
+                  ))}
+                </div>
+              )}
+              {done && (
+                <span className="text-[9px] text-teal-600 font-bold flex-shrink-0">✓ Done</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -306,6 +387,21 @@ export default function Decision() {
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState(null);
   const [fromCache, setFromCache] = useState(() => !!loadCachedResult());
+  const [agentStep, setAgentStep] = useState(0);
+  const stepTimerRef              = useRef(null);
+
+  // Animate agent steps every ~2s during loading
+  useEffect(() => {
+    if (loading) {
+      setAgentStep(0);
+      stepTimerRef.current = setInterval(() => {
+        setAgentStep(prev => Math.min(prev + 1, AGENT_STEPS.length - 1));
+      }, 2200);
+    } else {
+      clearInterval(stepTimerRef.current);
+    }
+    return () => clearInterval(stepTimerRef.current);
+  }, [loading]);
 
   const run = async (force = false) => {
     if (!force && data) return;
@@ -364,23 +460,28 @@ export default function Decision() {
 
       {/* ── How it works banner (shown before first run) ── */}
       {!data && !loading && !error && (
-        <div className="card p-5 border-lavender/20 bg-lavendLight/20">
-          <p className="text-sm font-bold text-text mb-3">How your shortlist is built</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { icon: GraduationCap, label: 'Academic fit',  desc: 'CGPA, field, degree type',  color: 'bg-lavendLight text-lavender' },
-              { icon: TrendingUp,    label: 'Financial ROI', desc: 'Cost, salary, break-even',  color: 'bg-mintLight text-teal-600'   },
-              { icon: Briefcase,     label: 'Job market',    desc: 'Country grad employment',   color: 'bg-skyLight text-blue-600'    },
-              { icon: FileCheck,     label: 'Visa ease',     desc: 'Indian student requirements', color: 'bg-amberLight text-amber-600' },
-            ].map(({ icon: Icon, label, desc, color }) => (
-              <div key={label} className="flex items-start gap-2.5">
-                <div className={`page-icon shrink-0 ${color}`}><Icon className="w-4 h-4" /></div>
-                <div>
-                  <p className="text-xs font-semibold text-text">{label}</p>
-                  <p className="text-[10px] text-muted mt-0.5">{desc}</p>
+        <div className="card p-5 border-purple-100 bg-gradient-to-br from-purple-50/30 to-lavendLight/20">
+          <div className="flex items-center gap-2 mb-4">
+            <Cpu className="w-4 h-4 text-purple-600" />
+            <p className="text-sm font-bold text-text">5-Agent LangChain Analysis</p>
+            <span className="text-[9px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold ml-auto">MULTI-AGENT</span>
+          </div>
+          <div className="space-y-2">
+            {AGENT_STEPS.map((s, i) => {
+              const Icon = s.icon;
+              return (
+                <div key={s.id} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-surfaceBorder">
+                  <div className={`w-7 h-7 ${s.bg} rounded-full flex items-center justify-center flex-shrink-0`}>
+                    <Icon className={`w-3.5 h-3.5 ${s.color}`} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-bold text-text">{s.label}</p>
+                    <p className="text-[10px] text-muted">{s.desc}</p>
+                  </div>
+                  <span className="text-[9px] text-muted font-medium">Step {i + 1}</span>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -393,24 +494,8 @@ export default function Decision() {
         </div>
       )}
 
-      {/* ── Loading ── */}
-      {loading && (
-        <div className="card p-10 flex flex-col items-center justify-center text-center gap-4">
-          <Loader2 className="w-10 h-10 text-lavender animate-spin" />
-          <div>
-            <p className="font-bold text-text">Building your shortlist…</p>
-            <p className="text-xs text-muted mt-1">Scoring universities across academic fit, finances, jobs and visa</p>
-          </div>
-          <div className="flex gap-6 text-xs text-muted">
-            {['Academic match', 'Financial ROI', 'Job market', 'Visa assessment', 'Final ranking'].map((step, i) => (
-              <div key={step} className="flex items-center gap-1.5">
-                <Loader2 className="w-3 h-3 animate-spin text-lavender/60" style={{ animationDelay: `${i * 0.15}s` }} />
-                {step}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* ── Loading — animated agent chain ── */}
+      {loading && <AgentChainProgress step={agentStep} />}
 
       {data && (
         <>
@@ -432,26 +517,33 @@ export default function Decision() {
           {/* Comparison table */}
           <ComparisonTable universities={data.top_universities} />
 
-          {/* Summary note (replaced AI synthesis wall) */}
+          {/* AI Synthesis — Gemini counsellor notes */}
           {data.synthesis && (
-            <div className="card p-5 border-surfaceBorder">
-              <div className="flex items-center gap-2 mb-3">
-                <Info className="w-4 h-4 text-muted" />
-                <h2 className="font-semibold text-textSoft text-sm">Counsellor Notes</h2>
+            <div className="card p-5 border-purple-100 bg-gradient-to-br from-purple-50/40 to-white">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-7 h-7 bg-purple-100 rounded-xl flex items-center justify-center">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-text text-sm">AI Synthesis — Gemini Counsellor</h2>
+                  <p className="text-[10px] text-muted">Generated by 5-agent LangChain chain · Powered by Gemini 2.5 Flash</p>
+                </div>
+                <span className="ml-auto text-[9px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold">GEMINI AI</span>
               </div>
-              {/* Parse bullet points from synthesis into clean chips */}
-              <div className="text-sm text-textSoft leading-relaxed">
+              <div className="space-y-2">
                 {data.synthesis
                   .split('\n')
                   .filter(line => line.trim())
-                  .slice(0, 6)
+                  .slice(0, 7)
                   .map((line, i) => {
                     const clean = line.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
                     if (!clean) return null;
                     return (
-                      <div key={i} className="flex gap-2 py-1.5 border-b border-surfaceBorder last:border-0">
-                        <span className="text-lavender shrink-0 mt-0.5">›</span>
-                        <span className="text-xs text-textSoft leading-relaxed">{clean}</span>
+                      <div key={i} className="flex gap-3 p-3 bg-white rounded-xl border border-purple-100">
+                        <div className="w-5 h-5 bg-purple-50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-purple-600 text-[10px] font-bold">{i + 1}</span>
+                        </div>
+                        <p className="text-xs text-textSoft leading-relaxed">{clean}</p>
                       </div>
                     );
                   })}

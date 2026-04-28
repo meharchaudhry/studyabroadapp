@@ -20,7 +20,7 @@ from pydantic import BaseModel
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.models.university import University
-from app.services.recommendation import calculate_score, _get_budget_usd
+from app.services.recommendation import calculate_score, _get_budget_usd, GRAD_SALARY_USD as _REC_GRAD_SALARY, JOB_SCORE as _REC_JOB_SCORE
 from app.core.config import settings
 
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -256,27 +256,9 @@ def _run_agent(llm, system: str, human: str, **kwargs) -> str:
     return chain.invoke(kwargs)
 
 
-# Average graduate salaries (USD/year) by country
-_GRAD_SALARY_USD: dict[str, int] = {
-    "United States": 85000, "United Kingdom": 62000, "Canada": 68000,
-    "Australia": 70000,     "Germany": 65000,         "France": 58000,
-    "Netherlands": 64000,   "Ireland": 66000,         "New Zealand": 59000,
-    "Singapore": 76000,     "Japan": 60000,           "Sweden": 61000,
-    "Norway": 67000,        "Denmark": 68000,         "Finland": 60000,
-    "UAE": 72000,           "Portugal": 48000,        "Italy": 50000,
-    "Spain": 51000,         "South Korea": 62000,     "Switzerland": 95000,
-}
-
-# Job market quality scores (0–10)
-_JOB_SCORE: dict[str, float] = {
-    "United States": 9.4, "United Kingdom": 8.8, "Canada": 8.9,
-    "Australia": 8.7,     "Germany": 8.8,        "France": 8.1,
-    "Netherlands": 8.5,   "Ireland": 8.6,        "New Zealand": 7.9,
-    "Singapore": 9.1,     "Japan": 8.0,          "Sweden": 8.2,
-    "Norway": 8.3,        "Denmark": 8.4,        "Finland": 8.0,
-    "UAE": 8.4,           "Portugal": 7.5,       "Italy": 7.4,
-    "Spain": 7.6,         "South Korea": 8.1,    "Switzerland": 9.2,
-}
+# Use the canonical salary/job tables from recommendation.py — single source of truth
+_GRAD_SALARY_USD = _REC_GRAD_SALARY
+_JOB_SCORE       = _REC_JOB_SCORE
 
 
 def _calculate_roi(tuition_inr: float, living_inr: float, country: str, duration_years: int = 2) -> dict:
@@ -377,7 +359,8 @@ def agent_profile(user: User, universities: List[University]) -> tuple[List[Univ
     """Agent 1 — scores candidates and returns top 3."""
     scored = [(calculate_score(user, uni), uni) for uni in universities]
     scored.sort(key=lambda x: x[0], reverse=True)
-    top3 = [uni for _, uni in scored[:3]]
+    top3_scored = scored[:3]   # [(score, uni), ...]
+    top3        = [uni for _, uni in top3_scored]
 
     cgpa_str   = f"{user.cgpa}" if user.cgpa else "N/A"
     budget_usd = _get_budget_usd(user)
@@ -388,8 +371,8 @@ def agent_profile(user: User, universities: List[University]) -> tuple[List[Univ
         f"field: {getattr(user,'field_of_study','N/A')}. "
         "Top 3 matched universities: "
         + " | ".join(
-            f"{u.name} ({u.country}, score {calculate_score(user,u):.0f}/100)"
-            for u in top3
+            f"{u.name} ({u.country}, score {s:.0f}/100)"
+            for s, u in top3_scored
         )
     )
     return top3, summary

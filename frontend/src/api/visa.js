@@ -32,25 +32,3 @@ export const visaAPI = {
     return res.data;
   },
 };
-
-export const housingAPI = {
-  getCountries: async () => {
-    const res = await apiClient.get('/housing/countries');
-    return res.data;
-  },
-  getListings: async (params = {}) => {
-    const res = await apiClient.get('/housing/listings', { params });
-    return res.data;
-  },
-};
-
-export const jobsAPI_ext = {
-  getCountries: async () => {
-    const res = await apiClient.get('/jobs/countries');
-    return res.data;
-  },
-  getPortals: async (params = {}) => {
-    const res = await apiClient.get('/jobs/portals', { params });
-    return res.data;
-  },
-};

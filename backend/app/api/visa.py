@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_db
 from app.core.config import settings
 from app.models.user import User
 from app.models.visa_checklist import UserVisaChecklist
@@ -29,6 +29,8 @@ class VisaQueryRequest(BaseModel):
 class SourceInfo(BaseModel):
     doc: str
     chunk: str
+    country: Optional[str] = None
+    metadata: dict = Field(default_factory=dict)
 
 
 class VisaQueryResponse(BaseModel):
@@ -418,7 +420,10 @@ def upsert_saved_checklist(
 
 
 @router.post("/query", response_model=VisaQueryResponse)
-def visa_query(request: VisaQueryRequest) -> Any:
+def visa_query(
+    request: VisaQueryRequest,
+    current_user: User = Depends(get_current_user),
+) -> Any:
     """
     RAG-powered visa Q&A with hybrid search, cross-encoder re-ranking,
     and per-session conversation memory (last 6 exchanges).
@@ -435,7 +440,9 @@ def visa_query(request: VisaQueryRequest) -> Any:
         sources = [
             SourceInfo(
                 doc=doc.metadata.get("source", "Unknown"),
-                chunk=doc.page_content[:120] + "..."
+                chunk=doc.page_content[:120] + "...",
+                country=doc.metadata.get("country") or doc.metadata.get("Country"),
+                metadata=dict(doc.metadata),
             )
             for doc in docs
         ]

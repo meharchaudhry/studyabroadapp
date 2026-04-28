@@ -1005,12 +1005,40 @@ def generate_timeline(intake: str, countries: list, profile: dict, current_statu
 
     status_block = "\n".join(status_lines) if status_lines else "No current status provided"
 
+    # Determine exact number of months to generate
+    months_count = 12
+    if current_status:
+        m = current_status.get("months_until_intake")
+        if m:
+            try:
+                months_count = max(2, min(int(float(m)), 12))
+            except (ValueError, TypeError):
+                pass
+
+    if months_count <= 3:
+        urgency_block = (
+            f"⚠️ EXTREME URGENCY: Student has only {months_count} MONTHS until intake. "
+            "Compress ALL tasks ruthlessly. Flag what is now impossible (e.g. if tests not done "
+            "and intake is 2 months away, note that tests may need to be deferred). "
+            "Prioritise: 1) visa docs, 2) offer letter/CAS, 3) financial proof. "
+            "Every month entry must have 5+ dense, specific tasks."
+        )
+    elif months_count <= 6:
+        urgency_block = (
+            f"⚠️ TIGHT TIMELINE: Only {months_count} months available. "
+            "Be aggressive with task scheduling — stack multiple tasks per month. "
+            "Flag any country-specific risks that are now time-critical."
+        )
+    else:
+        urgency_block = f"Student has {months_count} months — use the full window wisely."
+
     if gemini:
         prompt = f"""You are StudyPathway's application timeline expert for Indian students.
 Generate a detailed, PERSONALISED month-by-month application timeline.
 
 TARGET INTAKE: {intake}
 TARGET COUNTRIES: {countries_str}
+MONTHS AVAILABLE UNTIL INTAKE: {months_count}
 
 STUDENT PROFILE:
 {profile_txt}
@@ -1018,32 +1046,44 @@ STUDENT PROFILE:
 CURRENT STATUS (what's already done):
 {status_block}
 
-IMPORTANT: Skip tasks already completed (marked ✅ above). Start the timeline from NOW based on current status.
-Consider country-specific lead times:
-- Canada: 8–16 weeks for study permit + PAL needed
-- Germany: APS India certificate takes 6–8 MONTHS — flag this urgently if not done
-- USA: Visa interview slots in India book out 4–6 months ahead
-- UK: CAS + visa needs 6–8 weeks minimum
-- Australia: CoE + visa needs 4–6 weeks
+TIMELINE URGENCY:
+{urgency_block}
 
-Return ONLY valid JSON:
+RULES:
+- Generate EXACTLY {months_count} month entries — no more, no less.
+- Skip tasks already completed (marked ✅ above) — do not repeat them.
+- Each month must have 4–6 SPECIFIC tasks tailored to THIS student's actual profile.
+- Use the student's real test scores, countries, degree goal, and current status in task descriptions.
+- Country-specific lead times to respect:
+  • Canada: study permit + PAL = 8–16 weeks — flag if < 4 months left
+  • Germany: APS India certificate = 6–8 MONTHS — flag as IMPOSSIBLE if < 7 months left
+  • USA: visa interview slots = 4–6 months lead time — flag if < 5 months left
+  • UK: CAS + visa = 6–8 weeks minimum
+  • Australia: CoE + visa = 4–6 weeks
+- Mark milestone: true for: test dates, application deadlines, offer decisions, visa application, departure.
+
+Return ONLY valid JSON (no markdown, no extra text):
 {{
   "intake": "{intake}",
   "countries": "{countries_str}",
-  "urgent_warnings": ["List any critical time-sensitive warnings here"],
+  "urgent_warnings": ["Specific time-critical warning if any — be direct and actionable"],
   "months": [
     {{
-      "month": "Month 1 / October 2024",
-      "label": "Short action phase label",
-      "tasks": ["Specific task 1", "Specific task 2", "Specific task 3"],
-      "milestone": true/false,
-      "country_specific": "Country-specific note for {countries_str} if applicable"
+      "month": "Month 1 — [actual calendar month + year]",
+      "label": "Short action phase label (e.g. 'IELTS Registration & SOP Draft')",
+      "tasks": [
+        "Specific task with detail (e.g. 'Register for IELTS at British Council — target 7.0+ for UK programs')",
+        "Specific task 2",
+        "Specific task 3",
+        "Specific task 4"
+      ],
+      "milestone": false,
+      "country_specific": "Country-specific note if any (e.g. 'Germany: apply for APS India certificate THIS WEEK')"
     }}
   ]
 }}
 
-Generate 8–12 months. Mark as milestone: true for: test dates, application deadlines, offer decisions, visa application, departure.
-Make tasks SPECIFIC to this student — mention their actual test status, countries, degree goal."""
+Make every task ultra-specific — use the student's actual CGPA, test scores, and target countries in the task text."""
 
         try:
             resp   = gemini.generate_content(prompt)
@@ -1169,7 +1209,13 @@ Return ONLY valid JSON (no markdown):
   "verdict": "One encouraging paragraph (3-4 sentences) summarising the student's position, being honest but motivating. Mention their actual CGPA and strongest aspects."
 }}
 
-Be SPECIFIC — use the student's actual numbers. Generate 3–5 strengths, 3–5 gaps, 4–6 actions, country fit for all target countries: {', '.join(target_countries[:6])}."""
+CRITICAL RULES:
+- Use the student's EXACT numbers from the profile above — never generic advice.
+- Every strength/gap must contain a specific number or fact from the profile.
+- Every action must have a concrete target (e.g. "Aim for IELTS 7.0+" not just "take IELTS").
+- Country fit must reflect THIS student's actual CGPA/test scores/budget vs that country's requirements.
+- Generate 4-5 strengths, 4-5 gaps, 5-6 actions, country fit for ALL target countries: {', '.join(target_countries[:6])}.
+- Verdict must mention the student's actual CGPA and their single biggest competitive advantage."""
 
         try:
             resp   = gemini.generate_content(prompt)
@@ -1491,12 +1537,38 @@ def generate_sop_outline(profile: dict, university: str, program: str, country: 
     gemini      = _get_gemini()
     profile_txt = _profile_summary(profile)
 
-    field       = profile.get("field_of_study", "")
-    cgpa        = profile.get("cgpa", "")
-    work_years  = profile.get("work_experience_years", 0) or 0
-    career_goal = profile.get("career_goal", "")
-    eng_test    = profile.get("english_test", "")
-    eng_score   = profile.get("english_score", "")
+    field        = profile.get("field_of_study", "")
+    cgpa         = profile.get("cgpa", "")
+    work_years   = profile.get("work_experience_years", 0) or 0
+    career_goal  = profile.get("career_goal", "")
+    eng_test     = profile.get("english_test", "")
+    eng_score    = profile.get("english_score", "")
+    gre_score    = profile.get("gre_score", "")
+    gmat_score   = profile.get("gmat_score", "")
+    budget       = profile.get("budget_inr") or profile.get("budget", "")
+    home_uni     = profile.get("home_university", "")
+    current_deg  = profile.get("current_degree", "")
+    grad_year    = profile.get("graduation_year", "")
+    ranking_pref = profile.get("ranking_preference", "")
+    scholarship  = profile.get("scholarship_interest", False)
+    work_abroad  = profile.get("work_abroad_interest", False)
+
+    # Build a rich "what we know" block from the profile
+    known_data_lines = []
+    if home_uni:        known_data_lines.append(f"Current institution: {home_uni}")
+    if current_deg:     known_data_lines.append(f"Current degree: {current_deg}")
+    if grad_year:       known_data_lines.append(f"Graduation year: {grad_year}")
+    if cgpa:            known_data_lines.append(f"CGPA: {cgpa}/10")
+    if field:           known_data_lines.append(f"Field of study: {field}")
+    if career_goal:     known_data_lines.append(f"Career goal: {career_goal}")
+    if work_years:      known_data_lines.append(f"Work/internship experience: {work_years} years")
+    if eng_test and eng_score: known_data_lines.append(f"English: {eng_test} {eng_score}")
+    if gre_score:       known_data_lines.append(f"GRE: {gre_score}")
+    if gmat_score:      known_data_lines.append(f"GMAT: {gmat_score}")
+    if scholarship:     known_data_lines.append("Interested in scholarships: YES")
+    if work_abroad:     known_data_lines.append("Plans to work abroad post-study: YES")
+    if ranking_pref:    known_data_lines.append(f"University ranking preference: {ranking_pref}")
+    known_data = "\n".join(known_data_lines) if known_data_lines else "Limited profile data — use placeholders"
 
     # Country-specific SOP notes
     country_note = ""
@@ -1544,46 +1616,56 @@ def generate_sop_outline(profile: dict, university: str, program: str, country: 
     if country in country_notes_map:
         country_note = f"\nCOUNTRY-SPECIFIC GUIDANCE FOR {country.upper()}:\n{country_notes_map[country]}\n"
 
-    prompt = f"""You are a study-abroad advisor helping an Indian student write a Statement of Purpose.
+    prompt = f"""You are an expert study-abroad SOP advisor helping an Indian student craft a compelling Statement of Purpose.
 
 University: {university or "[University Name]"}
 Programme: {program or "[Programme Name]"}
 Country: {country or "[Country]"}
 
-STUDENT PROFILE (use ONLY what is listed here — do NOT invent or assume):
-{profile_txt}
+CONFIRMED STUDENT DATA (only use what is listed — never invent):
+{known_data}
 {country_note}
-STRICT RULES:
-1. Do NOT invent internships, projects, publications, awards, or experiences not in the profile above.
-2. Do NOT use asterisks (*) anywhere. Use plain text only — no markdown bold, no markdown italic.
-3. Where profile data is missing for a section, write a placeholder like: [Add your own: describe your relevant project here]
-4. Use numbers and dashes for structure. No ** or * symbols.
-5. Keep advice grounded in the actual profile data provided.
+WRITING RULES (strictly enforced):
+1. NEVER invent internships, projects, publications, awards, or experiences not in the data above.
+2. NO asterisks (*) anywhere. Use plain numbered lists and dashes only.
+3. Where data is missing, write a clear placeholder: [Add your own: ...]
+4. Every sentence must be grounded in a real data point from the profile above.
+5. Be specific — use the actual CGPA number, the actual test score, the actual work years.
+6. Write in first-person prose for each section, not bullet points — this is a narrative document.
+7. After each section heading, give the actual draft text (not just advice about what to write).
 
-Write a 7-section SOP outline with specific talking points drawn ONLY from the student's real profile:
+---
 
-Section 1: Opening Hook (2-3 sentences)
-Suggest a compelling opening grounded in their actual field ({field or "their field"}) and background. No invented stories.
+Write a complete 7-section SOP outline WITH draft text for each section:
 
-Section 2: Academic Background (150-200 words)
-Based on CGPA {cgpa or "not specified"} and field of study {field or "not specified"}. Only mention courses/projects if stated in the profile. Suggest what to highlight and what gaps to address honestly.
+Section 1: Opening Hook  (50-80 words)
+Write an actual opening paragraph that hooks the reader using the student's real field ({field or "their field of study"}) and a genuine motivation rooted in their background. If career goal is known ({career_goal or "not specified"}), tie it in. No cliches like "since childhood I dreamed". End with: [Tip: personalise with a specific moment or project you encountered at {home_uni or "your university"}]
 
-Section 3: Research and Work Experience (150-200 words)
-Based on {work_years} years of work experience as stated in the profile. Only reference what is listed. If minimal experience, suggest how to frame academic projects or coursework instead.
+Section 2: Academic Background  (150-200 words)
+Draft prose covering their CGPA of {cgpa or "X"}/10 from {home_uni or "their institution"} in {field or "their field"}, graduating {grad_year or "their graduation year"}. Acknowledge if CGPA is below 8.0 and suggest framing (upward trend, strong final years, relevant coursework). Mention their {eng_test + " score of " + str(eng_score) if eng_test and eng_score else "English proficiency test"} as evidence of readiness for {country or "the target country"}'s academic environment. End with: [Tip: add 2-3 relevant courses or a capstone project name here]
 
-Section 4: Why {program or "this programme"} at {university or "this university"} (100-150 words)
-Mention 2-3 specific things about this institution/programme that align with their stated goals ({career_goal or "their career goals"}). These should be accurate and verifiable, not invented.
+Section 3: Research, Projects & Work Experience  (150-200 words)
+Draft prose for {work_years} year(s) of experience. If work_years is 0, frame academic projects, internships, or thesis work instead. Connect this experience directly to {program or "the target programme"}. End with: [Tip: describe your most relevant project/role in 2-3 sentences — what problem you solved, what you built, what you learned]
 
-Section 5: Career Goals — Short-term and Long-term (100-150 words)
-Based on their stated career goal: "{career_goal or "not specified"}". Keep grounded in reality for their field and destination country.
+Section 4: Why {program or "This Programme"} at {university or "This University"}  (100-150 words)
+Draft prose with 2-3 specific, verifiable reasons this student chose {university or "this university"} and {program or "this programme"}. Connect to their career goal ({career_goal or "stated career goals"}). Reference the institution's known strengths in their field. End with: [Tip: name a specific faculty member, research lab, or course from the university website]
 
-Section 6: Why You Will Succeed (100-150 words)
-Evidence from the actual profile: CGPA {cgpa or "?"}, {eng_test + " " + str(eng_score) if eng_test else "English proficiency"}, {work_years} years experience. Only use real data points.
+Section 5: Short-term and Long-term Career Goals  (100-150 words)
+Draft prose for career goals in {country or "the destination country"} and beyond. Short-term (0-2 years post-graduation): specific role in {field or "their field"}. Long-term (5+ years): leadership/impact goal. Ground everything in their career goal: "{career_goal or "not specified"}". {"Mention post-study work interest explicitly." if work_abroad else ""} End with: [Tip: mention a specific industry trend or company you want to contribute to]
 
-Section 7: Closing Statement (2-3 sentences)
-Enthusiastic, professional close. Briefly summarise fit and express genuine motivation.
+Section 6: Why You Will Succeed  (100-150 words)
+Draft prose making the case using ONLY real evidence: CGPA {cgpa or "X"}/10{", " + eng_test + " " + str(eng_score) if eng_test else ""}{", GRE " + str(gre_score) if gre_score else ""}{", " + str(work_years) + " years work experience" if work_years else ""}. Frame any weaknesses positively. Show self-awareness and a learning mindset. End with: [Tip: add one specific example of overcoming a challenge — academic or professional]
 
-After each section, include a word count target and one concrete tip for this specific student."""
+Section 7: Closing Statement  (50-80 words)
+Draft a confident, enthusiastic close. Reference the university by name, the specific programme, and one concrete contribution you will make. Avoid generic sentences. Must end on a forward-looking, confident note. End with: [Tip: reference how this degree connects to your vision for {career_goal or "your career"} specifically]
+
+---
+
+After all 7 sections, add:
+
+OVERALL WORD COUNT TARGET: 800-1000 words for {country or "this country"}'s application standard.
+STRONGEST ELEMENTS OF THIS PROFILE: [list 2-3 genuine strengths from the data above]
+AREAS TO STRENGTHEN BEFORE SUBMITTING: [list 2-3 honest gaps and how to address them]"""
 
     if gemini:
         try:

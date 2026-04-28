@@ -259,7 +259,7 @@ def _synthesis_text_with_llm(summary_prompt: str) -> Optional[str]:
         return None
     try:
         llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",
+            model="gemini-2.0-flash",
             temperature=0.2,
             google_api_key=settings.GOOGLE_API_KEY,
         )

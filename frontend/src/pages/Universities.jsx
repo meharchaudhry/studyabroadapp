@@ -61,15 +61,17 @@ export default function Universities() {
 
   const activeFilters = [country, subject, maxTuition].filter(Boolean).length;
 
-  // Fetch top-100 recommendations once to overlay match % on browse cards
+  // Fetch top-100 recommendations once to overlay match % + reason on browse cards
   useEffect(() => {
     universitiesAPI.getRecommendations(100)
       .then(res => {
         const map = {};
-        (res.recommendations || []).forEach(r => { if (r.id) map[r.id] = r.match_score; });
+        (res.recommendations || []).forEach(r => {
+          if (r.id) map[r.id] = { score: r.match_score, reason: r.top_reason, label: r.match_label };
+        });
         setMatchScores(map);
       })
-      .catch(() => {}); // silently fail if not logged in
+      .catch(() => {});
   }, []);
 
   const load = useCallback(async () => {
@@ -271,7 +273,8 @@ export default function Universities() {
                     key={uni.id || i}
                     uni={uni}
                     rank={mode === 'matches' ? i + 1 : null}
-                    browseMatchScore={mode === 'browse' ? matchScores[uni.id] : null}
+                    browseMatchScore={mode === 'browse' ? (matchScores[uni.id]?.score ?? null) : null}
+                    browseMatchReason={mode === 'browse' ? (matchScores[uni.id]?.reason ?? null) : null}
                   />
             ))}
           </div>
@@ -372,69 +375,92 @@ function ShortlistCard({ uni, rank }) {
   );
 }
 
-function UniCard({ uni, rank, browseMatchScore }) {
-  const flag  = getCountryFlag(uni.country);
-  // AI Matches mode: use uni.match_score; browse mode: use overlay from recommendations fetch
-  const rawScore   = uni.match_score ?? browseMatchScore ?? null;
-  const pct        = rawScore !== null ? Math.round(rawScore * 100) : null;
-  const rankColors = ['bg-amber-400', 'bg-slate-400', 'bg-orange-400'];
-  const scoreColor = pct >= 75 ? 'bg-teal-500' : pct >= 50 ? 'bg-lavender' : pct >= 30 ? 'bg-amber-400' : 'bg-slate-400';
+// Matches from recommendations endpoint carry top_reason + match_label
+// Browse mode overlays match_score from the recommendations map
+function UniCard({ uni, rank, browseMatchScore, browseMatchReason }) {
+  const flag     = getCountryFlag(uni.country);
+  const rawScore = uni.match_score ?? browseMatchScore ?? null;
+  const pct      = rawScore !== null ? Math.round(rawScore * 100) : null;
+  const reason   = uni.top_reason || browseMatchReason || null;
+  const label    = uni.match_label || null;
+
+  const scoreColor = pct >= 75 ? 'bg-teal-500'
+                   : pct >= 50 ? 'bg-lavender'
+                   : pct >= 30 ? 'bg-amber-400'
+                   : 'bg-slate-400';
+
+  const labelColor = pct >= 75 ? 'text-teal-700 bg-teal-50 border-teal-200'
+                   : pct >= 50 ? 'text-lavender bg-lavendLight border-lavender/20'
+                   : pct >= 30 ? 'text-amber-700 bg-amber-50 border-amber-200'
+                   : 'text-slate-600 bg-surfaceAlt border-surfaceBorder';
 
   return (
     <Link to={`/universities/${uni.id}`} className="group block">
-      <div className="card-hover card overflow-hidden flex flex-col">
-        <div className="relative h-48 overflow-hidden"
+      <div className="card-hover card overflow-hidden flex flex-col h-full">
+
+        {/* Banner */}
+        <div className="relative h-36 flex-shrink-0 overflow-hidden"
           style={{ background: 'linear-gradient(135deg, #1E40AF 0%, #2563EB 60%, #3B82F6 100%)' }}>
 
-          {/* Rank / QS badges */}
-          <div className="absolute top-3 left-3 flex gap-1.5">
-            {uni.ranking && (
+          {/* QS rank badge */}
+          {uni.ranking && (
+            <div className="absolute top-3 left-3">
               <span className="badge bg-white/90 backdrop-blur-sm text-lavender border border-lavender/20 shadow-sm">
                 QS #{uni.ranking}
               </span>
-            )}
-            {rank && rank <= 3 && (
-              <span className={`badge ${rankColors[rank - 1]} text-white shadow-sm`}>#{rank}</span>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Match score ring */}
+          {/* Match score */}
           {pct !== null && (
             <div className="absolute top-3 right-3">
-              <div className={`w-11 h-11 rounded-full flex flex-col items-center justify-center border-2 border-white shadow-md ${scoreColor} text-white`}>
-                <span className="text-[10px] font-black leading-none">{pct}%</span>
-                <span className="text-[7px] opacity-80">match</span>
+              <div className={`w-12 h-12 rounded-full flex flex-col items-center justify-center border-2 border-white shadow-lg ${scoreColor} text-white`}>
+                <span className="text-[11px] font-black leading-none">{pct}%</span>
+                <span className="text-[7px] opacity-80 mt-0.5">match</span>
               </div>
             </div>
           )}
 
-          {/* Country + subject overlay */}
+          {/* Country + subject chips */}
           <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/75 to-transparent p-3 pt-10">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-sm">{flag}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-base leading-none">{flag}</span>
               <span className="text-white/90 text-xs font-semibold">{uni.country}</span>
               {uni.subject && (
-                <div className="ml-auto flex gap-1 flex-wrap justify-end">
-                  {uni.subject.split('|').slice(0, 2).map(s => (
-                    <span key={s} className="text-white/85 text-[9px] bg-white/25 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
-                      {s.trim()}
-                    </span>
-                  ))}
-                </div>
+                <span className="ml-auto text-white/80 text-[9px] bg-white/20 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+                  {uni.subject.split('|')[0].trim()}
+                </span>
               )}
             </div>
           </div>
         </div>
 
+        {/* Body */}
         <div className="p-4 flex flex-col flex-1">
-          <h3 className="font-bold text-text text-sm leading-snug mb-3 group-hover:text-lavender transition-colors line-clamp-2">
+          <h3 className="font-bold text-text text-sm leading-snug group-hover:text-lavender transition-colors line-clamp-2 mb-2">
             {uni.name}
           </h3>
-          <div className="grid grid-cols-2 gap-2 mt-auto">
-            {uni.tuition && <Chip label="Tuition/yr" val={fmtINR(uni.tuition)} />}
-            {uni.ielts && <Chip label="IELTS min" val={`${uni.ielts}+`} />}
-            {uni.requirements_cgpa && <Chip label="Min CGPA" val={uni.requirements_cgpa} />}
-            {uni.job_market_score && <Chip label="Jobs score" val={`${uni.job_market_score}/10`} accent />}
+
+          {/* Match label + reason — the key new addition */}
+          {pct !== null && (
+            <div className="mb-3 space-y-1.5">
+              {label && (
+                <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${labelColor}`}>
+                  {label}
+                </span>
+              )}
+              {reason && (
+                <p className="text-[11px] text-textSoft leading-relaxed line-clamp-2">{reason}</p>
+              )}
+            </div>
+          )}
+
+          {/* Stats row */}
+          <div className="grid grid-cols-2 gap-1.5 mt-auto">
+            {uni.tuition  && <MiniChip label="Tuition/yr" val={fmtINR(uni.tuition)} />}
+            {uni.ielts    && <MiniChip label="IELTS min"  val={`${uni.ielts}+`} />}
+            {uni.requirements_cgpa && <MiniChip label="Min CGPA" val={uni.requirements_cgpa} />}
+            {uni.job_market_score  && <MiniChip label="Jobs" val={`${uni.job_market_score}/10`} green />}
           </div>
         </div>
       </div>
@@ -442,6 +468,14 @@ function UniCard({ uni, rank, browseMatchScore }) {
   );
 }
 
+const MiniChip = ({ label, val, green }) => (
+  <div className={`rounded-lg px-2.5 py-1.5 ${green ? 'bg-mintLight' : 'bg-surfaceAlt'}`}>
+    <p className="text-[9px] text-muted uppercase tracking-wide">{label}</p>
+    <p className={`text-xs font-bold ${green ? 'text-teal-700' : 'text-text'}`}>{val}</p>
+  </div>
+);
+
+// Keep legacy Chip for ShortlistCard
 const Chip = ({ label, val, accent, roiColor }) => (
   <div className={`rounded-lg p-2 ${accent ? 'bg-lavendLight' : 'bg-surfaceAlt'}`}>
     <p className="text-[10px] text-muted">{label}</p>

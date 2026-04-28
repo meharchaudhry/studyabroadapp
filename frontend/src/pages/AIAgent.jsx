@@ -4,10 +4,11 @@ import {
   BookOpen, CheckCircle2, Circle, ChevronDown, ChevronRight,
   Zap, Target, TrendingUp, AlertCircle, Trophy, RefreshCw,
   Download, ArrowRight, Loader2, Calendar, AlertTriangle,
-  ChevronLeft, Info,
+  ChevronLeft, Info, Upload, FileText, X,
 } from 'lucide-react';
 import { aiAPI } from '../api/ai';
 import { authAPI } from '../api/auth';
+import api from '../api/client';
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
 const TABS = [
@@ -117,16 +118,25 @@ function renderMd(text) {
   return <div className="space-y-0.5">{elements}</div>;
 }
 
+// ── Tool icons ────────────────────────────────────────────────────────────────
+const TOOL_META = {
+  search_visa_requirements:  { emoji: '🛂', label: 'Visa RAG',        color: 'bg-amber-50 border-amber-200 text-amber-700'   },
+  search_universities:       { emoji: '🎓', label: 'University DB',   color: 'bg-blue-50 border-blue-200 text-blue-700'     },
+  calculate_financial_roi:   { emoji: '📊', label: 'ROI Engine',      color: 'bg-teal-50 border-teal-200 text-teal-700'     },
+  schedule_calendar_event:   { emoji: '📅', label: 'Google Calendar', color: 'bg-green-50 border-green-200 text-green-700'  },
+  get_scholarship_info:      { emoji: '🏆', label: 'Scholarship RAG', color: 'bg-purple-50 border-purple-200 text-purple-700' },
+};
+
 // ── Chat suggestions ──────────────────────────────────────────────────────────
 const SUGGESTIONS = [
+  'Add a reminder to my Google Calendar to apply for UK visa in 30 days',
+  'What universities match my profile and budget?',
   'What IELTS score do I need for UK universities?',
-  'How do I get a GIC for Canada?',
-  'What is the Germany APS certificate and how long does it take?',
+  'Calculate the ROI of studying in Canada for 2 years at $25,000/year',
   'What scholarships are available for Indian students going to the USA?',
   'How early should I start my UK student visa application?',
-  'What is the difference between F-1 and F-2 visa?',
-  'How do I write a strong SOP for MSc Computer Science?',
-  'What is post-study work rights in Australia vs UK?',
+  'Find top Computer Science universities in Germany under $15,000/year',
+  'Set a calendar reminder to request my LORs next week',
 ];
 
 // (ICS generation removed — using direct Google Calendar links instead)
@@ -176,7 +186,7 @@ export default function AIAgent() {
         <div>
           <h1 className="text-2xl font-black text-text">Study Tools</h1>
           <p className="text-muted text-sm">
-            Document checklist · Application timeline · Profile analysis · SOP builder
+            AI Coach agent · Checklist · Timeline · Profile analysis · SOP builder
           </p>
         </div>
       </div>
@@ -206,19 +216,45 @@ export default function AIAgent() {
 // ═══════════════════════════════════════════════════════════
 // Chat Tab
 // ═══════════════════════════════════════════════════════════
+
+// Agent thinking stages shown during loading
+const AGENT_THINKING_STAGES = [
+  'Agent reasoning about your question…',
+  'Selecting the best tools to use…',
+  'Calling tools and gathering data…',
+  'Synthesising answer with Gemini…',
+];
+
 function ChatTab({ profile }) {
   const [messages, setMessages] = useState([{
     role: 'assistant',
-    content: "Hi! I'm your AI Study Coach, powered by Google Gemini and trained on everything you need to know about studying abroad as an Indian student.\n\nI can help with:\n- **Visa requirements** for UK, USA, Canada, Germany, Australia and more\n- **University applications**, SOPs, LORs, and deadlines\n- **Scholarship opportunities** — Chevening, Fulbright, DAAD, MEXT, GKS\n- **IELTS, TOEFL, GRE, GMAT** preparation strategies\n- **Financial planning**, GIC, blocked accounts, and budgeting\n- **Post-study work** rights in each country\n\nWhat would you like help with today?",
+    content: "Hi! I'm your **AI Study Coach** — a LangChain tool-calling agent powered by Gemini 2.5 Flash.\n\nI have **5 live tools** I can use for you:\n- 🛂 **Visa RAG** — search 104 knowledge documents for visa requirements\n- 🎓 **University DB** — find universities matching your profile & budget\n- 📊 **ROI Engine** — calculate cost vs. salary break-even analysis\n- 📅 **Google Calendar** — create real reminders in your calendar\n- 🏆 **Scholarship RAG** — search scholarship opportunities\n\nJust ask naturally — I'll decide which tools to use!",
+    tool_calls: [],
+    agent_used: false,
   }]);
-  const [input, setInput]     = useState('');
-  const [loading, setLoading] = useState(false);
-  const bottomRef             = useRef(null);
-  const inputRef              = useRef(null);
+  const [input, setInput]           = useState('');
+  const [loading, setLoading]       = useState(false);
+  const [thinkStage, setThinkStage] = useState(0);
+  const bottomRef                   = useRef(null);
+  const inputRef                    = useRef(null);
+  const thinkTimerRef               = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Animate thinking stages during loading
+  useEffect(() => {
+    if (loading) {
+      setThinkStage(0);
+      thinkTimerRef.current = setInterval(() => {
+        setThinkStage(prev => Math.min(prev + 1, AGENT_THINKING_STAGES.length - 1));
+      }, 1500);
+    } else {
+      clearInterval(thinkTimerRef.current);
+    }
+    return () => clearInterval(thinkTimerRef.current);
+  }, [loading]);
 
   const send = async (text = input.trim()) => {
     if (!text || loading) return;
@@ -229,11 +265,18 @@ function ChatTab({ profile }) {
     try {
       const history = messages.map(m => ({ role: m.role, content: m.content }));
       const data = await aiAPI.chat(text, profile, history);
-      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: data.reply,
+        tool_calls: data.tool_calls || [],
+        agent_used: data.agent_used || false,
+      }]);
     } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: 'Sorry, I\'m having trouble connecting right now. Please check your internet connection and try again.',
+        tool_calls: [],
+        agent_used: false,
       }]);
     } finally {
       setLoading(false);
@@ -250,10 +293,14 @@ function ChatTab({ profile }) {
             <Bot className="w-4 h-4 text-white" />
           </div>
           <div>
-            <p className="text-sm font-bold text-text">Study Tools</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-bold text-text">AI Study Coach</p>
+              <span className="text-[9px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-bold tracking-wide">LANGCHAIN</span>
+              <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">5 TOOLS</span>
+            </div>
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
-              <p className="text-[10px] text-muted">Personalised to your profile</p>
+              <p className="text-[10px] text-muted">ReAct agent · Visa RAG · Uni DB · Calendar · ROI · Scholarships</p>
             </div>
           </div>
         </div>
@@ -274,11 +321,46 @@ function ChatTab({ profile }) {
                 <Bot className="w-3.5 h-3.5 text-lavender" />
               </div>
             )}
-            <div className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed space-y-1
-              ${msg.role === 'user'
-                ? 'bg-lavender text-white rounded-tr-sm'
-                : 'bg-surfaceAlt text-text rounded-tl-sm'}`}>
-              {renderMd(msg.content)}
+            <div className="max-w-[82%] space-y-1.5">
+              {/* Tool calls trace — rich cards */}
+              {msg.tool_calls && msg.tool_calls.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted font-bold uppercase tracking-wide px-1">
+                    ⚡ Agent used {msg.tool_calls.length} tool{msg.tool_calls.length !== 1 ? 's' : ''}
+                  </p>
+                  {msg.tool_calls.map((tc, ti) => {
+                    const meta = TOOL_META[tc.tool] || { emoji: '🔧', label: tc.tool, color: 'bg-blue-50 border-blue-200 text-blue-700' };
+                    return (
+                      <div key={ti} className={`flex items-start gap-2.5 border rounded-xl px-3 py-2 text-[11px] ${meta.color}`}>
+                        <span className="text-sm flex-shrink-0 mt-0.5">{meta.emoji}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold">{meta.label}</p>
+                          {tc.input && typeof tc.input === 'object' && Object.keys(tc.input).length > 0 && (
+                            <p className="font-mono opacity-75 truncate mt-0.5">
+                              {Object.entries(tc.input).map(([k, v]) => `${k}="${v}"`).join(' · ')}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-[9px] opacity-60 flex-shrink-0 mt-0.5">→ called</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed space-y-1
+                ${msg.role === 'user'
+                  ? 'bg-lavender text-white rounded-tr-sm'
+                  : 'bg-surfaceAlt text-text rounded-tl-sm'}`}>
+                {renderMd(msg.content)}
+                {msg.agent_used && (
+                  <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-surfaceBorder">
+                    <Sparkles className="w-2.5 h-2.5 text-indigo-500" />
+                    <span className="text-[10px] text-indigo-500 font-semibold">
+                      Gemini ReAct Agent · {msg.tool_calls?.length || 0} tool call{msg.tool_calls?.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
             {msg.role === 'user' && (
               <div className="w-7 h-7 bg-lavender rounded-full flex items-center justify-center flex-shrink-0 mt-1">
@@ -287,17 +369,32 @@ function ChatTab({ profile }) {
             )}
           </div>
         ))}
+
+        {/* Animated agent thinking loading */}
         {loading && (
           <div className="flex gap-3">
-            <div className="w-7 h-7 bg-lavendLight rounded-full flex items-center justify-center">
+            <div className="w-7 h-7 bg-lavendLight rounded-full flex items-center justify-center flex-shrink-0">
               <Bot className="w-3.5 h-3.5 text-lavender" />
             </div>
-            <div className="bg-surfaceAlt rounded-2xl rounded-tl-sm px-4 py-3">
+            <div className="bg-surfaceAlt rounded-2xl rounded-tl-sm px-4 py-3 space-y-2">
+              {/* Stage dots */}
+              <div className="flex items-center gap-1 mb-1">
+                {AGENT_THINKING_STAGES.map((_, i) => (
+                  <div key={i}
+                    className={`h-1 rounded-full transition-all duration-500 ${
+                      i <= thinkStage ? 'bg-lavender' : 'bg-surfaceBorder'
+                    } ${i === thinkStage ? 'w-5 animate-pulse' : 'w-2'}`}
+                  />
+                ))}
+              </div>
               <div className="flex gap-1 items-center">
                 {[0, 0.15, 0.3].map((d, i) => (
-                  <div key={i} className="w-2 h-2 bg-lavender/60 rounded-full animate-bounce"
+                  <div key={i} className="w-1.5 h-1.5 bg-lavender/60 rounded-full animate-bounce"
                     style={{ animationDelay: `${d}s` }} />
                 ))}
+                <span className="text-[11px] text-muted ml-1.5 font-medium">
+                  {AGENT_THINKING_STAGES[thinkStage]}
+                </span>
               </div>
             </div>
           </div>
@@ -321,7 +418,7 @@ function ChatTab({ profile }) {
       <div className="p-3 border-t border-surfaceBorder flex gap-2">
         <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
-          placeholder="Ask anything about studying abroad…"
+          placeholder="Ask anything — I'll pick the right tools automatically…"
           className="input-field py-2 text-sm flex-1" />
         <button onClick={() => send()} disabled={loading || !input.trim()}
           className="btn-primary px-3 py-2 disabled:opacity-50">
@@ -901,7 +998,12 @@ function TimelineTab({ profile }) {
               <h2 className="font-bold text-text text-lg">
                 {intakeMonth} {intakeYear} — Application Roadmap
               </h2>
-              <p className="text-sm text-muted">{countries.join(', ')}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-sm text-muted">{countries.join(', ')}</p>
+                <span className="text-[10px] bg-lavendLight text-lavender px-2 py-0.5 rounded-full font-bold">
+                  {monthsUntilIntake()} months · {(result?.months || []).length} phases
+                </span>
+              </div>
             </div>
             <div className="flex gap-2">
               <button onClick={reset} className="btn-ghost text-xs px-3 py-2 flex items-center gap-1.5">
@@ -1087,6 +1189,7 @@ function ProfileTab({ profile }) {
 
   return (
     <div className="space-y-4">
+      <ProfileDataBanner profile={profile} context="profile analysis" />
       <div className="card p-5 text-center space-y-3">
         <div className="w-14 h-14 bg-lavendLight rounded-2xl flex items-center justify-center mx-auto">
           <BarChart3 className="w-7 h-7 text-lavender" />
@@ -1094,13 +1197,13 @@ function ProfileTab({ profile }) {
         <div>
           <h2 className="font-bold text-text">AI Profile Analysis</h2>
           <p className="text-sm text-muted mt-1 max-w-lg mx-auto">
-            7-dimensional analysis: Academic · English · GRE · Experience · Financial · Completeness · Career Clarity
+            7-dimensional scoring · Gemini-generated strengths, gaps & action plan · Country fit for your target destinations
           </p>
         </div>
         <button onClick={analyze} disabled={loading}
           className="btn-primary px-6 py-2.5 gap-2 mx-auto disabled:opacity-60">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Target className="w-4 h-4" />}
-          {loading ? 'Analysing your profile…' : 'Analyse My Profile'}
+          {loading ? 'Analysing your profile with Gemini…' : 'Analyse My Profile'}
         </button>
       </div>
 
@@ -1303,6 +1406,53 @@ function detectUniCountry(uniName) {
   return null;
 }
 
+function ProfileDataBanner({ profile, context }) {
+  const fields = [
+    profile?.cgpa            && { label: 'CGPA',       value: `${profile.cgpa}/10` },
+    profile?.field_of_study  && { label: 'Field',      value: profile.field_of_study },
+    profile?.preferred_degree && { label: 'Degree',    value: profile.preferred_degree },
+    profile?.career_goal     && { label: 'Career',     value: profile.career_goal },
+    profile?.work_experience_years && { label: 'Work exp', value: `${profile.work_experience_years}yr` },
+    profile?.english_test    && { label: profile.english_test, value: profile.english_score || '' },
+    profile?.gre_score       && { label: 'GRE',        value: profile.gre_score },
+    profile?.target_countries?.length && { label: 'Countries', value: profile.target_countries.slice(0,3).join(', ') },
+    (profile?.budget_inr || profile?.budget) && { label: 'Budget', value: profile.budget_inr ? `₹${(profile.budget_inr/100000).toFixed(1)}L/yr` : `$${profile.budget?.toLocaleString()}/yr` },
+  ].filter(Boolean);
+
+  const hasEnoughData = fields.length >= 3;
+
+  if (!hasEnoughData) {
+    return (
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-3">
+        <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-bold text-amber-800">Upload your CV for a personalised {context}</p>
+          <p className="text-xs text-amber-700 mt-0.5">
+            Go to <strong>Profile → Upload CV</strong> to let Gemini extract your CGPA, experience, career goals and more.
+            The {context} will then reference your actual data rather than placeholders.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-teal-50 border border-teal-200 rounded-xl p-3.5">
+      <div className="flex items-center gap-2 mb-2">
+        <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 flex-shrink-0" />
+        <p className="text-xs font-bold text-teal-700">Using your profile data — AI will reference these in the {context}</p>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {fields.map((f, i) => (
+          <span key={i} className="text-[11px] bg-white border border-teal-200 text-teal-700 px-2 py-0.5 rounded-full font-medium">
+            {f.label}: <span className="font-bold">{f.value}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SopTab({ profile }) {
   const profileCountries = profile?.target_countries || [];
   const [university, setUniversity]   = useState('');
@@ -1313,6 +1463,13 @@ function SopTab({ profile }) {
   const [resolvedCountry, setResolved] = useState('');   // what backend actually used
   const [result, setResult]           = useState('');
   const [loading, setLoading]         = useState(false);
+
+  // CV upload state
+  const [cvFile, setCvFile]           = useState(null);
+  const [cvLoading, setCvLoading]     = useState(false);
+  const [cvExtracted, setCvExtracted] = useState(null);  // extracted fields from CV
+  const [cvError, setCvError]         = useState('');
+  const cvInputRef                    = useRef(null);
 
   useEffect(() => {
     if (profileCountries.length > 0 && !country) setCountry(profileCountries[0]);
@@ -1333,11 +1490,32 @@ function SopTab({ profile }) {
     }
   };
 
+  const extractCv = async () => {
+    if (!cvFile) return;
+    setCvLoading(true); setCvError('');
+    try {
+      const fd = new FormData();
+      fd.append('file', cvFile);
+      const resp = await api.post('/cv/extract', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setCvExtracted(resp.data.extracted);
+    } catch (e) {
+      setCvError(e?.response?.data?.detail || 'Extraction failed. Try a text-based PDF.');
+    } finally {
+      setCvLoading(false);
+    }
+  };
+
   const generate = async () => {
     if (!university.trim() || !program.trim()) return;
     setLoading(true); setCountryNote(''); setResolved('');
     try {
-      const data = await aiAPI.generateSop(profile, university, program, country);
+      // Merge CV-extracted data into profile for richer SOP generation
+      const mergedProfile = cvExtracted
+        ? { ...(profile || {}), ...cvExtracted }
+        : profile;
+      const data = await aiAPI.generateSop(mergedProfile, university, program, country);
       setResult(data.outline || '');
       setResolved(data.resolved_country || country);
       setCountryNote(data.country_note || '');
@@ -1368,13 +1546,94 @@ function SopTab({ profile }) {
 
   return (
     <div className="space-y-4">
+      <ProfileDataBanner profile={profile} context="SOP outline" />
+
+      {/* ── CV Upload for SOP ── */}
+      <div className="card p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <Zap className="w-4 h-4 text-lavender" />
+          <h3 className="font-bold text-text text-sm">Upload CV for Richer SOP</h3>
+          <span className="text-[10px] bg-lavendLight text-lavender px-2 py-0.5 rounded-full font-bold">OPTIONAL</span>
+        </div>
+        <p className="text-xs text-muted">
+          Gemini extracts your education, experience, projects and skills to personalise the SOP draft beyond your saved profile.
+        </p>
+
+        {!cvExtracted ? (
+          <>
+            {/* Drop zone */}
+            <div
+              onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) { setCvFile(f); setCvError(''); } }}
+              onDragOver={e => e.preventDefault()}
+              onClick={() => cvInputRef.current?.click()}
+              className="border border-dashed border-lavender/40 rounded-xl p-4 text-center cursor-pointer hover:bg-lavendLight/30 transition-colors"
+            >
+              <input
+                ref={cvInputRef}
+                type="file"
+                accept=".pdf,.docx,.doc,.txt"
+                className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) { setCvFile(f); setCvError(''); } }}
+              />
+              {cvFile ? (
+                <div className="flex items-center justify-center gap-3">
+                  <FileText className="w-4 h-4 text-lavender" />
+                  <span className="text-sm font-medium text-text">{cvFile.name}</span>
+                  <button onClick={e => { e.stopPropagation(); setCvFile(null); setCvError(''); }}
+                    className="text-muted hover:text-rose-500 transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <Upload className="w-5 h-5 text-lavender/60 mx-auto mb-1" />
+                  <p className="text-xs text-muted">Drop your CV here or <span className="text-lavender font-semibold">browse</span></p>
+                  <p className="text-[10px] text-muted mt-0.5">PDF, DOCX, or TXT · max 5 MB</p>
+                </div>
+              )}
+            </div>
+            {cvError && <p className="text-xs text-rose-600 bg-rose-50 rounded-lg px-3 py-2">{cvError}</p>}
+            {cvFile && (
+              <button onClick={extractCv} disabled={cvLoading}
+                className="btn-primary w-full flex items-center justify-center gap-2 py-2 text-sm disabled:opacity-60">
+                {cvLoading
+                  ? <><Loader2 className="w-4 h-4 animate-spin"/> Extracting with Gemini…</>
+                  : <><Sparkles className="w-4 h-4"/> Extract CV Data for SOP</>}
+              </button>
+            )}
+          </>
+        ) : (
+          /* CV extracted — show summary */
+          <div className="bg-teal-50 border border-teal-200 rounded-xl p-3 flex items-start gap-2.5">
+            <CheckCircle2 className="w-4 h-4 text-teal-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-teal-800">CV data ready — will be used to personalise your SOP</p>
+              <p className="text-[11px] text-teal-700 mt-0.5">
+                {[
+                  cvExtracted.field_of_study && `Field: ${cvExtracted.field_of_study}`,
+                  cvExtracted.education_summary && 'Education summary',
+                  cvExtracted.experience_summary && 'Experience summary',
+                  cvExtracted.projects_summary && 'Projects',
+                  cvExtracted.career_goal && 'Career goals',
+                ].filter(Boolean).join(' · ')}
+              </p>
+            </div>
+            <button onClick={() => { setCvExtracted(null); setCvFile(null); }}
+              className="text-teal-500 hover:text-teal-700 flex-shrink-0">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="card p-5 space-y-4">
         <div className="flex items-center gap-2 mb-1">
           <BookOpen className="w-4 h-4 text-lavender" />
           <h2 className="font-bold text-text">Statement of Purpose Builder</h2>
+          <span className="text-[10px] bg-lavendLight text-lavender px-2 py-0.5 rounded-full font-bold">GEMINI AI</span>
         </div>
         <p className="text-sm text-muted">
-          Country auto-detected from university name. SOP tone and structure tailored to that country's application style.
+          Generates a 7-section SOP draft with actual text — grounded in your real profile data. Country tone and structure auto-adapted.
         </p>
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
