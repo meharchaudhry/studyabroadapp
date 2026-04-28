@@ -36,3 +36,18 @@ frontend/frontend_server.log
 # Secrets
 *.key
 *.pem
+backend/data/google_credentials.json
+backend/data/google_token.json
+
+# Presentation / report binaries (not code)
+*.pptx
+*.docx
+
+# Personal viva/presentation prep docs
+PRESENTATION_SPEECH.md
+PROJECT_EXPLANATION_GUIDE.md
+RAG_DEEP_DIVE.md
+VIVA_GUIDE.md
+
+# Claude internal
+.claude/
