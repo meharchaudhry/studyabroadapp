@@ -51,3 +51,4 @@ VIVA_GUIDE.md
 
 # Claude internal
 .claude/
+data/chroma_db/
